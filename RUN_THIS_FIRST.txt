@@ -1,0 +1,56 @@
+================================================================================
+  IMPORTANT: Run These Commands to Fix the TypeScript Errors
+================================================================================
+
+The errors you're seeing in api.ts are NORMAL before installation.
+They will disappear after you install the npm packages.
+
+STEP 1: Open Terminal/Command Prompt in the project root folder
+
+STEP 2: Run these commands:
+
+  For Windows (Command Prompt or PowerShell):
+  ─────────────────────────────────────────────
+  cd frontend
+  npm install
+  cd ..
+
+  For Linux/Mac (Terminal):
+  ─────────────────────────────────────────────
+  cd frontend && npm install && cd ..
+
+STEP 3: Wait for installation to complete (2-5 minutes)
+
+STEP 4: In VS Code, restart TypeScript:
+  - Press Ctrl+Shift+P (or Cmd+Shift+P on Mac)
+  - Type: "TypeScript: Restart TS Server"
+  - Press Enter
+
+STEP 5: The errors should be GONE! ✓
+
+================================================================================
+
+WHY ARE THERE ERRORS?
+
+Line 1 Error: "Cannot find module 'axios'"
+→ Because axios package is not installed yet
+
+Line 3 Error: "Cannot find name 'process'"  
+→ Because @types/node package is not installed yet
+
+SOLUTION: Install the packages with "npm install"
+
+================================================================================
+
+QUICK INSTALL (Copy and paste this):
+
+cd frontend && npm install
+
+================================================================================
+
+After installation, you'll see a "node_modules" folder in the frontend directory.
+This folder contains all the packages (axios, @types/node, etc.)
+
+Then the TypeScript errors will disappear automatically!
+
+================================================================================
