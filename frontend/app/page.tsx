@@ -251,8 +251,7 @@ export default function Home() {
               { lang: 'C++',    color: 'bg-blue-600/15 border-blue-500/25 text-blue-300 hover:border-blue-400/50' },
               { lang: 'Python', color: 'bg-yellow-600/15 border-yellow-500/25 text-yellow-300 hover:border-yellow-400/50' },
               { lang: 'Java',   color: 'bg-orange-600/15 border-orange-500/25 text-orange-300 hover:border-orange-400/50' },
-              { lang: 'Rust',   color: 'bg-red-600/15 border-red-500/25 text-red-300 hover:border-red-400/50' },
-              { lang: 'Go',     color: 'bg-cyan-600/15 border-cyan-500/25 text-cyan-300 hover:border-cyan-400/50' },
+              
             ].map((l) => (
               <div key={l.lang} className={`border rounded-xl p-4 text-center font-bold text-lg transition-all duration-200 cursor-default ${l.color}`}>
                 {l.lang}

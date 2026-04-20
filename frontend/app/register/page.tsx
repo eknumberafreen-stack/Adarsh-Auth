@@ -116,7 +116,7 @@ export default function Register() {
             {/* Google Sign In */}
             <button
               type="button"
-              onClick={() => window.location.href = `${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000'}/api/auth/google`}
+              onClick={() => window.location.href = `${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://adarsh-auth-backend-production.up.railway.app'}/api/auth/google`}
               className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.1] rounded-xl text-sm font-medium text-gray-200 transition-all duration-200 mb-6"
             >
               <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
