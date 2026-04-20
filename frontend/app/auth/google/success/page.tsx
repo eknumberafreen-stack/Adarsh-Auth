@@ -20,7 +20,6 @@ export default function GoogleSuccess() {
       router.replace('/dashboard')
     } else {
       router.replace('/login?error=google_failed')
-    }
   }, [])
 
   return (
