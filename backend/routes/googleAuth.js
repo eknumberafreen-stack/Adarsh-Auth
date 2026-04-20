@@ -42,6 +42,8 @@ passport.use(new GoogleStrategy({
 
 // ── Routes ────────────────────────────────────────────────────
 
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000'
+
 // Step 1: Redirect to Google
 router.get('/', passport.authenticate('google', {
   scope: ['profile', 'email'],
@@ -50,7 +52,7 @@ router.get('/', passport.authenticate('google', {
 
 // Step 2: Google callback
 router.get('/callback',
-  passport.authenticate('google', { session: false, failureRedirect: 'http://localhost:3000/login?error=google_failed' }),
+  passport.authenticate('google', { session: false, failureRedirect: `${FRONTEND_URL}/login?error=google_failed` }),
   async (req, res) => {
     try {
       const user = req.user;
@@ -67,12 +69,11 @@ router.get('/callback',
         { expiresIn: process.env.JWT_REFRESH_EXPIRY || '7d' }
       );
 
-      // Redirect to frontend with tokens
       res.redirect(
-        `http://localhost:3000/auth/google/success?accessToken=${accessToken}&refreshToken=${refreshToken}&userId=${user._id}&email=${encodeURIComponent(user.email)}`
+        `${FRONTEND_URL}/auth/google/success?accessToken=${accessToken}&refreshToken=${refreshToken}&userId=${user._id}&email=${encodeURIComponent(user.email)}`
       );
     } catch (err) {
-      res.redirect('http://localhost:3000/login?error=google_failed');
+      res.redirect(`${FRONTEND_URL}/login?error=google_failed`);
     }
   }
 );
