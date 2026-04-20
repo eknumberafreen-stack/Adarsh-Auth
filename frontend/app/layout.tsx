@@ -6,8 +6,8 @@ import { Toaster } from 'react-hot-toast'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'SaaS Auth Platform',
-  description: 'Secure authentication and licensing platform',
+  title: 'Adarsh Auth Platform',
+  description: 'Self-hosted authentication and licensing platform for software developers',
 }
 
 export default function RootLayout({

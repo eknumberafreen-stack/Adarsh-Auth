@@ -71,41 +71,76 @@ router.get('/application/:applicationId', asyncHandler(async (req, res) => {
 // Revoke license
 router.post('/:id/revoke', asyncHandler(async (req, res) => {
   const license = await License.findById(req.params.id).populate('applicationId');
-
-  if (!license) {
-    return res.status(404).json({ error: 'License not found' });
-  }
-
-  // Verify application ownership
-  if (license.applicationId.userId.toString() !== req.userId.toString()) {
-    return res.status(403).json({ error: 'Access denied' });
-  }
-
+  if (!license) return res.status(404).json({ error: 'License not found' });
+  if (license.applicationId.userId.toString() !== req.userId.toString()) return res.status(403).json({ error: 'Access denied' });
   license.revoked = true;
-  license.revokedAt = Date.now();
+  license.revokedAt = new Date();
   await license.save();
+  res.json({ message: 'License revoked', license });
+}));
 
-  res.json({
-    message: 'License revoked successfully',
-    license
-  });
+// Unrevoke license
+router.post('/:id/unrevoke', asyncHandler(async (req, res) => {
+  const license = await License.findById(req.params.id).populate('applicationId');
+  if (!license) return res.status(404).json({ error: 'License not found' });
+  if (license.applicationId.userId.toString() !== req.userId.toString()) return res.status(403).json({ error: 'Access denied' });
+  license.revoked = false;
+  license.revokedAt = null;
+  await license.save();
+  res.json({ message: 'License unrevoked', license });
+}));
+
+// Pause license
+router.post('/:id/pause', asyncHandler(async (req, res) => {
+  const license = await License.findById(req.params.id).populate('applicationId');
+  if (!license) return res.status(404).json({ error: 'License not found' });
+  if (license.applicationId.userId.toString() !== req.userId.toString()) return res.status(403).json({ error: 'Access denied' });
+  license.paused = true;
+  await license.save();
+  res.json({ message: 'License paused' });
+}));
+
+// Unpause license
+router.post('/:id/unpause', asyncHandler(async (req, res) => {
+  const license = await License.findById(req.params.id).populate('applicationId');
+  if (!license) return res.status(404).json({ error: 'License not found' });
+  if (license.applicationId.userId.toString() !== req.userId.toString()) return res.status(403).json({ error: 'Access denied' });
+  license.paused = false;
+  await license.save();
+  res.json({ message: 'License unpaused' });
+}));
+
+// Blacklist license permanently
+router.post('/:id/blacklist', asyncHandler(async (req, res) => {
+  const { reason = 'Manual blacklist' } = req.body;
+  const license = await License.findById(req.params.id).populate('applicationId');
+  if (!license) return res.status(404).json({ error: 'License not found' });
+  if (license.applicationId.userId.toString() !== req.userId.toString()) return res.status(403).json({ error: 'Access denied' });
+  license.blacklist(reason);
+  await license.save();
+  res.json({ message: 'License permanently blacklisted' });
+}));
+
+// Edit license
+router.patch('/:id', asyncHandler(async (req, res) => {
+  const { note, subscriptionLevel, expiryUnit, expiryDuration } = req.body;
+  const license = await License.findById(req.params.id).populate('applicationId');
+  if (!license) return res.status(404).json({ error: 'License not found' });
+  if (license.applicationId.userId.toString() !== req.userId.toString()) return res.status(403).json({ error: 'Access denied' });
+  if (note !== undefined) license.note = note;
+  if (subscriptionLevel) license.subscriptionLevel = subscriptionLevel;
+  if (expiryUnit) license.expiryUnit = expiryUnit;
+  if (expiryDuration) license.expiryDuration = expiryDuration;
+  await license.save();
+  res.json({ message: 'License updated', license });
 }));
 
 // Delete license
 router.delete('/:id', asyncHandler(async (req, res) => {
   const license = await License.findById(req.params.id).populate('applicationId');
-
-  if (!license) {
-    return res.status(404).json({ error: 'License not found' });
-  }
-
-  // Verify application ownership
-  if (license.applicationId.userId.toString() !== req.userId.toString()) {
-    return res.status(403).json({ error: 'Access denied' });
-  }
-
+  if (!license) return res.status(404).json({ error: 'License not found' });
+  if (license.applicationId.userId.toString() !== req.userId.toString()) return res.status(403).json({ error: 'Access denied' });
   await License.deleteOne({ _id: license._id });
-
   res.json({ message: 'License deleted successfully' });
 }));
 

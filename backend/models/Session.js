@@ -53,7 +53,7 @@ sessionSchema.methods.isValid = function() {
 
 // Update heartbeat
 sessionSchema.methods.updateHeartbeat = async function() {
-  this.lastHeartbeat = Date.now();
+  this.lastHeartbeat = new Date();
   return await this.save();
 };
 

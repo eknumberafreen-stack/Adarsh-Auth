@@ -11,12 +11,14 @@ import {
   ShieldCheckIcon,
   ChartBarIcon,
   ArrowTrendingUpIcon,
-  BoltIcon
 } from '@heroicons/react/24/outline'
 
 export default function Dashboard() {
   const { user } = useAuthStore()
-  const [stats, setStats] = useState({ applications: 0, licenses: 0, users: 0, sessions: 0, usedLicenses: 0, bannedUsers: 0 })
+  const [stats, setStats] = useState({
+    applications: 0, licenses: 0, users: 0,
+    sessions: 0, usedLicenses: 0, bannedUsers: 0
+  })
   const [recentApps, setRecentApps] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -28,7 +30,8 @@ export default function Dashboard() {
       const apps = appsRes.data.applications
       setRecentApps(apps.slice(0, 3))
 
-      let totalLicenses = 0, usedLicenses = 0, totalUsers = 0, bannedUsers = 0, totalSessions = 0
+      let totalLicenses = 0, usedLicenses = 0, totalUsers = 0,
+          bannedUsers = 0, totalSessions = 0
 
       for (const app of apps) {
         try {
@@ -37,15 +40,19 @@ export default function Dashboard() {
             api.get(`/users/application/${app._id}`),
             api.get(`/sessions/application/${app._id}`)
           ])
-          totalLicenses += lRes.data.licenses.length
-          usedLicenses += lRes.data.licenses.filter((l: any) => l.used).length
-          totalUsers += uRes.data.users.length
-          bannedUsers += uRes.data.users.filter((u: any) => u.banned).length
-          totalSessions += sRes.data.sessions.length
+          totalLicenses  += lRes.data.licenses.length
+          usedLicenses   += lRes.data.licenses.filter((l: any) => l.used).length
+          totalUsers     += uRes.data.users.length
+          bannedUsers    += uRes.data.users.filter((u: any) => u.banned).length
+          totalSessions  += sRes.data.sessions.length
         } catch {}
       }
 
-      setStats({ applications: apps.length, licenses: totalLicenses, users: totalUsers, sessions: totalSessions, usedLicenses, bannedUsers })
+      setStats({
+        applications: apps.length, licenses: totalLicenses,
+        users: totalUsers, sessions: totalSessions,
+        usedLicenses, bannedUsers
+      })
     } catch (e) {
       console.error(e)
     } finally {
@@ -54,78 +61,84 @@ export default function Dashboard() {
   }
 
   const statCards = [
-    { name: 'Applications', value: stats.applications, icon: CubeIcon, color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
-    { name: 'Total Licenses', value: stats.licenses, icon: KeyIcon, color: 'text-green-400', bg: 'bg-green-500/10', border: 'border-green-500/20' },
-    { name: 'Total Users', value: stats.users, icon: UsersIcon, color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20' },
-    { name: 'Active Sessions', value: stats.sessions, icon: ClockIcon, color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/20' },
-    { name: 'Used Licenses', value: stats.usedLicenses, icon: ChartBarIcon, color: 'text-cyan-400', bg: 'bg-cyan-500/10', border: 'border-cyan-500/20' },
-    { name: 'Banned Users', value: stats.bannedUsers, icon: ShieldCheckIcon, color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20' },
+    { name: 'Applications',    value: stats.applications, icon: CubeIcon,        color: 'text-indigo-400',  border: 'border-indigo-500/15' },
+    { name: 'Total Licenses',  value: stats.licenses,     icon: KeyIcon,          color: 'text-emerald-400', border: 'border-emerald-500/15' },
+    { name: 'Total Users',     value: stats.users,        icon: UsersIcon,        color: 'text-violet-400',  border: 'border-violet-500/15' },
+    { name: 'Active Sessions', value: stats.sessions,     icon: ClockIcon,        color: 'text-amber-400',   border: 'border-amber-500/15' },
+    { name: 'Used Licenses',   value: stats.usedLicenses, icon: ChartBarIcon,     color: 'text-sky-400',     border: 'border-sky-500/15' },
+    { name: 'Banned Users',    value: stats.bannedUsers,  icon: ShieldCheckIcon,  color: 'text-rose-400',    border: 'border-rose-500/15' },
   ]
 
   return (
     <div className="space-y-6">
-      {/* Welcome Banner */}
-      <div className="rounded-xl bg-gradient-to-r from-primary-600/30 to-purple-600/20 border border-primary-500/30 p-6 flex items-center justify-between">
+
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Welcome back! 👋</h1>
-          <p className="text-gray-300 mt-1">{user?.email}</p>
-          <p className="text-gray-400 text-sm mt-2">Here's what's happening with your applications today.</p>
+          <h1 className="text-xl font-semibold text-white">Overview</h1>
+          <p className="text-sm text-gray-500 mt-0.5">{user?.email}</p>
         </div>
-        <div className="hidden md:flex items-center gap-3">
-          <div className="w-16 h-16 rounded-full bg-primary-600/30 border border-primary-500/50 flex items-center justify-center">
-            <BoltIcon className="w-8 h-8 text-primary-400" />
-          </div>
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="text-xs text-emerald-400 font-medium">All systems operational</span>
         </div>
       </div>
 
       {/* Stats Grid */}
       {loading ? (
-        <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
+        <div className="flex justify-center py-16">
+          <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {statCards.map((stat) => (
-            <div key={stat.name} className={`card border ${stat.border} ${stat.bg}`}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-sm">{stat.name}</p>
-                  <p className="text-4xl font-bold mt-2">{stat.value}</p>
-                </div>
-                <div className={`w-12 h-12 rounded-xl ${stat.bg} border ${stat.border} flex items-center justify-center`}>
-                  <stat.icon className={`w-6 h-6 ${stat.color}`} />
-                </div>
+            <div
+              key={stat.name}
+              className={`bg-white/[0.02] border ${stat.border} rounded-xl p-5 hover:bg-white/[0.04] transition-colors`}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">{stat.name}</p>
+                <stat.icon className={`w-4 h-4 ${stat.color} opacity-70`} />
               </div>
+              <p className="text-3xl font-bold text-white">{stat.value}</p>
             </div>
           ))}
         </div>
       )}
 
-      {/* Recent Apps + Quick Info */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Bottom Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
         {/* Recent Applications */}
-        <div className="card">
+        <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold flex items-center gap-2">
-              <CubeIcon className="w-5 h-5 text-primary-400" />
-              Recent Applications
-            </h2>
-            <a href="/dashboard/applications" className="text-xs text-primary-400 hover:text-primary-300">View all →</a>
+            <h2 className="text-sm font-semibold text-white">Recent Applications</h2>
+            <a href="/dashboard/applications" className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">
+              View all
+            </a>
           </div>
+
           {recentApps.length === 0 ? (
-            <div className="text-center py-8 text-gray-500 text-sm">
-              <CubeIcon className="w-10 h-10 mx-auto mb-2 opacity-30" />
-              No applications yet
+            <div className="text-center py-8">
+              <CubeIcon className="w-8 h-8 mx-auto text-gray-600 mb-2" />
+              <p className="text-sm text-gray-500">No applications yet</p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {recentApps.map((app: any) => (
-                <div key={app._id} className="flex items-center justify-between p-3 bg-dark-bg rounded-xl border border-dark-border">
+                <div
+                  key={app._id}
+                  className="flex items-center justify-between px-4 py-3 bg-white/[0.02] border border-white/[0.04] rounded-lg"
+                >
                   <div>
-                    <p className="font-medium text-sm">{app.name}</p>
-                    <p className="text-xs text-gray-400">v{app.version} · {app.userCount || 0} users</p>
+                    <p className="text-sm font-medium text-white">{app.name}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">v{app.version} · {app.userCount || 0} users</p>
                   </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${app.status === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                    app.status === 'active'
+                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                      : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                  }`}>
                     {app.status}
                   </span>
                 </div>
@@ -134,60 +147,79 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Quick Stats */}
-        <div className="card">
-          <h2 className="text-lg font-bold flex items-center gap-2 mb-4">
-            <ArrowTrendingUpIcon className="w-5 h-5 text-primary-400" />
-            Platform Overview
-          </h2>
+        {/* Platform Overview */}
+        <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <ArrowTrendingUpIcon className="w-4 h-4 text-gray-400" />
+            <h2 className="text-sm font-semibold text-white">Platform Overview</h2>
+          </div>
+
           <div className="space-y-4">
             {[
-              { label: 'License Usage Rate', value: stats.licenses > 0 ? Math.round((stats.usedLicenses / stats.licenses) * 100) : 0, suffix: '%', color: 'bg-green-500' },
-              { label: 'Active Users', value: stats.users > 0 ? Math.round(((stats.users - stats.bannedUsers) / stats.users) * 100) : 0, suffix: '%', color: 'bg-blue-500' },
-              { label: 'Sessions Active', value: stats.sessions, suffix: '', color: 'bg-orange-500' },
+              {
+                label: 'License Usage',
+                value: stats.licenses > 0 ? Math.round((stats.usedLicenses / stats.licenses) * 100) : 0,
+                suffix: '%',
+                color: 'bg-emerald-500'
+              },
+              {
+                label: 'Active Users',
+                value: stats.users > 0 ? Math.round(((stats.users - stats.bannedUsers) / stats.users) * 100) : 0,
+                suffix: '%',
+                color: 'bg-indigo-500'
+              },
+              {
+                label: 'Sessions',
+                value: Math.min(stats.sessions * 10, 100),
+                suffix: '',
+                color: 'bg-amber-500'
+              },
             ].map((item) => (
               <div key={item.label}>
-                <div className="flex justify-between text-sm mb-1">
+                <div className="flex justify-between text-xs mb-1.5">
                   <span className="text-gray-400">{item.label}</span>
-                  <span className="font-medium">{item.value}{item.suffix}</span>
+                  <span className="text-gray-300 font-medium">
+                    {item.label === 'Sessions' ? stats.sessions : `${item.value}${item.suffix}`}
+                  </span>
                 </div>
-                <div className="h-2 bg-dark-bg rounded-full overflow-hidden">
+                <div className="h-1.5 bg-white/[0.05] rounded-full overflow-hidden">
                   <div
-                    className={`h-full ${item.color} rounded-full transition-all`}
-                    style={{ width: `${item.suffix === '%' ? item.value : Math.min(item.value * 10, 100)}%` }}
+                    className={`h-full ${item.color} rounded-full transition-all duration-700`}
+                    style={{ width: `${item.value}%` }}
                   />
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="mt-6 pt-4 border-t border-dark-border grid grid-cols-2 gap-4">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-green-400">{stats.users - stats.bannedUsers}</p>
-              <p className="text-xs text-gray-400 mt-1">Active Users</p>
+          <div className="mt-5 pt-4 border-t border-white/[0.05] grid grid-cols-2 gap-3">
+            <div className="bg-white/[0.02] rounded-lg p-3 text-center">
+              <p className="text-2xl font-bold text-emerald-400">{stats.users - stats.bannedUsers}</p>
+              <p className="text-xs text-gray-500 mt-1">Active Users</p>
             </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-red-400">{stats.bannedUsers}</p>
-              <p className="text-xs text-gray-400 mt-1">Banned Users</p>
+            <div className="bg-white/[0.02] rounded-lg p-3 text-center">
+              <p className="text-2xl font-bold text-rose-400">{stats.bannedUsers}</p>
+              <p className="text-xs text-gray-500 mt-1">Banned Users</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Security Info */}
-      <div className="card border border-green-500/20 bg-green-500/5">
-        <div className="flex items-start gap-4">
-          <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center flex-shrink-0">
-            <ShieldCheckIcon className="w-5 h-5 text-green-400" />
+      {/* Security Status */}
+      <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-4">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center flex-shrink-0">
+            <ShieldCheckIcon className="w-4 h-4 text-emerald-400" />
           </div>
           <div>
-            <h3 className="font-bold text-green-400">Security Active</h3>
-            <p className="text-sm text-gray-400 mt-1">
-              HMAC SHA256 signatures · Replay attack prevention · Rate limiting · HWID locking · Audit logging
+            <p className="text-sm font-medium text-white">Security Active</p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              HMAC SHA256 · Replay Protection · Rate Limiting · HWID Lock · Audit Logging
             </p>
           </div>
         </div>
       </div>
+
     </div>
   )
 }

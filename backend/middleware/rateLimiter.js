@@ -1,36 +1,93 @@
-const rateLimit = require('express-rate-limit');
+/**
+ * IMPROVED RATE LIMITER
+ * Fix #8: Per-IP + Per-App + Per-Endpoint limits using Redis
+ */
 
-// Global rate limiter (no Redis store - uses memory)
+const rateLimit = require('express-rate-limit');
+const { getRedisClient } = require('../config/redis');
+
+// ─── Redis-backed manual rate limiter ─────────────────────────────────────────
+
+/**
+ * Creates a Redis-backed rate limiter
+ * @param {string} prefix   - Redis key prefix
+ * @param {number} maxReqs  - Max requests allowed
+ * @param {number} windowMs - Window in milliseconds
+ * @param {Function} keyFn  - Function to extract key from req
+ */
+const redisRateLimiter = (prefix, maxReqs, windowMs, keyFn) => {
+  return async (req, res, next) => {
+    try {
+      const redis   = getRedisClient();
+      const key     = `rl:${prefix}:${keyFn(req)}`;
+      const windowS = Math.ceil(windowMs / 1000);
+
+      const current = await redis.incr(key);
+      if (current === 1) {
+        await redis.expire(key, windowS);
+      }
+
+      if (current > maxReqs) {
+        return res.status(429).json({ success: false, message: 'Too many requests' });
+      }
+
+      next();
+    } catch (err) {
+      // If Redis fails, allow request (fail open) but log it
+      console.error('[rateLimiter] Redis error:', err.message);
+      next();
+    }
+  };
+};
+
+// ─── Global rate limiter (memory-based fallback) ──────────────────────────────
 const globalRateLimiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW) || 15 * 60 * 1000,
-  max: parseInt(process.env.RATE_LIMIT_MAX) || 500,
-  message: { error: 'Too many requests' },
+  windowMs: 15 * 60 * 1000,
+  max: 500,
+  message: { success: false, message: 'Too many requests' },
   standardHeaders: true,
   legacyHeaders: false
 });
 
-// Strict rate limiter for auth endpoints
+// ─── Auth endpoints: strict ───────────────────────────────────────────────────
 const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: { error: 'Too many authentication attempts' },
+  max: 20,
+  message: { success: false, message: 'Too many requests' },
   skipSuccessfulRequests: true
 });
 
-// Client API rate limiter
-const clientApiRateLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 100,
-  message: { error: 'Rate limit exceeded' },
-  keyGenerator: (req) => {
-    const ip = req.ip;
-    const ownerId = req.body?.owner_id || req.headers['x-owner-id'] || 'unknown';
-    return `${ip}:${ownerId}`;
-  }
-});
+// ─── Per-IP client API limiter ────────────────────────────────────────────────
+const clientIpLimiter = redisRateLimiter(
+  'client:ip',
+  60,
+  60_000,
+  req => req.ip
+);
+
+// ─── Per-App client API limiter ───────────────────────────────────────────────
+const clientAppLimiter = redisRateLimiter(
+  'client:app',
+  100,
+  60_000,
+  req => req.body?.owner_id || 'unknown'
+);
+
+// ─── Per-endpoint limiter factory ─────────────────────────────────────────────
+const endpointLimiter = (endpoint, maxReqs = 30, windowMs = 60_000) =>
+  redisRateLimiter(
+    `ep:${endpoint}`,
+    maxReqs,
+    windowMs,
+    req => req.ip
+  );
+
+// ─── Combined client API limiter ──────────────────────────────────────────────
+const clientApiRateLimiter = [clientIpLimiter, clientAppLimiter];
 
 module.exports = {
   globalRateLimiter,
   authRateLimiter,
-  clientApiRateLimiter
+  clientApiRateLimiter,
+  endpointLimiter
 };

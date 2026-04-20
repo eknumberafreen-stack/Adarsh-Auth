@@ -38,6 +38,11 @@ const applicationSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  discordWebhook: {
+    type: String,
+    default: '',
+    trim: true
+  },
   createdAt: {
     type: Date,
     default: Date.now

@@ -3,6 +3,7 @@ const Application = require('../models/Application');
 const AppUser = require('../models/AppUser');
 const License = require('../models/License');
 const Session = require('../models/Session');
+const AuditLog = require('../models/AuditLog');
 const { verifyToken } = require('../middleware/auth');
 const { validate, schemas } = require('../middleware/validation');
 const { asyncHandler } = require('../middleware/errorHandler');
@@ -71,6 +72,7 @@ router.patch('/:id', validate(schemas.updateApplication), asyncHandler(async (re
   if (req.body.name) application.name = req.body.name;
   if (req.body.version) application.version = req.body.version;
   if (req.body.status) application.status = req.body.status;
+  if (req.body.discordWebhook !== undefined) application.discordWebhook = req.body.discordWebhook;
 
   await application.save();
 
@@ -80,7 +82,7 @@ router.patch('/:id', validate(schemas.updateApplication), asyncHandler(async (re
   });
 }));
 
-// Regenerate app secret
+// Regenerate app secret — invalidates ALL sessions (Fix #6)
 router.post('/:id/regenerate-secret', asyncHandler(async (req, res) => {
   const application = await Application.findOne({
     _id: req.params.id,
@@ -95,13 +97,54 @@ router.post('/:id/regenerate-secret', asyncHandler(async (req, res) => {
   const newSecret = application.regenerateSecret();
   await application.save();
 
-  // Invalidate all active sessions for this application
-  await Session.deleteMany({ applicationId: application._id });
+  // Invalidate ALL active sessions for this application
+  const deleted = await Session.deleteMany({ applicationId: application._id });
+
+  // Log the rotation
+  await AuditLog.create({
+    applicationId: application._id,
+    action: 'suspicious_activity',
+    ip: req.ip,
+    severity: 'info',
+    details: {
+      event: 'secret_rotated',
+      sessionsInvalidated: deleted.deletedCount
+    }
+  });
 
   res.json({
-    message: 'App secret regenerated successfully. All active sessions have been invalidated.',
+    message: `Secret regenerated. ${deleted.deletedCount} session(s) invalidated.`,
     appSecret: newSecret
   });
+}));
+
+// Test Discord webhook
+router.post('/:id/test-webhook', asyncHandler(async (req, res) => {
+  const application = await Application.findOne({
+    _id: req.params.id,
+    userId: req.userId
+  });
+
+  if (!application) return res.status(404).json({ error: 'Application not found' });
+
+  const { webhookUrl } = req.body;
+  if (!webhookUrl) return res.status(400).json({ error: 'webhookUrl required' });
+
+  const { sendDiscordWebhook } = require('../utils/discord');
+
+  await sendDiscordWebhook(webhookUrl, {
+    title: '🧪 Test Webhook',
+    color: 0x5865F2,
+    description: `Webhook is working correctly for **${application.name}**!`,
+    fields: [
+      { name: '✅ Status', value: 'Connected', inline: true },
+      { name: '🏠 App',   value: application.name, inline: true },
+    ],
+    timestamp: new Date().toISOString(),
+    footer: { text: 'AdarshAuth • Test Event' },
+  });
+
+  res.json({ message: 'Test webhook sent!' });
 }));
 
 // Delete application
