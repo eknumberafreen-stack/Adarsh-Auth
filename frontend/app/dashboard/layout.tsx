@@ -92,7 +92,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname()
   const { isAuthenticated, user, logout } = useAuthStore()
 
-  const isOwner = user?.email === (process.env.NEXT_PUBLIC_OWNER_EMAIL || 'eknumberafreen@gmail.com')
+  const isOwner = user?.email === (process.env.NEXT_PUBLIC_OWNER_EMAIL || 'donumberafreen@gmail.com')
 
   const navigation = [
     { name: 'Dashboard',   href: '/dashboard',              icon: HomeIcon },
