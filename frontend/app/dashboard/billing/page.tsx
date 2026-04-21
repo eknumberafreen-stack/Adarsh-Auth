@@ -46,7 +46,9 @@ function formatLimit(value: number): string {
 
 function formatPrice(cents: number): string {
   if (cents === 0) return 'Free'
-  return `$${(cents / 100).toFixed(0)}/month`
+  const dollars = cents / 100
+  const display = dollars % 1 === 0 ? dollars.toFixed(0) : dollars.toFixed(1)
+  return '$' + display + '/month'
 }
 
 function UsageBar({
@@ -283,7 +285,7 @@ export default function BillingPage() {
                     </tr>
                   ))}
 
-                  {/* Features rows — collect all unique features */}
+                  {/* Features rows */}
                   {Array.from(
                     new Set(allPlans.flatMap((p) => p.features))
                   ).map((feature) => (

@@ -301,7 +301,7 @@ export default function Home() {
                 <p className="text-sm text-gray-500 mt-2">Perfect to get started</p>
               </div>
               <ul className="space-y-3 flex-1 mb-8">
-                {['10 Applications', '500 Users / App', '100 Licenses / App', '5,000 API Calls / Day', 'HWID Locking', 'IP Ban & Rate Limiting'].map(f => (
+                {['5 Applications', '100 Users / App', '50 Licenses / App', '5,000 API Calls / Day', 'HWID Locking', 'IP Ban & Rate Limiting'].map(f => (
                   <li key={f} className="flex items-center gap-2.5 text-sm text-gray-300">
                     <svg className="w-4 h-4 text-emerald-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
                     {f}
@@ -321,13 +321,13 @@ export default function Home() {
               <div className="mb-6">
                 <p className="text-xs text-indigo-400 uppercase tracking-widest mb-2">Pro</p>
                 <div className="flex items-end gap-1">
-                  <span className="text-4xl font-bold text-white">$19</span>
+                  <span className="text-4xl font-bold text-white">$1.6</span>
                   <span className="text-gray-400 mb-1">/month</span>
                 </div>
                 <p className="text-sm text-gray-400 mt-2">For growing projects</p>
               </div>
               <ul className="space-y-3 flex-1 mb-8">
-                {['50 Applications', '5,000 Users / App', '1,000 Licenses / App', '50,000 API Calls / Day', 'Discord Webhooks', 'HWID Locking', 'Priority Support'].map(f => (
+                {['25 Applications', '1,000 Users / App', '500 Licenses / App', '50,000 API Calls / Day', 'Discord Webhooks', 'HWID Locking', 'Priority Support'].map(f => (
                   <li key={f} className="flex items-center gap-2.5 text-sm text-gray-200">
                     <svg className="w-4 h-4 text-indigo-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
                     {f}
@@ -344,7 +344,7 @@ export default function Home() {
               <div className="mb-6">
                 <p className="text-xs text-gray-500 uppercase tracking-widest mb-2">Enterprise</p>
                 <div className="flex items-end gap-1">
-                  <span className="text-4xl font-bold text-white">$99</span>
+                  <span className="text-4xl font-bold text-white">$3.2</span>
                   <span className="text-gray-500 mb-1">/month</span>
                 </div>
                 <p className="text-sm text-gray-500 mt-2">Unlimited everything</p>
