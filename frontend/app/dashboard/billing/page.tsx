@@ -193,20 +193,20 @@ export default function BillingPage() {
             <UsageBar
               label="Applications"
               icon={CubeIcon}
-              current={usage.applications.current}
-              limit={usage.applications.limit ?? currentPlan?.limits.maxApplications ?? null}
+              current={usage.applications?.current ?? 0}
+              limit={usage.applications?.limit ?? currentPlan?.limits.maxApplications ?? null}
             />
             <UsageBar
               label="Total Users"
               icon={UsersIcon}
-              current={usage.totalUsers.current}
-              limit={usage.totalUsers.limit ?? currentPlan?.limits.maxUsersPerApp ?? null}
+              current={usage.totalUsers?.current ?? 0}
+              limit={usage.totalUsers?.limit ?? currentPlan?.limits.maxUsersPerApp ?? null}
             />
             <UsageBar
               label="Total Licenses"
               icon={KeyIcon}
-              current={usage.totalLicenses.current}
-              limit={usage.totalLicenses.limit ?? currentPlan?.limits.maxLicensesPerApp ?? null}
+              current={usage.totalLicenses?.current ?? 0}
+              limit={usage.totalLicenses?.limit ?? currentPlan?.limits.maxLicensesPerApp ?? null}
             />
           </div>
         </div>
