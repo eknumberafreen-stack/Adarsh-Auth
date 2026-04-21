@@ -197,7 +197,7 @@ export default function Login() {
               {/* Google */}
               <button
                 type="button"
-                onClick={() => window.location.href = `${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://adarsh-auth-backend-production.up.railway.app'}/api/auth/google`}
+                onClick={() => window.location.href = `${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://adarsh-auth.up.railway.app'}/api/auth/google`}
                 className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.08] rounded-xl text-sm font-medium text-gray-200 transition-all duration-200 mb-5 group"
               >
                 <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24">

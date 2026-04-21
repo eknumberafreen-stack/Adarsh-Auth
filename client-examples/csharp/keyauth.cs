@@ -26,7 +26,7 @@ namespace Keyauth
         public static long responseTime;
 
         // ── Your server URL — change this to your deployed URL ───────────────
-        private const string API_BASE = "https://adarsh-auth-backend-production.up.railway.app/api/client";
+        private const string API_BASE = "https://adarsh-auth.up.railway.app/api/client";
 
         // ── Pre-filled credentials from your dashboard ───────────────────────
         private const string DEFAULT_NAME    = "Adarsh Internal";
