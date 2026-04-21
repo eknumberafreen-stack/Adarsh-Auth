@@ -139,7 +139,7 @@ export default function Home() {
             <a href="#features" className="hover:text-white transition-colors">Platform</a>
             <a href="#languages" className="hover:text-white transition-colors">SDKs</a>
             <a href="#security" className="hover:text-white transition-colors">Security</a>
-            <a href="#" className="hover:text-white transition-colors">Pricing</a>
+            <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
           </div>
 
           <div className="flex items-center gap-3">
@@ -276,6 +276,90 @@ export default function Home() {
               {['HMAC-SHA256', 'Anti-Replay', 'HWID Lock', 'IP Banning', 'Rate Limiting', 'Session Heartbeat'].map(tag => (
                 <span key={tag} className="bg-white/5 border border-white/10 px-4 py-1.5 rounded-full text-gray-300">{tag}</span>
               ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Pricing ── */}
+      <section id="pricing" className="relative z-10 py-24 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Simple, transparent pricing</h2>
+            <p className="text-gray-400 max-w-xl mx-auto">Start free. Upgrade when you need more. No hidden fees.</p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {/* Free */}
+            <div className="bg-white/[0.02] border border-white/[0.08] rounded-2xl p-8 flex flex-col">
+              <div className="mb-6">
+                <p className="text-xs text-gray-500 uppercase tracking-widest mb-2">Free</p>
+                <div className="flex items-end gap-1">
+                  <span className="text-4xl font-bold text-white">$0</span>
+                  <span className="text-gray-500 mb-1">/month</span>
+                </div>
+                <p className="text-sm text-gray-500 mt-2">Perfect to get started</p>
+              </div>
+              <ul className="space-y-3 flex-1 mb-8">
+                {['3 Applications', '100 Users / App', '50 Licenses / App', '1,000 API Calls / Day', 'Discord Webhooks', 'HWID Locking'].map(f => (
+                  <li key={f} className="flex items-center gap-2.5 text-sm text-gray-300">
+                    <svg className="w-4 h-4 text-emerald-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <Link href="/register" className="block text-center bg-white/[0.06] border border-white/[0.10] hover:bg-white/[0.10] text-white font-medium py-3 rounded-lg transition-all text-sm">
+                Get Started Free
+              </Link>
+            </div>
+
+            {/* Pro */}
+            <div className="relative bg-gradient-to-b from-indigo-600/15 to-purple-600/10 border border-indigo-500/40 rounded-2xl p-8 flex flex-col shadow-xl shadow-indigo-500/10">
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                <span className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-xs font-semibold px-4 py-1.5 rounded-full shadow-lg">Most Popular</span>
+              </div>
+              <div className="mb-6">
+                <p className="text-xs text-indigo-400 uppercase tracking-widest mb-2">Pro</p>
+                <div className="flex items-end gap-1">
+                  <span className="text-4xl font-bold text-white">$19</span>
+                  <span className="text-gray-400 mb-1">/month</span>
+                </div>
+                <p className="text-sm text-gray-400 mt-2">For growing projects</p>
+              </div>
+              <ul className="space-y-3 flex-1 mb-8">
+                {['10 Applications', '1,000 Users / App', '500 Licenses / App', '10,000 API Calls / Day', 'Discord Webhooks', 'HWID Locking', 'Priority Support'].map(f => (
+                  <li key={f} className="flex items-center gap-2.5 text-sm text-gray-200">
+                    <svg className="w-4 h-4 text-indigo-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <a href="mailto:support@example.com" className="block text-center bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-medium py-3 rounded-lg transition-all text-sm shadow-lg shadow-indigo-500/20">
+                Contact to Upgrade
+              </a>
+            </div>
+
+            {/* Enterprise */}
+            <div className="bg-white/[0.02] border border-white/[0.08] rounded-2xl p-8 flex flex-col">
+              <div className="mb-6">
+                <p className="text-xs text-gray-500 uppercase tracking-widest mb-2">Enterprise</p>
+                <div className="flex items-end gap-1">
+                  <span className="text-4xl font-bold text-white">$99</span>
+                  <span className="text-gray-500 mb-1">/month</span>
+                </div>
+                <p className="text-sm text-gray-500 mt-2">Unlimited everything</p>
+              </div>
+              <ul className="space-y-3 flex-1 mb-8">
+                {['Unlimited Applications', 'Unlimited Users / App', 'Unlimited Licenses / App', 'Unlimited API Calls', 'Discord Webhooks', 'HWID Locking', 'Priority Support', 'Custom Integrations'].map(f => (
+                  <li key={f} className="flex items-center gap-2.5 text-sm text-gray-300">
+                    <svg className="w-4 h-4 text-amber-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <a href="mailto:support@example.com" className="block text-center bg-white/[0.06] border border-white/[0.10] hover:bg-white/[0.10] text-white font-medium py-3 rounded-lg transition-all text-sm">
+                Contact Us
+              </a>
             </div>
           </div>
         </div>
