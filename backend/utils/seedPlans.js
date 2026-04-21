@@ -49,7 +49,7 @@ const defaultPlans = [
   {
     name: 'enterprise',
     displayName: 'Enterprise',
-    price: 320,
+    price: 300,
     limits: {
       maxApplications: -1,
       maxUsersPerApp: -1,

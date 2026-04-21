@@ -245,15 +245,14 @@ export default function Home() {
             <p className="text-gray-400">Same API, same security across every SDK. Drop it in and go.</p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="flex flex-wrap justify-center gap-4">
             {[
               { lang: 'C#',     color: 'bg-purple-600/15 border-purple-500/25 text-purple-300 hover:border-purple-400/50' },
               { lang: 'C++',    color: 'bg-blue-600/15 border-blue-500/25 text-blue-300 hover:border-blue-400/50' },
               { lang: 'Python', color: 'bg-yellow-600/15 border-yellow-500/25 text-yellow-300 hover:border-yellow-400/50' },
               { lang: 'Java',   color: 'bg-orange-600/15 border-orange-500/25 text-orange-300 hover:border-orange-400/50' },
-              
             ].map((l) => (
-              <div key={l.lang} className={`border rounded-xl p-4 text-center font-bold text-lg transition-all duration-200 cursor-default ${l.color}`}>
+              <div key={l.lang} className={`border rounded-xl px-10 py-4 text-center font-bold text-lg transition-all duration-200 cursor-default ${l.color}`}>
                 {l.lang}
               </div>
             ))}
@@ -344,7 +343,7 @@ export default function Home() {
               <div className="mb-6">
                 <p className="text-xs text-gray-500 uppercase tracking-widest mb-2">Enterprise</p>
                 <div className="flex items-end gap-1">
-                  <span className="text-4xl font-bold text-white">$3.2</span>
+                  <span className="text-4xl font-bold text-white">$3</span>
                   <span className="text-gray-500 mb-1">/month</span>
                 </div>
                 <p className="text-sm text-gray-500 mt-2">Unlimited everything</p>
