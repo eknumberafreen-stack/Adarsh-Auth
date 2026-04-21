@@ -13,16 +13,16 @@ const defaultPlans = [
     displayName: 'Free',
     price: 0,
     limits: {
-      maxApplications: 3,
-      maxUsersPerApp: 100,
-      maxLicensesPerApp: 50,
-      maxApiCallsPerDay: 1000,
+      maxApplications: 10,
+      maxUsersPerApp: 500,
+      maxLicensesPerApp: 100,
+      maxApiCallsPerDay: 5000,
     },
     features: [
-      '3 applications',
-      '100 users/app',
-      '50 licenses/app',
-      '1,000 API calls/day',
+      '10 applications',
+      '500 users/app',
+      '100 licenses/app',
+      '5,000 API calls/day',
     ],
     isActive: true,
   },
@@ -31,16 +31,17 @@ const defaultPlans = [
     displayName: 'Pro',
     price: 1900,
     limits: {
-      maxApplications: 10,
-      maxUsersPerApp: 1000,
-      maxLicensesPerApp: 500,
-      maxApiCallsPerDay: 10000,
+      maxApplications: 50,
+      maxUsersPerApp: 5000,
+      maxLicensesPerApp: 1000,
+      maxApiCallsPerDay: 50000,
     },
     features: [
-      '10 applications',
-      '1,000 users/app',
-      '500 licenses/app',
-      '10,000 API calls/day',
+      '50 applications',
+      '5,000 users/app',
+      '1,000 licenses/app',
+      '50,000 API calls/day',
+      'Priority Support',
     ],
     isActive: true,
   },
@@ -59,6 +60,8 @@ const defaultPlans = [
       'Unlimited users/app',
       'Unlimited licenses/app',
       'Unlimited API calls/day',
+      'Priority Support',
+      'Custom Integrations',
     ],
     isActive: true,
   },
@@ -70,11 +73,11 @@ const defaultPlans = [
  */
 const seedPlans = async () => {
   try {
-    // Upsert each plan using $setOnInsert so existing documents are not modified
+    // Upsert each plan — always update limits and features to keep them in sync
     for (const planData of defaultPlans) {
       await SubscriptionPlan.findOneAndUpdate(
         { name: planData.name },
-        { $setOnInsert: planData },
+        { $set: planData },
         { upsert: true, new: true }
       );
     }
