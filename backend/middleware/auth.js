@@ -29,4 +29,14 @@ const verifyToken = async (req, res, next) => {
   }
 };
 
-module.exports = { verifyToken };
+// Only allow platform owner
+const verifyOwner = (req, res, next) => {
+  const ownerEmail = process.env.OWNER_EMAIL;
+  if (!ownerEmail) return next(); // if not set, allow (dev mode)
+  if (req.user?.email !== ownerEmail) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+  next();
+};
+
+module.exports = { verifyToken, verifyOwner };

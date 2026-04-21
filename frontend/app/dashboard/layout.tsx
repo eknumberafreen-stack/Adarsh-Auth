@@ -86,20 +86,23 @@ function DashboardParticles() {
 }
 
 // ── Navigation ────────────────────────────────────────────────
-const navigation = [
-  { name: 'Dashboard',   href: '/dashboard',              icon: HomeIcon },
-  { name: 'Manage Apps', href: '/dashboard/applications', icon: CubeIcon },
-  { name: 'Licenses',    href: '/dashboard/licenses',     icon: KeyIcon },
-  { name: 'Users',       href: '/dashboard/users',        icon: UsersIcon },
-  { name: 'Sessions',    href: '/dashboard/sessions',     icon: ClockIcon },
-  { name: 'Developers',  href: '/dashboard/developers',   icon: UserGroupIcon },
-  { name: 'Settings',    href: '/dashboard/settings',     icon: Cog6ToothIcon },
-]
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router   = useRouter()
   const pathname = usePathname()
   const { isAuthenticated, user, logout } = useAuthStore()
+
+  const isOwner = user?.email === (process.env.NEXT_PUBLIC_OWNER_EMAIL || 'eknumberafreen@gmail.com')
+
+  const navigation = [
+    { name: 'Dashboard',   href: '/dashboard',              icon: HomeIcon },
+    { name: 'Manage Apps', href: '/dashboard/applications', icon: CubeIcon },
+    { name: 'Licenses',    href: '/dashboard/licenses',     icon: KeyIcon },
+    { name: 'Users',       href: '/dashboard/users',        icon: UsersIcon },
+    { name: 'Sessions',    href: '/dashboard/sessions',     icon: ClockIcon },
+    ...(isOwner ? [{ name: 'Developers', href: '/dashboard/developers', icon: UserGroupIcon }] : []),
+    { name: 'Settings',    href: '/dashboard/settings',     icon: Cog6ToothIcon },
+  ]
 
   useEffect(() => {
     if (!isAuthenticated) router.push('/login')

@@ -7,12 +7,13 @@ const express  = require('express');
 const Config   = require('../models/Config');
 const AuditLog = require('../models/AuditLog');
 const User     = require('../models/User');
-const { verifyToken }    = require('../middleware/auth');
+const { verifyToken, verifyOwner } = require('../middleware/auth');
 const { asyncHandler }   = require('../middleware/errorHandler');
 const { getRedisClient } = require('../config/redis');
 
 const router = express.Router();
 router.use(verifyToken);
+router.use(verifyOwner);
 
 // Get all config
 router.get('/config', asyncHandler(async (req, res) => {
