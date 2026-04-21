@@ -6,6 +6,7 @@
 const express  = require('express');
 const Config   = require('../models/Config');
 const AuditLog = require('../models/AuditLog');
+const User     = require('../models/User');
 const { verifyToken }    = require('../middleware/auth');
 const { asyncHandler }   = require('../middleware/errorHandler');
 const { getRedisClient } = require('../config/redis');
@@ -50,6 +51,23 @@ router.get('/logs', asyncHandler(async (req, res) => {
   const total = await AuditLog.countDocuments(filter);
 
   res.json({ logs, total, page: parseInt(page) });
+}));
+
+// Unlock a locked user account (requires auth)
+router.post('/users/unlock', asyncHandler(async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: 'Email is required' });
+  }
+
+  const user = await User.findOne({ email: email.toLowerCase() });
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  await user.resetLoginAttempts();
+
+  res.json({ message: `Account unlocked for ${email}` });
 }));
 
 module.exports = router;

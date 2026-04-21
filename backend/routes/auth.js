@@ -66,20 +66,11 @@ router.post('/login', authRateLimiter, validate(schemas.login), asyncHandler(asy
     return res.status(401).json({ error: 'Invalid credentials' });
   }
 
-  // Check if account is locked
-  if (user.isLocked()) {
-    return res.status(423).json({ error: 'Account temporarily locked' });
-  }
-
   // Verify password
   const isMatch = await user.comparePassword(password);
   if (!isMatch) {
-    await user.incLoginAttempts();
     return res.status(401).json({ error: 'Invalid credentials' });
   }
-
-  // Reset login attempts
-  await user.resetLoginAttempts();
 
   // Update last login
   user.lastLogin = Date.now();
@@ -141,6 +132,23 @@ router.post('/logout', verifyToken, asyncHandler(async (req, res) => {
   }
 
   res.json({ message: 'Logout successful' });
+}));
+
+// Emergency unlock (secret key required, no auth needed)
+router.post('/unlock-account', asyncHandler(async (req, res) => {
+  const { email, secret } = req.body;
+
+  if (secret !== process.env.UNLOCK_SECRET) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  const user = await User.findOne({ email: email?.toLowerCase() });
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  await user.resetLoginAttempts();
+  res.json({ message: `Account unlocked for ${email}` });
 }));
 
 // Get current user

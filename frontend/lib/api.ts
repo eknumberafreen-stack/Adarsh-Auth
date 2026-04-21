@@ -34,7 +34,25 @@ api.interceptors.response.use(
       originalRequest._retry = true
 
       try {
-        const refreshToken = localStorage.getItem('refreshToken')
+        // Try direct key first, fallback to zustand persist store
+        let refreshToken = localStorage.getItem('refreshToken')
+        if (!refreshToken) {
+          try {
+            const stored = localStorage.getItem('auth-storage')
+            if (stored) {
+              const parsed = JSON.parse(stored)
+              refreshToken = parsed?.state?.refreshToken || null
+            }
+          } catch {}
+        }
+
+        if (!refreshToken) {
+          localStorage.removeItem('accessToken')
+          localStorage.removeItem('refreshToken')
+          window.location.href = '/login'
+          return Promise.reject(new Error('No refresh token'))
+        }
+
         const response = await axios.post(`${API_URL}/auth/refresh`, {
           refreshToken,
         })
