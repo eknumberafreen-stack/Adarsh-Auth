@@ -7,6 +7,7 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const jwt    = require('jsonwebtoken');
 const User   = require('../models/User');
+const SubscriptionPlan = require('../models/SubscriptionPlan');
 
 const router = express.Router();
 
@@ -29,6 +30,14 @@ passport.use(new GoogleStrategy({
         password: require('crypto').randomBytes(32).toString('hex'), // random password
         googleId: profile.id,
       });
+
+      // Assign Free plan to new user
+      const freePlan = await SubscriptionPlan.findOne({ name: 'free' });
+      if (freePlan) {
+        user.plan = freePlan._id;
+        user.planAssignedAt = new Date();
+        await user.save();
+      }
     } else if (!user.googleId) {
       user.googleId = profile.id;
       await user.save();

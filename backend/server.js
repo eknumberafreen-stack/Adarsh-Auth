@@ -7,6 +7,7 @@ require('dotenv').config();
 
 const connectDB = require('./config/database');
 const connectRedis = require('./config/redis');
+const { seedPlans } = require('./utils/seedPlans');
 const { globalRateLimiter } = require('./middleware/rateLimiter');
 const { errorHandler } = require('./middleware/errorHandler');
 const { sanitizeMiddleware } = require('./utils/sanitize');
@@ -20,6 +21,7 @@ const userRoutes = require('./routes/user');
 const clientAuthRoutes = require('./routes/clientAuth');
 const sessionRoutes = require('./routes/session');
 const googleAuthRoutes = require('./routes/googleAuth');
+const plansRoutes = require('./routes/plans');
 
 const app = express();
 
@@ -59,6 +61,7 @@ app.use('/api/client', clientAuthRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/auth/google', googleAuthRoutes);
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/plans', plansRoutes);
 
 // Error handling
 app.use(errorHandler);
@@ -73,6 +76,7 @@ const startServer = async () => {
   try {
     await connectDB();
     await connectRedis();
+    await seedPlans();
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);

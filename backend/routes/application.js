@@ -7,6 +7,7 @@ const AuditLog = require('../models/AuditLog');
 const { verifyToken } = require('../middleware/auth');
 const { validate, schemas } = require('../middleware/validation');
 const { asyncHandler } = require('../middleware/errorHandler');
+const { checkPlanLimit } = require('../middleware/planLimit');
 
 const router = express.Router();
 
@@ -37,7 +38,7 @@ router.get('/:id', asyncHandler(async (req, res) => {
 }));
 
 // Create application
-router.post('/', validate(schemas.createApplication), asyncHandler(async (req, res) => {
+router.post('/', validate(schemas.createApplication), checkPlanLimit('applications'), asyncHandler(async (req, res) => {
   const { name, version } = req.body;
 
   // Generate secure credentials

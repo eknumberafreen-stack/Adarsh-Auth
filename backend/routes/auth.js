@@ -1,6 +1,7 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const SubscriptionPlan = require('../models/SubscriptionPlan');
 const { validate, schemas } = require('../middleware/validation');
 const { authRateLimiter } = require('../middleware/rateLimiter');
 const { asyncHandler } = require('../middleware/errorHandler');
@@ -37,6 +38,13 @@ router.post('/register', authRateLimiter, validate(schemas.register), asyncHandl
 
   // Create user
   const user = await User.create({ email, password });
+
+  // Assign Free plan
+  const freePlan = await SubscriptionPlan.findOne({ name: 'free' });
+  if (freePlan) {
+    user.plan = freePlan._id;
+    user.planAssignedAt = new Date();
+  }
 
   // Generate tokens
   const { accessToken, refreshToken } = generateTokens(user._id);

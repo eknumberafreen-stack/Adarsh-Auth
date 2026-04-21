@@ -4,6 +4,7 @@ const Application = require('../models/Application');
 const { verifyToken } = require('../middleware/auth');
 const { validate, schemas } = require('../middleware/validation');
 const { asyncHandler } = require('../middleware/errorHandler');
+const { checkPlanLimit } = require('../middleware/planLimit');
 
 const router = express.Router();
 
@@ -11,7 +12,10 @@ const router = express.Router();
 router.use(verifyToken);
 
 // Generate licenses
-router.post('/generate', asyncHandler(async (req, res) => {
+router.post('/generate',
+  (req, res, next) => { req.params.id = req.body.applicationId; next(); },
+  checkPlanLimit('licensesPerApp'),
+  asyncHandler(async (req, res) => {
   const { applicationId, count, mask, uppercase, subscriptionLevel, note, expiryUnit, expiryDuration } = req.body
 
   if (!applicationId || !expiryUnit) {

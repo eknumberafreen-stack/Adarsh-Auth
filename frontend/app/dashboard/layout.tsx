@@ -10,6 +10,7 @@ import {
   KeyIcon,
   UsersIcon,
   ClockIcon,
+  CreditCardIcon,
   Cog6ToothIcon,
   ArrowRightOnRectangleIcon,
   UserGroupIcon,
@@ -100,6 +101,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: 'Licenses',    href: '/dashboard/licenses',     icon: KeyIcon },
     { name: 'Users',       href: '/dashboard/users',        icon: UsersIcon },
     { name: 'Sessions',    href: '/dashboard/sessions',     icon: ClockIcon },
+    { name: 'Billing',     href: '/dashboard/billing',      icon: CreditCardIcon },
     ...(isOwner ? [{ name: 'Developers', href: '/dashboard/developers', icon: UserGroupIcon }] : []),
     { name: 'Settings',    href: '/dashboard/settings',     icon: Cog6ToothIcon },
   ]

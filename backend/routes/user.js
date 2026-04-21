@@ -8,6 +8,7 @@ const Application = require('../models/Application');
 const { verifyToken }    = require('../middleware/auth');
 const { asyncHandler }   = require('../middleware/errorHandler');
 const { getRedisClient } = require('../config/redis');
+const { checkPlanLimit } = require('../middleware/planLimit');
 
 const router = express.Router();
 router.use(verifyToken);
@@ -25,7 +26,10 @@ router.get('/application/:applicationId', asyncHandler(async (req, res) => {
 }));
 
 // ─── Create user directly from dashboard ─────────────────────────────────────
-router.post('/create', asyncHandler(async (req, res) => {
+router.post('/create',
+  (req, res, next) => { req.params.id = req.body.applicationId; next(); },
+  checkPlanLimit('usersPerApp'),
+  asyncHandler(async (req, res) => {
   const { username, password, email, subscription, expiryDate, hwidAffected, applicationId } = req.body;
 
   if (!username || !password || !applicationId) {

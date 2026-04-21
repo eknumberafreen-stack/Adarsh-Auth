@@ -1,4 +1,6 @@
 import axios from 'axios'
+import React from 'react'
+import toast from 'react-hot-toast'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
 
@@ -24,11 +26,50 @@ api.interceptors.request.use(
   }
 )
 
+/**
+ * Determines whether an axios error represents a plan-limit 403 response.
+ * Exported for unit/property testing.
+ */
+export function isPlanLimitError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false
+  const e = error as { response?: { status?: number; data?: { upgradeRequired?: unknown } } }
+  return e.response?.status === 403 && e.response?.data?.upgradeRequired === true
+}
+
+/**
+ * Shows the upgrade prompt toast. Exported for unit/property testing.
+ */
+export function showUpgradePrompt(): void {
+  toast.error(
+    (t) =>
+      React.createElement(
+        'span',
+        null,
+        'Plan limit reached \u2014 ',
+        React.createElement(
+          'a',
+          {
+            href: '/dashboard/billing',
+            style: { textDecoration: 'underline', fontWeight: 600 },
+            onClick: () => toast.dismiss(t.id),
+          },
+          'upgrade your plan'
+        )
+      ),
+    { duration: 6000, id: 'plan-limit-reached' }
+  )
+}
+
 // Response interceptor to handle token refresh
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config
+
+    if (isPlanLimitError(error)) {
+      showUpgradePrompt()
+      return Promise.reject(error)
+    }
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true

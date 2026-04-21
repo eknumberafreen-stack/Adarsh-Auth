@@ -38,6 +38,15 @@ const userSchema = new mongoose.Schema({
   googleId: {
     type: String,
     default: null
+  },
+  plan: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'SubscriptionPlan',
+    default: null
+  },
+  planAssignedAt: {
+    type: Date,
+    default: Date.now
   }
 }, {
   timestamps: true
