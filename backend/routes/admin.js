@@ -70,4 +70,37 @@ router.post('/users/unlock', asyncHandler(async (req, res) => {
   res.json({ message: `Account unlocked for ${email}` });
 }));
 
+// Get all registered developers (dashboard accounts)
+router.get('/developers', asyncHandler(async (req, res) => {
+  const Application = require('../models/Application');
+
+  const users = await User.find({})
+    .select('email createdAt lastLogin googleId')
+    .sort({ createdAt: -1 })
+    .lean();
+
+  // Get app count per user
+  const userIds = users.map(u => u._id);
+  const apps = await Application.find({ userId: { $in: userIds } })
+    .select('userId name status')
+    .lean();
+
+  const appCountMap = {};
+  apps.forEach(app => {
+    const id = app.userId.toString();
+    appCountMap[id] = (appCountMap[id] || 0) + 1;
+  });
+
+  const result = users.map(u => ({
+    _id: u._id,
+    email: u.email,
+    createdAt: u.createdAt,
+    lastLogin: u.lastLogin,
+    loginMethod: u.googleId ? 'Google' : 'Email',
+    appCount: appCountMap[u._id.toString()] || 0,
+  }));
+
+  res.json({ developers: result, total: result.length });
+}));
+
 module.exports = router;

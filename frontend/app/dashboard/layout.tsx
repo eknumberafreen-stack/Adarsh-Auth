@@ -12,6 +12,7 @@ import {
   ClockIcon,
   Cog6ToothIcon,
   ArrowRightOnRectangleIcon,
+  UserGroupIcon,
 } from '@heroicons/react/24/outline'
 import api from '@/lib/api'
 import toast from 'react-hot-toast'
@@ -91,6 +92,7 @@ const navigation = [
   { name: 'Licenses',    href: '/dashboard/licenses',     icon: KeyIcon },
   { name: 'Users',       href: '/dashboard/users',        icon: UsersIcon },
   { name: 'Sessions',    href: '/dashboard/sessions',     icon: ClockIcon },
+  { name: 'Developers',  href: '/dashboard/developers',   icon: UserGroupIcon },
   { name: 'Settings',    href: '/dashboard/settings',     icon: Cog6ToothIcon },
 ]
 
