@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '@/lib/store'
 import Link from 'next/link'
@@ -17,6 +17,12 @@ import {
 } from '@heroicons/react/24/outline'
 import api from '@/lib/api'
 import toast from 'react-hot-toast'
+
+const PLAN_STYLE: Record<string, { bg: string; text: string; border: string }> = {
+  free:       { bg: 'bg-gray-500/10',   text: 'text-gray-400',   border: 'border-gray-500/20' },
+  pro:        { bg: 'bg-indigo-500/10', text: 'text-indigo-400', border: 'border-indigo-500/20' },
+  enterprise: { bg: 'bg-amber-500/10',  text: 'text-amber-400',  border: 'border-amber-500/20' },
+}
 
 // ── Subtle Particles ──────────────────────────────────────────
 function DashboardParticles() {
@@ -92,6 +98,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router   = useRouter()
   const pathname = usePathname()
   const { isAuthenticated, user, logout } = useAuthStore()
+  const [planName, setPlanName] = useState<string>('free')
+  const [planDisplay, setPlanDisplay] = useState<string>('Free')
 
   const isOwner = user?.email === (process.env.NEXT_PUBLIC_OWNER_EMAIL || 'donumberafreen@gmail.com')
 
@@ -109,6 +117,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     if (!isAuthenticated) router.push('/login')
   }, [isAuthenticated, router])
+
+  useEffect(() => {
+    if (!isAuthenticated) return
+    api.get('/plans/my').then(res => {
+      const p = res.data?.plan
+      if (p) {
+        setPlanName(p.name ?? 'free')
+        setPlanDisplay(p.displayName ?? 'Free')
+      }
+    }).catch(() => {})
+  }, [isAuthenticated])
 
   const handleLogout = async () => {
     try { await api.post('/auth/logout') } catch {}
@@ -162,6 +181,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* User + Logout */}
         <div className="px-3 py-3 border-t border-white/[0.05] space-y-1">
+          {/* Plan Badge */}
+          <Link href="/dashboard/billing" className="block px-3 py-2 rounded-lg hover:bg-white/[0.03] transition-colors">
+            <p className="text-xs text-gray-600 mb-1">Current Plan</p>
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${PLAN_STYLE[planName]?.bg ?? 'bg-gray-500/10'} ${PLAN_STYLE[planName]?.text ?? 'text-gray-400'} ${PLAN_STYLE[planName]?.border ?? 'border-gray-500/20'}`}>
+              <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70" />
+              {planDisplay}
+            </span>
+          </Link>
           <div className="px-3 py-2 rounded-lg">
             <p className="text-xs text-gray-600">Logged in as</p>
             <p className="text-xs text-gray-300 font-medium truncate mt-0.5">{user?.email}</p>
