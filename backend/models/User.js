@@ -51,16 +51,17 @@ const userSchema = new mongoose.Schema({
   username: {
     type: String,
     default: null,
-    sparse: true,
-    unique: true,
     trim: true,
-    minlength: 3,
-    maxlength: 30,
+    minlength: [3, 'Username must be at least 3 characters'],
+    maxlength: [30, 'Username must be at most 30 characters'],
     match: [/^[a-z0-9_-]+$/, 'Username may only contain lowercase letters, numbers, underscores, and hyphens']
   }
 }, {
   timestamps: true
 });
+
+// Sparse unique index on username — allows multiple null values
+userSchema.index({ username: 1 }, { unique: true, sparse: true });
 
 // Hash password before saving
 userSchema.pre('save', async function(next) {
