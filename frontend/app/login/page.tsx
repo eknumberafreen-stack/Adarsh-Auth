@@ -65,7 +65,7 @@ export default function Login() {
     try {
       const response = await api.post('/auth/login', { email, password })
       const { user, accessToken, refreshToken } = response.data
-      setAuth(user, accessToken, refreshToken)
+      setAuth({ id: user.id, email, username: user.username ?? null }, accessToken, refreshToken)
       toast.success('Welcome back!')
       router.push('/dashboard')
     } catch (error: any) {

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import api from '@/lib/api'
 import { useAuthStore } from '@/lib/store'
+import { getDisplayName } from '@/lib/username'
 import {
   CubeIcon,
   KeyIcon,
@@ -76,7 +77,7 @@ export default function Dashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-white">Overview</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{user?.email}</p>
+          <p className="text-sm text-gray-500 mt-0.5">{getDisplayName(user?.username ?? null, user?.email ?? '')}</p>
         </div>
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />

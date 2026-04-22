@@ -47,6 +47,16 @@ const userSchema = new mongoose.Schema({
   planAssignedAt: {
     type: Date,
     default: Date.now
+  },
+  username: {
+    type: String,
+    default: null,
+    sparse: true,
+    unique: true,
+    trim: true,
+    minlength: 3,
+    maxlength: 30,
+    match: [/^[a-z0-9_-]+$/, 'Username may only contain lowercase letters, numbers, underscores, and hyphens']
   }
 }, {
   timestamps: true
@@ -63,6 +73,14 @@ userSchema.pre('save', async function(next) {
   } catch (error) {
     next(error);
   }
+});
+
+// Lowercase username before saving
+userSchema.pre('save', function(next) {
+  if (this.isModified('username') && this.username) {
+    this.username = this.username.toLowerCase();
+  }
+  next();
 });
 
 // Compare password method

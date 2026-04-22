@@ -1,5 +1,15 @@
 const Joi = require('joi');
 
+// Reusable username rule
+const usernameRule = Joi.string()
+  .trim()
+  .min(3)
+  .max(30)
+  .pattern(/^[a-zA-Z0-9_-]+$/)
+  .lowercase()
+  .optional()
+  .allow(null, '');
+
 // Validate request body against schema
 const validate = (schema) => {
   return (req, res, next) => {
@@ -22,7 +32,8 @@ const validate = (schema) => {
 const schemas = {
   register: Joi.object({
     email: Joi.string().email().required(),
-    password: Joi.string().min(8).max(128).required()
+    password: Joi.string().min(8).max(128).required(),
+    username: usernameRule
   }),
 
   login: Joi.object({
@@ -81,6 +92,10 @@ const schemas = {
     timestamp: Joi.number().required(),
     nonce: Joi.string().required(),
     signature: Joi.string().required()
+  }),
+
+  updateUsername: Joi.object({
+    username: usernameRule.required()
   })
 };
 

@@ -28,7 +28,7 @@ const generateTokens = (userId) => {
 
 // Register
 router.post('/register', authRateLimiter, validate(schemas.register), asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, username } = req.body;
 
   // Check if user exists
   const existingUser = await User.findOne({ email });
@@ -36,8 +36,16 @@ router.post('/register', authRateLimiter, validate(schemas.register), asyncHandl
     return res.status(400).json({ error: 'Email already registered' });
   }
 
+  // Check username uniqueness
+  if (username) {
+    const takenByUsername = await User.findOne({ username: username.toLowerCase() });
+    if (takenByUsername) {
+      return res.status(400).json({ error: 'Username already taken' });
+    }
+  }
+
   // Create user
-  const user = await User.create({ email, password });
+  const user = await User.create({ email, password, username: username || null });
 
   // Assign Free plan
   const freePlan = await SubscriptionPlan.findOne({ name: 'free' });
@@ -59,7 +67,7 @@ router.post('/register', authRateLimiter, validate(schemas.register), asyncHandl
     refreshToken,
     user: {
       id: user._id,
-      email: user.email
+      username: user.username
     }
   });
 }));
@@ -97,7 +105,7 @@ router.post('/login', authRateLimiter, validate(schemas.login), asyncHandler(asy
     refreshToken,
     user: {
       id: user._id,
-      email: user.email
+      username: user.username
     }
   });
 }));
@@ -164,10 +172,26 @@ router.get('/me', verifyToken, asyncHandler(async (req, res) => {
   res.json({
     user: {
       id: req.user._id,
-      email: req.user.email,
+      username: req.user.username,
       createdAt: req.user.createdAt
     }
   });
+}));
+
+// Update username
+router.patch('/username', verifyToken, validate(schemas.updateUsername), asyncHandler(async (req, res) => {
+  const { username } = req.body;
+  const normalised = username.toLowerCase();
+
+  const conflict = await User.findOne({ username: normalised, _id: { $ne: req.userId } });
+  if (conflict) {
+    return res.status(400).json({ error: 'Username already taken' });
+  }
+
+  req.user.username = normalised;
+  await req.user.save();
+
+  res.json({ user: { id: req.user._id, username: req.user.username } });
 }));
 
 module.exports = router;

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import api from '@/lib/api'
+import { filterDevelopers } from '@/lib/username'
 import toast from 'react-hot-toast'
 import { UsersIcon, CubeIcon, ClockIcon, ShieldCheckIcon, ChevronDownIcon } from '@heroicons/react/24/outline'
 
@@ -14,6 +15,7 @@ interface Plan {
 interface Developer {
   _id: string
   email: string
+  username: string | null
   loginMethod: string
   appCount: number
   createdAt: string
@@ -98,9 +100,7 @@ export default function Developers() {
     }
   }
 
-  const filtered = developers.filter((d) =>
-    d.email.toLowerCase().includes(search.toLowerCase())
-  )
+  const filtered = filterDevelopers(developers, search)
 
   const totalApps = developers.reduce((sum, d) => sum + d.appCount, 0)
   const googleUsers = developers.filter((d) => d.loginMethod === 'Google').length
@@ -139,7 +139,7 @@ export default function Developers() {
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by email..."
+          placeholder="Search by email or username..."
           className="w-full max-w-sm px-4 py-2.5 bg-white/[0.04] border border-white/[0.07] rounded-xl text-white placeholder-gray-600 text-sm focus:outline-none focus:border-indigo-500/50 transition-all"
         />
       </div>
@@ -161,6 +161,7 @@ export default function Developers() {
                 <tr className="border-b border-white/[0.06]">
                   <th className="text-left px-5 py-3 text-gray-500 font-medium text-xs uppercase tracking-wider">#</th>
                   <th className="text-left px-5 py-3 text-gray-500 font-medium text-xs uppercase tracking-wider">Email</th>
+                  <th className="text-left px-5 py-3 text-gray-500 font-medium text-xs uppercase tracking-wider">Username</th>
                   <th className="text-left px-5 py-3 text-gray-500 font-medium text-xs uppercase tracking-wider">Login Method</th>
                   <th className="text-left px-5 py-3 text-gray-500 font-medium text-xs uppercase tracking-wider">Apps</th>
                   <th className="text-left px-5 py-3 text-gray-500 font-medium text-xs uppercase tracking-wider">Plan</th>
@@ -188,6 +189,11 @@ export default function Developers() {
                           </div>
                           <span className="text-white font-medium">{dev.email}</span>
                         </div>
+                      </td>
+
+                      {/* Username */}
+                      <td className="px-5 py-3.5 text-gray-400 text-xs">
+                        {dev.username ?? '—'}
                       </td>
 
                       {/* Login Method */}

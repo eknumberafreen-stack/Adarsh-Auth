@@ -77,7 +77,7 @@ router.get('/developers', asyncHandler(async (req, res) => {
   const Application = require('../models/Application');
 
   const users = await User.find({})
-    .select('email createdAt lastLogin googleId plan planAssignedAt')
+    .select('email username createdAt lastLogin googleId plan planAssignedAt')
     .populate('plan', 'name displayName')
     .sort({ createdAt: -1 })
     .lean();
@@ -97,6 +97,7 @@ router.get('/developers', asyncHandler(async (req, res) => {
   const result = users.map(u => ({
     _id: u._id,
     email: u.email,
+    username: u.username ?? null,
     createdAt: u.createdAt,
     lastLogin: u.lastLogin,
     loginMethod: u.googleId ? 'Google' : 'Email',
@@ -169,6 +170,15 @@ router.patch('/developers/:id/plan', asyncHandler(async (req, res) => {
 
   if (!developer) {
     return res.status(404).json({ error: 'Developer not found' });
+  }
+
+  // Invalidate Redis cache so the user sees the new plan immediately
+  try {
+    const redis = getRedisClient();
+    await redis.del(`plan:${developer._id}`);
+    await redis.del(`plan:usage:${developer._id}`);
+  } catch (_) {
+    // Redis unavailable — cache will expire naturally
   }
 
   res.json({

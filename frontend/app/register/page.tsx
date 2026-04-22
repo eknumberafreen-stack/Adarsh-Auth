@@ -6,6 +6,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import api from '@/lib/api'
 import { useAuthStore } from '@/lib/store'
+import { isValidUsername } from '@/lib/username'
 import toast from 'react-hot-toast'
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
 
@@ -80,6 +81,7 @@ export default function Register() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [username, setUsername] = useState('')
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -90,9 +92,14 @@ export default function Register() {
     if (password.length < 8) return toast.error('Password must be at least 8 characters')
     setLoading(true)
     try {
-      const response = await api.post('/auth/register', { email, password })
+      const trimmedUsername = username.trim()
+      const payload: { email: string; password: string; username?: string } = { email, password }
+      if (trimmedUsername !== '' && isValidUsername(trimmedUsername)) {
+        payload.username = trimmedUsername
+      }
+      const response = await api.post('/auth/register', payload)
       const { user, accessToken, refreshToken } = response.data
-      setAuth(user, accessToken, refreshToken)
+      setAuth({ id: user.id, email, username: user.username ?? null }, accessToken, refreshToken)
       toast.success('Account created!')
       router.push('/dashboard')
     } catch (error: any) {
@@ -172,6 +179,20 @@ export default function Register() {
                   placeholder="you@example.com"
                   required
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Username <span className="normal-case font-normal text-gray-600">(optional)</span></label>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="w-full px-4 py-3 bg-white/[0.04] border border-white/[0.07] rounded-xl text-white placeholder-gray-700 text-sm focus:outline-none focus:border-violet-500/50 focus:bg-white/[0.06] transition-all"
+                  placeholder="username (optional)"
+                />
+                {username.trim() !== '' && !isValidUsername(username.trim()) && (
+                  <p className="text-xs text-red-400 mt-1">Username must be 3–30 characters: lowercase letters, digits, underscores, or hyphens</p>
+                )}
               </div>
 
               <div>

@@ -17,6 +17,7 @@ import {
 } from '@heroicons/react/24/outline'
 import api from '@/lib/api'
 import toast from 'react-hot-toast'
+import { getDisplayName, getEmailPrefix, getAvatarInitial } from '@/lib/username'
 
 const PLAN_STYLE: Record<string, { bg: string; text: string; border: string }> = {
   free:       { bg: 'bg-gray-500/10',   text: 'text-gray-400',   border: 'border-gray-500/20' },
@@ -191,7 +192,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </Link>
           <div className="px-3 py-2 rounded-lg">
             <p className="text-xs text-gray-600">Logged in as</p>
-            <p className="text-xs text-gray-300 font-medium truncate mt-0.5">{user?.email}</p>
+            <p className="text-xs text-gray-300 font-medium truncate mt-0.5">{getDisplayName(user?.username ?? null, user?.email ?? '')}</p>
           </div>
           <button
             onClick={handleLogout}
@@ -221,10 +222,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
           <div className="ml-auto flex items-center gap-3">
             <div className="w-7 h-7 rounded-full bg-indigo-600/30 border border-indigo-500/30 flex items-center justify-center text-xs font-semibold text-indigo-300">
-              {user?.email?.[0]?.toUpperCase()}
+              {getAvatarInitial(user?.username ?? null, user?.email ?? '')}
             </div>
             <div className="hidden md:block">
-              <p className="text-xs font-medium text-gray-300 leading-none">{user?.email?.split('@')[0]}</p>
+              <p className="text-xs font-medium text-gray-300 leading-none">{user?.username ? user.username : getEmailPrefix(user?.email ?? '')}</p>
             </div>
           </div>
         </header>

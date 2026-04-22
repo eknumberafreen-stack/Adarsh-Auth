@@ -5,6 +5,7 @@ import { useAuthStore } from '@/lib/store'
 import { useAppStore } from '@/lib/store'
 import api from '@/lib/api'
 import toast from 'react-hot-toast'
+import { isValidUsername } from '@/lib/username'
 import {
   Cog6ToothIcon,
   ShieldCheckIcon,
@@ -42,6 +43,12 @@ export default function Settings() {
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [newUsername, setNewUsername] = useState('')
+  const [usernameSaving, setUsernameSaving] = useState(false)
+
+  useEffect(() => {
+    setNewUsername(user?.username ?? '')
+  }, [user])
 
   useEffect(() => {
     if (applications.length > 0 && !selectedAppId) {
@@ -159,6 +166,21 @@ export default function Settings() {
       setSelectedAppId('')
     } catch {
       toast.error('Failed to delete application')
+    }
+  }
+
+  const saveUsername = async () => {
+    setUsernameSaving(true)
+    try {
+      await api.patch('/auth/username', { username: newUsername })
+      useAuthStore.setState((state) => ({
+        user: state.user ? { ...state.user, username: newUsername } : state.user,
+      }))
+      toast.success('Username updated!')
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to update username')
+    } finally {
+      setUsernameSaving(false)
     }
   }
 
@@ -470,6 +492,28 @@ export default function Settings() {
             <div>
               <label className="block text-sm font-medium mb-2 text-gray-300">Email Address</label>
               <input type="email" value={user?.email || ''} className="input" readOnly />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2 text-gray-300">Username</label>
+              <input
+                type="text"
+                value={newUsername}
+                onChange={(e) => setNewUsername(e.target.value)}
+                className="input"
+                placeholder="e.g. cool_user-123"
+              />
+              {newUsername !== '' && !isValidUsername(newUsername) && (
+                <p className="text-red-400 text-xs mt-1">
+                  Username must be 3–30 characters: lowercase letters, digits, underscores, or hyphens only.
+                </p>
+              )}
+              <button
+                onClick={saveUsername}
+                disabled={usernameSaving || (newUsername !== '' && !isValidUsername(newUsername))}
+                className="btn btn-primary mt-3 w-full"
+              >
+                {usernameSaving ? 'Saving...' : 'Save Username'}
+              </button>
             </div>
             <div>
               <label className="block text-sm font-medium mb-2 text-gray-300">User ID</label>
