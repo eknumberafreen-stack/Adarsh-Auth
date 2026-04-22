@@ -14,6 +14,7 @@ import {
   Cog6ToothIcon,
   ArrowRightOnRectangleIcon,
   UserGroupIcon,
+  UserCircleIcon,
 } from '@heroicons/react/24/outline'
 import api from '@/lib/api'
 import toast from 'react-hot-toast'
@@ -111,9 +112,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: 'Users',       href: '/dashboard/users',        icon: UsersIcon },
     { name: 'Sessions',    href: '/dashboard/sessions',     icon: ClockIcon },
     { name: 'Billing',     href: '/dashboard/billing',      icon: CreditCardIcon },
+    { name: 'Profile',     href: '/dashboard/profile',      icon: UserCircleIcon },
     ...(isOwner ? [{ name: 'Developers', href: '/dashboard/developers', icon: UserGroupIcon }] : []),
-    { name: 'Settings',    href: '/dashboard/settings',     icon: Cog6ToothIcon },
-  ]
+    { name: 'Settings',    href: '/dashboard/settings',     icon: Cog6ToothIcon },  ]
 
   useEffect(() => {
     if (!isAuthenticated) router.push('/login')
@@ -221,11 +222,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             )}
           </div>
           <div className="ml-auto flex items-center gap-3">
-            <div className="w-7 h-7 rounded-full bg-indigo-600/30 border border-indigo-500/30 flex items-center justify-center text-xs font-semibold text-indigo-300">
+            <Link href="/dashboard/profile" className="w-7 h-7 rounded-full bg-indigo-600/30 border border-indigo-500/30 flex items-center justify-center text-xs font-semibold text-indigo-300 hover:bg-indigo-600/50 transition-colors">
               {getAvatarInitial(user?.username ?? null, user?.email ?? '')}
-            </div>
+            </Link>
             <div className="hidden md:block">
-              <p className="text-xs font-medium text-gray-300 leading-none">{user?.username ? user.username : getEmailPrefix(user?.email ?? '')}</p>
+              <Link href="/dashboard/profile" className="text-xs font-medium text-gray-300 leading-none hover:text-white transition-colors">
+                {user?.username ? user.username : getEmailPrefix(user?.email ?? '')}
+              </Link>
             </div>
           </div>
         </header>
