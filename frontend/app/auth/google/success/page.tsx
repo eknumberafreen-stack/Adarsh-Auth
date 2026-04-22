@@ -16,7 +16,7 @@ export default function GoogleSuccess() {
     const email        = params.get('email')
 
     if (accessToken && refreshToken && userId && email) {
-      setAuth({ id: userId, email }, accessToken, refreshToken)
+      setAuth({ id: userId, email, username: null }, accessToken, refreshToken)
       router.replace('/dashboard')
     } else {
       router.replace('/login?error=google_failed')
