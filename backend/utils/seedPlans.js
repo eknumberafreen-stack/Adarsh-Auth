@@ -67,6 +67,29 @@ const defaultPlans = [
     ],
     isActive: true,
   },
+  {
+    name: 'yearly',
+    displayName: 'Yearly',
+    price: 2650,
+    limits: {
+      maxApplications: -1,
+      maxUsersPerApp: -1,
+      maxLicensesPerApp: -1,
+      maxApiCallsPerDay: -1,
+    },
+    features: [
+      'Unlimited applications',
+      'Unlimited users/app',
+      'Unlimited licenses/app',
+      'Unlimited API calls/day',
+      'Discord Webhooks',
+      'Priority Support',
+      'Custom Integrations',
+      '1 Year Access',
+      'Best Value',
+    ],
+    isActive: true,
+  },
 ];
 
 /**

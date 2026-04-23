@@ -25,6 +25,7 @@ const PLAN_STYLE: Record<string, { bg: string; text: string; border: string }> =
   free:       { bg: 'bg-gray-500/10',   text: 'text-gray-400',   border: 'border-gray-500/20' },
   pro:        { bg: 'bg-indigo-500/10', text: 'text-indigo-400', border: 'border-indigo-500/20' },
   enterprise: { bg: 'bg-amber-500/10',  text: 'text-amber-400',  border: 'border-amber-500/20' },
+  yearly:     { bg: 'bg-orange-500/10', text: 'text-orange-400', border: 'border-orange-500/20' },
 }
 
 // ── Subtle Particles ──────────────────────────────────────────

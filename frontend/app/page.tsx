@@ -366,6 +366,35 @@ export default function Home() {
                 Contact Us
               </a>
             </div>
+
+            {/* Yearly */}
+            <div className="relative bg-gradient-to-b from-amber-600/15 to-orange-600/10 border border-amber-500/40 rounded-2xl p-8 flex flex-col shadow-xl shadow-amber-500/10 md:col-span-3 md:flex-row md:items-center md:gap-8">
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                <span className="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-semibold px-4 py-1.5 rounded-full shadow-lg">🔥 Best Value — Save 60%</span>
+              </div>
+              <div className="mb-6 md:mb-0 md:flex-1">
+                <p className="text-xs text-amber-400 uppercase tracking-widest mb-2">Yearly Plan</p>
+                <div className="flex items-end gap-2">
+                  <span className="text-4xl font-bold text-white">$26.5</span>
+                  <span className="text-gray-400 mb-1">/year</span>
+                  <span className="text-xs text-gray-500 mb-1 line-through">$36/year</span>
+                </div>
+                <p className="text-sm text-gray-400 mt-2">Everything unlimited for a full year</p>
+              </div>
+              <ul className="space-y-2 flex-1 mb-6 md:mb-0 grid grid-cols-2 gap-x-4 gap-y-2">
+                {['Unlimited Applications', 'Unlimited Users / App', 'Unlimited Licenses / App', 'Unlimited API Calls', 'Discord Webhooks', 'Priority Support', 'Custom Integrations', '1 Year Access'].map(f => (
+                  <li key={f} className="flex items-center gap-2 text-sm text-gray-200">
+                    <svg className="w-4 h-4 text-amber-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <div className="md:flex-shrink-0">
+                <Link href="/register" className="block text-center bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-semibold px-8 py-3 rounded-lg transition-all text-sm shadow-lg shadow-amber-500/20 whitespace-nowrap">
+                  Get Yearly Plan →
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </section>
