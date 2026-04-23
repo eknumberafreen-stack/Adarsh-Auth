@@ -105,15 +105,21 @@ export default function Home() {
 
   useEffect(() => {
     setMounted(true)
-    if (isAuthenticated) {
+  }, [])
+
+  // Only redirect after mount to avoid hydration mismatch
+  useEffect(() => {
+    if (mounted && isAuthenticated) {
       router.replace('/dashboard')
     }
-  }, [isAuthenticated, router])
+  }, [mounted, isAuthenticated, router])
 
   if (!mounted) return (
     <div className="min-h-screen bg-[#050508]" />
   )
-  if (isAuthenticated) return null
+
+  // Show landing page while checking auth — don't hide it immediately
+  // isAuthenticated redirect happens via useEffect above
 
   return (
     <div className="min-h-screen bg-[#050508] text-white overflow-x-hidden relative">
