@@ -15,6 +15,7 @@ import {
   ArrowRightOnRectangleIcon,
   UserGroupIcon,
   UserCircleIcon,
+  BanknotesIcon,
 } from '@heroicons/react/24/outline'
 import api from '@/lib/api'
 import toast from 'react-hot-toast'
@@ -112,8 +113,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: 'Users',       href: '/dashboard/users',        icon: UsersIcon },
     { name: 'Sessions',    href: '/dashboard/sessions',     icon: ClockIcon },
     { name: 'Billing',     href: '/dashboard/billing',      icon: CreditCardIcon },
+    { name: 'My Payments', href: '/dashboard/my-payments',  icon: BanknotesIcon },
     { name: 'Profile',     href: '/dashboard/profile',      icon: UserCircleIcon },
-    ...(isOwner ? [{ name: 'Developers', href: '/dashboard/developers', icon: UserGroupIcon }] : []),
+    ...(isOwner ? [
+      { name: 'Developers', href: '/dashboard/developers', icon: UserGroupIcon },
+      { name: 'Payments',   href: '/dashboard/payments',   icon: BanknotesIcon },
+    ] : []),
     { name: 'Settings',    href: '/dashboard/settings',     icon: Cog6ToothIcon },  ]
 
   useEffect(() => {

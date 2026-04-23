@@ -10,7 +10,9 @@ import {
   UsersIcon,
   KeyIcon,
   EnvelopeIcon,
+  BanknotesIcon,
 } from '@heroicons/react/24/outline'
+import { useRouter } from 'next/navigation'
 
 interface PlanLimits {
   maxApplications: number
@@ -99,6 +101,7 @@ function UsageBar({
 }
 
 export default function BillingPage() {
+  const router = useRouter()
   const [myPlan, setMyPlan] = useState<MyPlanResponse | null>(null)
   const [allPlans, setAllPlans] = useState<Plan[]>([])
   const [loading, setLoading] = useState(true)
@@ -309,22 +312,49 @@ export default function BillingPage() {
         </div>
       )}
 
-      {/* CTA */}
-      <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+      {/* Upgrade Plans Grid */}
+      {allPlans.length > 0 && (
         <div>
-          <p className="text-sm font-semibold text-white">Need more resources?</p>
-          <p className="text-xs text-gray-500 mt-0.5">
-            Reach out and we&apos;ll find the right plan for your needs.
-          </p>
+          <h2 className="text-sm font-semibold text-white mb-3">Upgrade Your Plan</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {allPlans.filter(p => p.name !== 'free').map((plan) => {
+              const isCurrent = plan.name === currentPlan?.name
+              return (
+                <div key={plan._id} className={`bg-white/[0.02] border rounded-xl p-5 flex flex-col gap-4 ${isCurrent ? 'border-indigo-500/30' : 'border-white/[0.06]'}`}>
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="font-bold text-white">{plan.displayName}</p>
+                      {isCurrent && <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300">Current</span>}
+                    </div>
+                    <p className="text-xl font-black text-indigo-300">{formatPrice(plan.price)}<span className="text-xs text-gray-500 font-normal">/mo</span></p>
+                  </div>
+                  <ul className="space-y-1.5 flex-1">
+                    {plan.features.map(f => (
+                      <li key={f} className="flex items-center gap-2 text-xs text-gray-400">
+                        <CheckIcon className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                  {isCurrent ? (
+                    <div className="w-full py-2.5 rounded-lg bg-white/[0.04] border border-white/[0.07] text-gray-500 text-xs font-medium text-center">
+                      Active Plan
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => router.push(`/dashboard/pay?planId=${plan._id}`)}
+                      className="w-full py-2.5 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-semibold transition-all flex items-center justify-center gap-2"
+                    >
+                      <BanknotesIcon className="w-3.5 h-3.5" />
+                      Pay via UPI
+                    </button>
+                  )}
+                </div>
+              )
+            })}
+          </div>
         </div>
-        <a
-          href="mailto:support@example.com"
-          className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors whitespace-nowrap"
-        >
-          <EnvelopeIcon className="w-4 h-4" />
-          Contact us to upgrade
-        </a>
-      </div>
+      )}
     </div>
   )
 }
