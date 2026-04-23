@@ -180,7 +180,7 @@ export default function PayPage() {
           {/* QR Code */}
           <div className="w-44 h-44 rounded-2xl bg-white flex items-center justify-center flex-shrink-0 border-4 border-white/10 shadow-xl shadow-indigo-500/10 overflow-hidden">
             <img
-              src="https://images2.imgbox.com/c0/d3/cUKd3CQz_o.png"
+              src="/upi-qr.png"
               alt="UPI QR Code - kumarhari@fam"
               className="w-full h-full object-contain"
               onError={(e) => {
