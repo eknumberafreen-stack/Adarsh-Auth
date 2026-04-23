@@ -178,18 +178,12 @@ export default function PayPage() {
 
         <div className="flex flex-col sm:flex-row gap-5 items-center">
           {/* QR Code */}
-          <div className="w-44 h-44 rounded-2xl bg-white flex items-center justify-center flex-shrink-0 border-4 border-white/10 shadow-xl shadow-indigo-500/10 overflow-hidden">
+          <div className="w-44 h-44 rounded-2xl bg-white flex items-center justify-center flex-shrink-0 border-4 border-white/10 shadow-xl shadow-indigo-500/10 overflow-hidden p-2">
+            {/* UPI QR generated from kumarhari@fam */}
             <img
-              src="/upi-qr.png"
-              alt="UPI QR Code - kumarhari@fam"
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=kumarhari@fam%26pn=Hariom%20Kumar%26cu=INR&bgcolor=ffffff&color=000000&margin=2`}
+              alt="UPI QR Code"
               className="w-full h-full object-contain"
-              onError={(e) => {
-                const t = e.target as HTMLImageElement
-                t.style.display = 'none'
-                if (t.parentElement) {
-                  t.parentElement.innerHTML = '<div class="text-center p-3"><p class="text-xs text-gray-500">Scan QR</p><p class="text-[10px] text-gray-400 mt-1">kumarhari@fam</p></div>'
-                }
-              }}
             />
           </div>
 
