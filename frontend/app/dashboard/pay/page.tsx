@@ -14,8 +14,8 @@ import {
   BanknotesIcon,
 } from '@heroicons/react/24/outline'
 
-const UPI_ID = process.env.NEXT_PUBLIC_UPI_ID || 'yourname@upi'
-const UPI_NAME = process.env.NEXT_PUBLIC_UPI_NAME || 'Adarsh Auth'
+const UPI_ID = 'kumarhari@fam'
+const UPI_NAME = 'Hariom Kumar'
 
 interface Plan {
   _id: string
@@ -177,16 +177,20 @@ export default function PayPage() {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-5 items-center">
-          {/* QR Code placeholder */}
-          <div className="w-40 h-40 rounded-2xl bg-white flex items-center justify-center flex-shrink-0 border-4 border-white/10">
-            {process.env.NEXT_PUBLIC_UPI_QR_URL ? (
-              <img src={process.env.NEXT_PUBLIC_UPI_QR_URL} alt="UPI QR" className="w-full h-full object-contain rounded-xl" />
-            ) : (
-              <div className="text-center p-3">
-                <QrCodeIcon className="w-16 h-16 text-gray-300 mx-auto" />
-                <p className="text-[10px] text-gray-400 mt-1">Set NEXT_PUBLIC_UPI_QR_URL</p>
-              </div>
-            )}
+          {/* QR Code */}
+          <div className="w-44 h-44 rounded-2xl bg-white flex items-center justify-center flex-shrink-0 border-4 border-white/10 shadow-xl shadow-indigo-500/10 overflow-hidden">
+            <img
+              src="https://images2.imgbox.com/c0/d3/cUKd3CQz_o.png"
+              alt="UPI QR Code - kumarhari@fam"
+              className="w-full h-full object-contain"
+              onError={(e) => {
+                const t = e.target as HTMLImageElement
+                t.style.display = 'none'
+                if (t.parentElement) {
+                  t.parentElement.innerHTML = '<div class="text-center p-3"><p class="text-xs text-gray-500">Scan QR</p><p class="text-[10px] text-gray-400 mt-1">kumarhari@fam</p></div>'
+                }
+              }}
+            />
           </div>
 
           <div className="flex-1 space-y-3">
