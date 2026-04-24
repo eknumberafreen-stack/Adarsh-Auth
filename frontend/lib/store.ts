@@ -16,6 +16,7 @@ interface AuthState {
   setAuth: (user: User, accessToken: string, refreshToken: string) => void
   logout: () => void
   setHasHydrated: (value: boolean) => void
+  syncAuthFromStorage: () => void
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -37,10 +38,20 @@ export const useAuthStore = create<AuthState>()(
         set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false })
       },
       setHasHydrated: (value) => set({ hasHydrated: value }),
+      syncAuthFromStorage: () => {
+        const accessToken = localStorage.getItem('accessToken')
+        const refreshToken = localStorage.getItem('refreshToken')
+        set((state) => ({
+          accessToken: accessToken || state.accessToken,
+          refreshToken: refreshToken || state.refreshToken,
+          isAuthenticated: Boolean(accessToken || state.accessToken),
+        }))
+      },
     }),
     {
       name: 'auth-storage',
       onRehydrateStorage: () => (state) => {
+        state?.syncAuthFromStorage()
         state?.setHasHydrated(true)
       },
     }

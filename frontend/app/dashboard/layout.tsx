@@ -48,7 +48,7 @@ function DashboardBackdrop() {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
-  const { isAuthenticated, accessToken, hasHydrated, user, logout } = useAuthStore()
+  const { accessToken, hasHydrated, user, logout } = useAuthStore()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [planName, setPlanName] = useState<string>('free')
   const [planDisplay, setPlanDisplay] = useState<string>('Free')
@@ -86,11 +86,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     if (!hasHydrated) return
-    if (!accessToken || !isAuthenticated) router.replace('/login')
-  }, [accessToken, hasHydrated, isAuthenticated, router])
+    if (!accessToken) router.replace('/login')
+  }, [accessToken, hasHydrated, router])
 
   useEffect(() => {
-    if (!hasHydrated || !accessToken || !isAuthenticated) return
+    if (!hasHydrated || !accessToken) return
     api
       .get('/plans/my')
       .then((res) => {
@@ -101,7 +101,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }
       })
       .catch(() => {})
-  }, [isAuthenticated])
+  }, [accessToken, hasHydrated])
 
   useEffect(() => {
     setMobileOpen(false)
@@ -120,7 +120,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return <div className="min-h-screen bg-[#07070a]" />
   }
 
-  if (!accessToken || !isAuthenticated) {
+  if (!accessToken) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#07070a] text-slate-400">
         Redirecting...
