@@ -288,7 +288,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
 
           <footer className="border-t border-white/10 px-4 py-4 text-center text-xs text-slate-500 sm:px-6 lg:px-8">
-            Adarsh Auth control center. Same logic, upgraded presentation and workflow clarity.
+           |    © 2026    •    Developed By Adarsh Cheats    •    Dev - Hariom    |
           </footer>
         </div>
       </div>
