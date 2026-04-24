@@ -1,126 +1,82 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '@/lib/store'
 import Link from 'next/link'
-import {
-  HomeIcon,
-  CubeIcon,
-  KeyIcon,
-  UsersIcon,
-  ClockIcon,
-  CreditCardIcon,
-  Cog6ToothIcon,
-  ArrowRightOnRectangleIcon,
-  UserGroupIcon,
-  UserCircleIcon,
-  BanknotesIcon,
-} from '@heroicons/react/24/outline'
 import api from '@/lib/api'
 import toast from 'react-hot-toast'
-import { getDisplayName, getEmailPrefix, getAvatarInitial } from '@/lib/username'
+import {
+  ArrowRightOnRectangleIcon,
+  BanknotesIcon,
+  Bars3Icon,
+  ClockIcon,
+  Cog6ToothIcon,
+  CreditCardIcon,
+  CubeIcon,
+  HomeIcon,
+  KeyIcon,
+  UserCircleIcon,
+  UserGroupIcon,
+  UsersIcon,
+  XMarkIcon,
+} from '@heroicons/react/24/outline'
+import { getAvatarInitial, getDisplayName, getEmailPrefix } from '@/lib/username'
 
-const PLAN_STYLE: Record<string, { bg: string; text: string; border: string }> = {
-  free:       { bg: 'bg-gray-500/10',   text: 'text-gray-400',   border: 'border-gray-500/20' },
-  pro:        { bg: 'bg-indigo-500/10', text: 'text-indigo-400', border: 'border-indigo-500/20' },
-  enterprise: { bg: 'bg-amber-500/10',  text: 'text-amber-400',  border: 'border-amber-500/20' },
-  yearly:     { bg: 'bg-orange-500/10', text: 'text-orange-400', border: 'border-orange-500/20' },
+const PLAN_STYLE: Record<string, { shell: string; dot: string }> = {
+  free: { shell: 'border-slate-400/20 bg-slate-400/10 text-slate-200', dot: 'bg-slate-300' },
+  pro: { shell: 'border-sky-400/20 bg-sky-400/10 text-sky-200', dot: 'bg-sky-300' },
+  enterprise: { shell: 'border-amber-400/20 bg-amber-400/10 text-amber-200', dot: 'bg-amber-300' },
+  yearly: { shell: 'border-cyan-400/20 bg-cyan-400/10 text-cyan-200', dot: 'bg-cyan-300' },
 }
 
-// ── Subtle Particles ──────────────────────────────────────────
-function DashboardParticles() {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    let animId: number
-    let W = window.innerWidth
-    let H = window.innerHeight
-    canvas.width = W
-    canvas.height = H
-
-    type P = { x: number; y: number; vx: number; vy: number; r: number; alpha: number }
-    const pts: P[] = Array.from({ length: 40 }, () => ({
-      x: Math.random() * W, y: Math.random() * H,
-      vx: (Math.random() - 0.5) * 0.25, vy: (Math.random() - 0.5) * 0.25,
-      r: Math.random() * 1 + 0.3,
-      alpha: Math.random() * 0.2 + 0.05,
-    }))
-
-    const resize = () => {
-      W = window.innerWidth; H = window.innerHeight
-      canvas.width = W; canvas.height = H
-    }
-    window.addEventListener('resize', resize)
-
-    const draw = () => {
-      ctx.clearRect(0, 0, W, H)
-      for (let i = 0; i < pts.length; i++) {
-        for (let j = i + 1; j < pts.length; j++) {
-          const dx = pts[i].x - pts[j].x
-          const dy = pts[i].y - pts[j].y
-          const d = Math.sqrt(dx * dx + dy * dy)
-          if (d < 110) {
-            ctx.beginPath()
-            ctx.strokeStyle = `rgba(99,102,241,${0.08 * (1 - d / 110)})`
-            ctx.lineWidth = 0.4
-            ctx.moveTo(pts[i].x, pts[i].y)
-            ctx.lineTo(pts[j].x, pts[j].y)
-            ctx.stroke()
-          }
-        }
-      }
-      for (const p of pts) {
-        ctx.beginPath()
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2)
-        ctx.fillStyle = `rgba(139,92,246,${p.alpha})`
-        ctx.fill()
-        p.x += p.vx; p.y += p.vy
-        if (p.x < 0 || p.x > W) p.vx *= -1
-        if (p.y < 0 || p.y > H) p.vy *= -1
-      }
-      animId = requestAnimationFrame(draw)
-    }
-    draw()
-    return () => {
-      cancelAnimationFrame(animId)
-      window.removeEventListener('resize', resize)
-    }
-  }, [])
-
-  return <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-0 opacity-30" />
+function DashboardBackdrop() {
+  return (
+    <>
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.12),transparent_26%),radial-gradient(circle_at_bottom_right,rgba(245,158,11,0.12),transparent_24%)]" />
+      <div className="pointer-events-none fixed left-1/2 top-0 h-[420px] w-[620px] -translate-x-1/2 rounded-full bg-sky-500/8 blur-[160px]" />
+    </>
+  )
 }
-
-// ── Navigation ────────────────────────────────────────────────
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const router   = useRouter()
+  const router = useRouter()
   const pathname = usePathname()
   const { isAuthenticated, user, logout } = useAuthStore()
+  const [mobileOpen, setMobileOpen] = useState(false)
   const [planName, setPlanName] = useState<string>('free')
   const [planDisplay, setPlanDisplay] = useState<string>('Free')
 
   const isOwner = user?.email === (process.env.NEXT_PUBLIC_OWNER_EMAIL || 'donumberafreen@gmail.com')
 
-  const navigation = [
-    { name: 'Dashboard',   href: '/dashboard',              icon: HomeIcon },
-    { name: 'Manage Apps', href: '/dashboard/applications', icon: CubeIcon },
-    { name: 'Licenses',    href: '/dashboard/licenses',     icon: KeyIcon },
-    { name: 'Users',       href: '/dashboard/users',        icon: UsersIcon },
-    { name: 'Sessions',    href: '/dashboard/sessions',     icon: ClockIcon },
-    { name: 'Billing',     href: '/dashboard/billing',      icon: CreditCardIcon },
-    { name: 'My Payments', href: '/dashboard/my-payments',  icon: BanknotesIcon },
-    { name: 'Profile',     href: '/dashboard/profile',      icon: UserCircleIcon },
-    ...(isOwner ? [
-      { name: 'Developers', href: '/dashboard/developers', icon: UserGroupIcon },
-      { name: 'Payments',   href: '/dashboard/payments',   icon: BanknotesIcon },
-    ] : []),
-    { name: 'Settings',    href: '/dashboard/settings',     icon: Cog6ToothIcon },  ]
+  const navigation = useMemo(
+    () => [
+      { name: 'Overview', href: '/dashboard', icon: HomeIcon, group: 'Workspace' },
+      { name: 'Applications', href: '/dashboard/applications', icon: CubeIcon, group: 'Workspace' },
+      { name: 'Licenses', href: '/dashboard/licenses', icon: KeyIcon, group: 'Operations' },
+      { name: 'Users', href: '/dashboard/users', icon: UsersIcon, group: 'Operations' },
+      { name: 'Sessions', href: '/dashboard/sessions', icon: ClockIcon, group: 'Operations' },
+      { name: 'Billing', href: '/dashboard/billing', icon: CreditCardIcon, group: 'Account' },
+      { name: 'My Payments', href: '/dashboard/my-payments', icon: BanknotesIcon, group: 'Account' },
+      { name: 'Profile', href: '/dashboard/profile', icon: UserCircleIcon, group: 'Account' },
+      ...(isOwner
+        ? [
+            { name: 'Developers', href: '/dashboard/developers', icon: UserGroupIcon, group: 'Owner' },
+            { name: 'Payments', href: '/dashboard/payments', icon: BanknotesIcon, group: 'Owner' },
+          ]
+        : []),
+      { name: 'Settings', href: '/dashboard/settings', icon: Cog6ToothIcon, group: 'Account' },
+    ],
+    [isOwner]
+  )
+
+  const groupedNavigation = useMemo(() => {
+    return navigation.reduce<Record<string, typeof navigation>>((acc, item) => {
+      if (!acc[item.group]) acc[item.group] = []
+      acc[item.group].push(item)
+      return acc
+    }, {})
+  }, [navigation])
 
   useEffect(() => {
     if (!isAuthenticated) router.push('/login')
@@ -128,17 +84,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     if (!isAuthenticated) return
-    api.get('/plans/my').then(res => {
-      const p = res.data?.plan
-      if (p) {
-        setPlanName(p.name ?? 'free')
-        setPlanDisplay(p.displayName ?? 'Free')
-      }
-    }).catch(() => {})
+    api
+      .get('/plans/my')
+      .then((res) => {
+        const plan = res.data?.plan
+        if (plan) {
+          setPlanName(plan.name ?? 'free')
+          setPlanDisplay(plan.displayName ?? 'Free')
+        }
+      })
+      .catch(() => {})
   }, [isAuthenticated])
 
+  useEffect(() => {
+    setMobileOpen(false)
+  }, [pathname])
+
   const handleLogout = async () => {
-    try { await api.post('/auth/logout') } catch {}
+    try {
+      await api.post('/auth/logout')
+    } catch {}
     logout()
     toast.success('Logged out')
     router.push('/login')
@@ -146,110 +111,132 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (!isAuthenticated) return null
 
+  const activePage = navigation.find((item) => item.href === pathname)?.name ?? 'Dashboard'
+  const planStyle = PLAN_STYLE[planName] ?? PLAN_STYLE.free
+
   return (
-    <div className="min-h-screen flex bg-[#060609] text-white relative">
-      <DashboardParticles />
+    <div className="relative min-h-screen text-white">
+      <DashboardBackdrop />
 
-      {/* Subtle glow */}
-      <div className="fixed top-0 left-1/3 w-[600px] h-[400px] bg-indigo-600/4 rounded-full blur-[160px] pointer-events-none z-0" />
+      <div className="relative z-10 flex min-h-screen">
+        {mobileOpen && <div className="fixed inset-0 z-30 bg-slate-950/70 backdrop-blur-sm lg:hidden" onClick={() => setMobileOpen(false)} />}
 
-      {/* ── Sidebar ── */}
-      <aside className="w-56 bg-[#09090e]/90 backdrop-blur-xl border-r border-white/[0.05] flex flex-col fixed h-full z-20">
-
-        {/* Logo */}
-        <div className="px-5 py-4 border-b border-white/[0.05]">
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-md overflow-hidden flex-shrink-0">
-              <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" />
-            </div>
-            <span className="text-sm font-semibold text-white tracking-tight">Adarsh Auth</span>
-          </div>
-        </div>
-
-        {/* Nav */}
-        <nav className="flex-1 px-3 py-3 space-y-0.5">
-          {navigation.map((item) => {
-            const isActive = pathname === item.href
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all ${
-                  isActive
-                    ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/20'
-                    : 'text-gray-500 hover:text-gray-200 hover:bg-white/[0.04]'
-                }`}
-              >
-                <item.icon className="w-4 h-4 flex-shrink-0" />
-                {item.name}
-              </Link>
-            )
-          })}
-        </nav>
-
-        {/* User + Logout */}
-        <div className="px-3 py-3 border-t border-white/[0.05] space-y-1">
-          {/* Plan Badge */}
-          <Link href="/dashboard/billing" className="block px-3 py-2 rounded-lg hover:bg-white/[0.03] transition-colors">
-            <p className="text-xs text-gray-600 mb-1">Current Plan</p>
-            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${PLAN_STYLE[planName]?.bg ?? 'bg-gray-500/10'} ${PLAN_STYLE[planName]?.text ?? 'text-gray-400'} ${PLAN_STYLE[planName]?.border ?? 'border-gray-500/20'}`}>
-              <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70" />
-              {planDisplay}
-            </span>
-          </Link>
-          <div className="px-3 py-2 rounded-lg">
-            <p className="text-xs text-gray-600">Logged in as</p>
-            <p className="text-xs text-gray-300 font-medium truncate mt-0.5">{getDisplayName(user?.username ?? null, user?.email ?? '')}</p>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-gray-500 hover:text-rose-400 hover:bg-rose-500/5 transition-all w-full text-sm"
-          >
-            <ArrowRightOnRectangleIcon className="w-4 h-4" />
-            Logout
-          </button>
-        </div>
-      </aside>
-
-      {/* ── Main ── */}
-      <div className="flex-1 ml-56 flex flex-col min-h-screen relative z-10">
-
-        {/* Topbar */}
-        <header className="h-12 bg-[#09090e]/80 backdrop-blur-xl border-b border-white/[0.05] flex items-center px-6 sticky top-0 z-10">
-          <div className="flex items-center gap-2 text-xs text-gray-500">
-            <span>Dashboard</span>
-            {pathname !== '/dashboard' && (
-              <>
-                <span>/</span>
-                <span className="text-gray-300 capitalize">
-                  {pathname.split('/').pop()}
-                </span>
-              </>
-            )}
-          </div>
-          <div className="ml-auto flex items-center gap-3">
-            <Link href="/dashboard/profile" className="w-7 h-7 rounded-full bg-indigo-600/30 border border-indigo-500/30 flex items-center justify-center text-xs font-semibold text-indigo-300 hover:bg-indigo-600/50 transition-colors">
-              {getAvatarInitial(user?.username ?? null, user?.email ?? '')}
+        <aside
+          className={`fixed inset-y-0 left-0 z-40 flex w-[290px] flex-col border-r border-white/10 bg-slate-950/90 backdrop-blur-2xl transition-transform duration-300 lg:translate-x-0 ${
+            mobileOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
+        >
+          <div className="flex items-center justify-between border-b border-white/10 px-6 py-5">
+            <Link href="/dashboard" className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-400 to-cyan-500 text-slate-950 shadow-lg shadow-sky-500/20">
+                <CubeIcon className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-300/75">Control Center</p>
+                <p className="text-lg font-bold text-white">Adarsh Auth</p>
+              </div>
             </Link>
-            <div className="hidden md:block">
-              <Link href="/dashboard/profile" className="text-xs font-medium text-gray-300 leading-none hover:text-white transition-colors">
-                {user?.username ? user.username : getEmailPrefix(user?.email ?? '')}
+            <button className="rounded-xl border border-white/10 p-2 text-slate-400 lg:hidden" onClick={() => setMobileOpen(false)}>
+              <XMarkIcon className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="border-b border-white/10 px-6 py-5">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-500/15 text-sm font-bold text-sky-200">
+                  {getAvatarInitial(user?.username ?? null, user?.email ?? '')}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-white">{getDisplayName(user?.username ?? null, user?.email ?? '')}</p>
+                  <p className="truncate text-xs text-slate-400">{user?.username ? user.email : getEmailPrefix(user?.email ?? '')}</p>
+                </div>
+              </div>
+
+              <Link href="/dashboard/billing" className={`mt-4 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold ${planStyle.shell}`}>
+                <span className={`h-2 w-2 rounded-full ${planStyle.dot}`} />
+                {planDisplay} Plan
               </Link>
+
+              <p className="mt-3 text-xs leading-5 text-slate-400">
+                Manage applications, credentials, users, sessions, and billing from one operational workspace.
+              </p>
             </div>
           </div>
-        </header>
 
-        {/* Content */}
-        <main className="flex-1 p-6">
-          {children}
-        </main>
+          <div className="flex-1 overflow-y-auto px-4 py-5">
+            <div className="space-y-6">
+              {Object.entries(groupedNavigation).map(([group, items]) => (
+                <div key={group}>
+                  <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">{group}</p>
+                  <div className="mt-2 space-y-1.5">
+                    {items.map((item) => {
+                      const active = pathname === item.href
+                      return (
+                        <Link
+                          key={item.name}
+                          href={item.href}
+                          className={`flex items-center gap-3 rounded-2xl px-3 py-3 text-sm transition-all ${
+                            active
+                              ? 'border border-sky-400/25 bg-sky-400/10 text-sky-100 shadow-lg shadow-sky-500/10'
+                              : 'border border-transparent text-slate-400 hover:border-white/10 hover:bg-white/[0.04] hover:text-white'
+                          }`}
+                        >
+                          <item.icon className="h-5 w-5 flex-shrink-0" />
+                          <span className="font-medium">{item.name}</span>
+                        </Link>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
 
-        {/* Footer */}
-        <footer className="border-t border-white/[0.04] px-6 py-3">
-          <p className="text-xs text-gray-700 text-center">
-            Adarsh Auth · Developed by <span className="text-gray-500">Adarsh Cheats</span>
-          </p>
-        </footer>
+          <div className="border-t border-white/10 px-4 py-4">
+            <button
+              onClick={handleLogout}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm font-semibold text-rose-200 transition-colors hover:bg-rose-500/15"
+            >
+              <ArrowRightOnRectangleIcon className="h-5 w-5" />
+              Sign Out
+            </button>
+          </div>
+        </aside>
+
+        <div className="flex min-h-screen flex-1 flex-col lg:pl-[290px]">
+          <header className="sticky top-0 z-20 border-b border-white/10 bg-slate-950/60 backdrop-blur-xl">
+            <div className="flex items-center gap-4 px-4 py-4 sm:px-6 lg:px-8">
+              <button className="rounded-2xl border border-white/10 p-2 text-slate-300 lg:hidden" onClick={() => setMobileOpen(true)}>
+                <Bars3Icon className="h-5 w-5" />
+              </button>
+
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Adarsh Auth Dashboard</p>
+                <h1 className="truncate text-lg font-bold text-white">{activePage}</h1>
+              </div>
+
+              <div className="ml-auto flex items-center gap-3">
+                <div className="hidden rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2 text-right md:block">
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Status</p>
+                  <p className="text-sm font-semibold text-emerald-300">Operational</p>
+                </div>
+                <Link
+                  href="/dashboard/profile"
+                  className="flex h-11 w-11 items-center justify-center rounded-2xl border border-sky-400/20 bg-sky-400/10 text-sm font-bold text-sky-100"
+                >
+                  {getAvatarInitial(user?.username ?? null, user?.email ?? '')}
+                </Link>
+              </div>
+            </div>
+          </header>
+
+          <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+
+          <footer className="border-t border-white/10 px-4 py-4 text-center text-xs text-slate-500 sm:px-6 lg:px-8">
+            Adarsh Auth control center. Same logic, upgraded presentation and workflow clarity.
+          </footer>
+        </div>
       </div>
     </div>
   )

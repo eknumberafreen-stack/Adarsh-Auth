@@ -5,222 +5,264 @@ import api from '@/lib/api'
 import { useAuthStore } from '@/lib/store'
 import { getDisplayName } from '@/lib/username'
 import {
+  ArrowTrendingUpIcon,
+  ChartBarIcon,
+  ClockIcon,
   CubeIcon,
   KeyIcon,
-  UsersIcon,
-  ClockIcon,
   ShieldCheckIcon,
-  ChartBarIcon,
-  ArrowTrendingUpIcon,
+  UsersIcon,
 } from '@heroicons/react/24/outline'
 
 export default function Dashboard() {
   const { user } = useAuthStore()
   const [stats, setStats] = useState({
-    applications: 0, licenses: 0, users: 0,
-    sessions: 0, usedLicenses: 0, bannedUsers: 0
+    applications: 0,
+    licenses: 0,
+    users: 0,
+    sessions: 0,
+    usedLicenses: 0,
+    bannedUsers: 0,
   })
   const [recentApps, setRecentApps] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => { loadStats() }, [])
+  useEffect(() => {
+    loadStats()
+  }, [])
 
   const loadStats = async () => {
     try {
       const appsRes = await api.get('/applications')
       const apps = appsRes.data.applications
-      setRecentApps(apps.slice(0, 3))
+      setRecentApps(apps.slice(0, 4))
 
-      let totalLicenses = 0, usedLicenses = 0, totalUsers = 0,
-          bannedUsers = 0, totalSessions = 0
+      let totalLicenses = 0
+      let usedLicenses = 0
+      let totalUsers = 0
+      let bannedUsers = 0
+      let totalSessions = 0
 
       for (const app of apps) {
         try {
           const [lRes, uRes, sRes] = await Promise.all([
             api.get(`/licenses/application/${app._id}`),
             api.get(`/users/application/${app._id}`),
-            api.get(`/sessions/application/${app._id}`)
+            api.get(`/sessions/application/${app._id}`),
           ])
-          totalLicenses  += lRes.data.licenses.length
-          usedLicenses   += lRes.data.licenses.filter((l: any) => l.used).length
-          totalUsers     += uRes.data.users.length
-          bannedUsers    += uRes.data.users.filter((u: any) => u.banned).length
-          totalSessions  += sRes.data.sessions.length
+          totalLicenses += lRes.data.licenses.length
+          usedLicenses += lRes.data.licenses.filter((license: any) => license.used).length
+          totalUsers += uRes.data.users.length
+          bannedUsers += uRes.data.users.filter((appUser: any) => appUser.banned).length
+          totalSessions += sRes.data.sessions.length
         } catch {}
       }
 
       setStats({
-        applications: apps.length, licenses: totalLicenses,
-        users: totalUsers, sessions: totalSessions,
-        usedLicenses, bannedUsers
+        applications: apps.length,
+        licenses: totalLicenses,
+        users: totalUsers,
+        sessions: totalSessions,
+        usedLicenses,
+        bannedUsers,
       })
-    } catch (e) {
-      console.error(e)
+    } catch (error) {
+      console.error(error)
     } finally {
       setLoading(false)
     }
   }
 
   const statCards = [
-    { name: 'Applications',    value: stats.applications, icon: CubeIcon,        color: 'text-indigo-400',  border: 'border-indigo-500/15' },
-    { name: 'Total Licenses',  value: stats.licenses,     icon: KeyIcon,          color: 'text-emerald-400', border: 'border-emerald-500/15' },
-    { name: 'Total Users',     value: stats.users,        icon: UsersIcon,        color: 'text-violet-400',  border: 'border-violet-500/15' },
-    { name: 'Active Sessions', value: stats.sessions,     icon: ClockIcon,        color: 'text-amber-400',   border: 'border-amber-500/15' },
-    { name: 'Used Licenses',   value: stats.usedLicenses, icon: ChartBarIcon,     color: 'text-sky-400',     border: 'border-sky-500/15' },
-    { name: 'Banned Users',    value: stats.bannedUsers,  icon: ShieldCheckIcon,  color: 'text-rose-400',    border: 'border-rose-500/15' },
+    {
+      name: 'Applications',
+      value: stats.applications,
+      icon: CubeIcon,
+      meta: `${recentApps.length} recently active`,
+      color: 'text-sky-300',
+    },
+    {
+      name: 'Licenses',
+      value: stats.licenses,
+      icon: KeyIcon,
+      meta: `${stats.usedLicenses} activated`,
+      color: 'text-emerald-300',
+    },
+    {
+      name: 'Users',
+      value: stats.users,
+      icon: UsersIcon,
+      meta: `${Math.max(stats.users - stats.bannedUsers, 0)} currently active`,
+      color: 'text-violet-300',
+    },
+    {
+      name: 'Sessions',
+      value: stats.sessions,
+      icon: ClockIcon,
+      meta: 'Live authenticated client sessions',
+      color: 'text-amber-300',
+    },
   ]
 
+  const licenseUsage = stats.licenses > 0 ? Math.round((stats.usedLicenses / stats.licenses) * 100) : 0
+  const healthyUsers = stats.users > 0 ? Math.round(((stats.users - stats.bannedUsers) / stats.users) * 100) : 100
+
   return (
-    <div className="space-y-6">
-
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-white">Overview</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{getDisplayName(user?.username ?? null, user?.email ?? '')}</p>
-        </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-xs text-emerald-400 font-medium">All systems operational</span>
-        </div>
-      </div>
-
-      {/* Stats Grid */}
-      {loading ? (
-        <div className="flex justify-center py-16">
-          <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {statCards.map((stat) => (
-            <div
-              key={stat.name}
-              className={`bg-white/[0.02] border ${stat.border} rounded-xl p-5 hover:bg-white/[0.04] transition-colors`}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">{stat.name}</p>
-                <stat.icon className={`w-4 h-4 ${stat.color} opacity-70`} />
-              </div>
-              <p className="text-3xl font-bold text-white">{stat.value}</p>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Bottom Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-
-        {/* Recent Applications */}
-        <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-white">Recent Applications</h2>
-            <a href="/dashboard/applications" className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">
-              View all
-            </a>
-          </div>
-
-          {recentApps.length === 0 ? (
-            <div className="text-center py-8">
-              <CubeIcon className="w-8 h-8 mx-auto text-gray-600 mb-2" />
-              <p className="text-sm text-gray-500">No applications yet</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {recentApps.map((app: any) => (
-                <div
-                  key={app._id}
-                  className="flex items-center justify-between px-4 py-3 bg-white/[0.02] border border-white/[0.04] rounded-lg"
-                >
-                  <div>
-                    <p className="text-sm font-medium text-white">{app.name}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">v{app.version} · {app.userCount || 0} users</p>
-                  </div>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                    app.status === 'active'
-                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                      : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                  }`}>
-                    {app.status}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Platform Overview */}
-        <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <ArrowTrendingUpIcon className="w-4 h-4 text-gray-400" />
-            <h2 className="text-sm font-semibold text-white">Platform Overview</h2>
-          </div>
-
-          <div className="space-y-4">
-            {[
-              {
-                label: 'License Usage',
-                value: stats.licenses > 0 ? Math.round((stats.usedLicenses / stats.licenses) * 100) : 0,
-                suffix: '%',
-                color: 'bg-emerald-500'
-              },
-              {
-                label: 'Active Users',
-                value: stats.users > 0 ? Math.round(((stats.users - stats.bannedUsers) / stats.users) * 100) : 0,
-                suffix: '%',
-                color: 'bg-indigo-500'
-              },
-              {
-                label: 'Sessions',
-                value: Math.min(stats.sessions * 10, 100),
-                suffix: '',
-                color: 'bg-amber-500'
-              },
-            ].map((item) => (
-              <div key={item.label}>
-                <div className="flex justify-between text-xs mb-1.5">
-                  <span className="text-gray-400">{item.label}</span>
-                  <span className="text-gray-300 font-medium">
-                    {item.label === 'Sessions' ? stats.sessions : `${item.value}${item.suffix}`}
-                  </span>
-                </div>
-                <div className="h-1.5 bg-white/[0.05] rounded-full overflow-hidden">
-                  <div
-                    className={`h-full ${item.color} rounded-full transition-all duration-700`}
-                    style={{ width: `${item.value}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-5 pt-4 border-t border-white/[0.05] grid grid-cols-2 gap-3">
-            <div className="bg-white/[0.02] rounded-lg p-3 text-center">
-              <p className="text-2xl font-bold text-emerald-400">{stats.users - stats.bannedUsers}</p>
-              <p className="text-xs text-gray-500 mt-1">Active Users</p>
-            </div>
-            <div className="bg-white/[0.02] rounded-lg p-3 text-center">
-              <p className="text-2xl font-bold text-rose-400">{stats.bannedUsers}</p>
-              <p className="text-xs text-gray-500 mt-1">Banned Users</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Security Status */}
-      <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-4">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center flex-shrink-0">
-            <ShieldCheckIcon className="w-4 h-4 text-emerald-400" />
-          </div>
+    <div className="space-y-8">
+      <section className="surface-panel px-6 py-8 md:px-8">
+        <div className="page-header">
           <div>
-            <p className="text-sm font-medium text-white">Security Active</p>
-            <p className="text-xs text-gray-500 mt-0.5">
-              HMAC SHA256 · Replay Protection · Rate Limiting · HWID Lock · Audit Logging
+            <p className="page-eyebrow">Overview</p>
+            <h1 className="page-title">Run every auth surface from one professional control center.</h1>
+            <p className="page-subtitle">
+              Welcome back, {getDisplayName(user?.username ?? null, user?.email ?? '')}. This view consolidates your applications,
+              license inventory, user base, and active sessions without changing how the underlying platform works.
             </p>
           </div>
-        </div>
-      </div>
 
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-5 py-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-200/80">Security posture</p>
+              <p className="mt-2 text-lg font-bold text-white">Replay protection, HWID lock, audit logging</p>
+            </div>
+            <div className="rounded-2xl border border-sky-400/20 bg-sky-400/10 px-5 py-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200/80">Operator focus</p>
+              <p className="mt-2 text-lg font-bold text-white">Faster scanning for apps, users, and live sessions</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {loading ? (
+        <div className="flex justify-center py-24">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-sky-400 border-t-transparent" />
+        </div>
+      ) : (
+        <>
+          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {statCards.map((stat) => (
+              <div key={stat.name} className="stat-tile">
+                <div className="flex items-center justify-between">
+                  <p className="stat-label">{stat.name}</p>
+                  <stat.icon className={`h-5 w-5 ${stat.color}`} />
+                </div>
+                <p className="stat-value">{stat.value}</p>
+                <p className="stat-meta">{stat.meta}</p>
+              </div>
+            ))}
+          </section>
+
+          <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+            <div className="card">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-400/10 text-sky-200">
+                  <ChartBarIcon className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="page-eyebrow">Recent Applications</p>
+                  <h2 className="text-2xl font-bold text-white">Most recently managed apps</h2>
+                </div>
+              </div>
+
+              <div className="mt-6 space-y-3">
+                {recentApps.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-white/10 px-5 py-12 text-center text-sm text-slate-400">
+                    No applications yet. Create your first app to start issuing credentials and client sessions.
+                  </div>
+                ) : (
+                  recentApps.map((app: any) => (
+                    <div key={app._id} className="rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <p className="text-lg font-bold text-white">{app.name}</p>
+                          <p className="mt-1 text-sm text-slate-400">
+                            Version {app.version} • {app.userCount || 0} users currently linked
+                          </p>
+                        </div>
+                        <span
+                          className={`badge ${
+                            app.status === 'active'
+                              ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-200'
+                              : 'border-amber-400/20 bg-amber-400/10 text-amber-200'
+                          }`}
+                        >
+                          {app.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div className="card">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-400/10 text-amber-200">
+                    <ArrowTrendingUpIcon className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="page-eyebrow">Operational Ratios</p>
+                    <h2 className="text-2xl font-bold text-white">Health indicators</h2>
+                  </div>
+                </div>
+
+                <div className="mt-6 space-y-5">
+                  {[
+                    {
+                      label: 'License activation',
+                      value: licenseUsage,
+                      caption: `${stats.usedLicenses} of ${stats.licenses} licenses have been consumed`,
+                      color: 'bg-sky-400',
+                    },
+                    {
+                      label: 'User health',
+                      value: healthyUsers,
+                      caption: `${Math.max(stats.users - stats.bannedUsers, 0)} active versus ${stats.bannedUsers} banned`,
+                      color: 'bg-emerald-400',
+                    },
+                  ].map((item) => (
+                    <div key={item.label}>
+                      <div className="mb-2 flex items-center justify-between text-sm">
+                        <span className="font-medium text-slate-300">{item.label}</span>
+                        <span className="text-slate-400">{item.value}%</span>
+                      </div>
+                      <div className="h-2 overflow-hidden rounded-full bg-white/[0.05]">
+                        <div className={`h-full rounded-full ${item.color}`} style={{ width: `${item.value}%` }} />
+                      </div>
+                      <p className="mt-2 text-xs text-slate-500">{item.caption}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="card">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-400/10 text-emerald-200">
+                    <ShieldCheckIcon className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="page-eyebrow">Security Summary</p>
+                    <h2 className="text-2xl font-bold text-white">Controls currently surfaced</h2>
+                  </div>
+                </div>
+                <div className="mt-6 grid gap-3">
+                  {[
+                    'HMAC verification and replay protection',
+                    'Rate limiting and session heartbeat tracking',
+                    'HWID-aware client login protection',
+                    'Audit visibility for suspicious activity',
+                  ].map((item) => (
+                    <div key={item} className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4 text-sm text-slate-300">
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+        </>
+      )}
     </div>
   )
 }
