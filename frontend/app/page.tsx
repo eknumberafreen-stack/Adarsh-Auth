@@ -1,7 +1,5 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   CheckCircleIcon,
@@ -11,7 +9,6 @@ import {
   ShieldCheckIcon,
   UserGroupIcon,
 } from '@heroicons/react/24/outline'
-import { useAuthStore } from '@/lib/store'
 import ParticleField from '@/components/ParticleField'
 
 const features = [
@@ -45,24 +42,6 @@ const dashboardItems = [
 ]
 
 export default function Home() {
-  const router = useRouter()
-  const { isAuthenticated } = useAuthStore()
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  useEffect(() => {
-    if (mounted && isAuthenticated) {
-      router.replace('/dashboard')
-    }
-  }, [mounted, isAuthenticated, router])
-
-  if (!mounted) {
-    return <div className="min-h-screen bg-[#07070a]" />
-  }
-
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-[#07070a] text-white">
       <ParticleField

@@ -46,11 +46,12 @@ function formatLimit(value: number): string {
   return value === -1 ? 'Unlimited' : String(value)
 }
 
-function formatPrice(cents: number): string {
+function formatPrice(cents: number, planName?: string): string {
   if (cents === 0) return 'Free'
   const dollars = cents / 100
   const display = dollars % 1 === 0 ? dollars.toFixed(0) : dollars.toFixed(1)
-  return '$' + display + '/month'
+  const suffix = planName === 'yearly' ? '/year' : '/month'
+  return '$' + display + suffix
 }
 
 function UsageBar({
@@ -166,7 +167,7 @@ export default function BillingPage() {
               </div>
             </div>
             <span className="px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-medium">
-              {formatPrice(currentPlan.price)}
+              {formatPrice(currentPlan.price, currentPlan.name)}
             </span>
           </div>
 
@@ -261,7 +262,7 @@ export default function BillingPage() {
                           plan.name === currentPlan?.name ? 'text-indigo-300' : 'text-white'
                         }`}
                       >
-                        {formatPrice(plan.price)}
+                        {formatPrice(plan.price, plan.name)}
                       </td>
                     ))}
                   </tr>
@@ -326,7 +327,7 @@ export default function BillingPage() {
                       <p className="font-bold text-white">{plan.displayName}</p>
                       {isCurrent && <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300">Current</span>}
                     </div>
-                    <p className="text-xl font-black text-indigo-300">{formatPrice(plan.price)}<span className="text-xs text-gray-500 font-normal">/mo</span></p>
+                    <p className="text-xl font-black text-indigo-300">{formatPrice(plan.price, plan.name)}</p>
                   </div>
                   <ul className="space-y-1.5 flex-1">
                     {plan.features.map(f => (

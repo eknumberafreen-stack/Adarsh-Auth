@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '@/lib/store'
-import Link from 'next/link'
 import api from '@/lib/api'
 import toast from 'react-hot-toast'
 import ParticleField from '@/components/ParticleField'
@@ -49,7 +48,7 @@ function DashboardBackdrop() {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
-  const { isAuthenticated, user, logout } = useAuthStore()
+  const { isAuthenticated, accessToken, hasHydrated, user, logout } = useAuthStore()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [planName, setPlanName] = useState<string>('free')
   const [planDisplay, setPlanDisplay] = useState<string>('Free')
@@ -86,11 +85,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [navigation])
 
   useEffect(() => {
-    if (!isAuthenticated) router.push('/login')
-  }, [isAuthenticated, router])
+    if (!hasHydrated) return
+    if (!accessToken || !isAuthenticated) router.replace('/login')
+  }, [accessToken, hasHydrated, isAuthenticated, router])
 
   useEffect(() => {
-    if (!isAuthenticated) return
+    if (!hasHydrated || !accessToken || !isAuthenticated) return
     api
       .get('/plans/my')
       .then((res) => {
@@ -116,7 +116,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     router.push('/login')
   }
 
-  if (!isAuthenticated) return null
+  if (!hasHydrated) {
+    return <div className="min-h-screen bg-[#07070a]" />
+  }
+
+  if (!accessToken || !isAuthenticated) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#07070a] text-slate-400">
+        Redirecting...
+      </div>
+    )
+  }
 
   const activePage = navigation.find((item) => item.href === pathname)?.name ?? 'Dashboard'
   const planStyle = PLAN_STYLE[planName] ?? PLAN_STYLE.free
@@ -134,7 +144,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           }`}
         >
           <div className="flex items-center justify-between border-b border-white/10 px-6 py-5">
-            <Link href="/dashboard" className="flex items-center gap-3">
+            <button type="button" onClick={() => router.push('/dashboard')} className="flex items-center gap-3 text-left">
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-400 to-cyan-500 text-slate-950 shadow-lg shadow-sky-500/20">
                 <CubeIcon className="h-5 w-5" />
               </div>
@@ -142,7 +152,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-300/75">Control Center</p>
                 <p className="text-lg font-bold text-white">Adarsh Auth</p>
               </div>
-            </Link>
+            </button>
             <button className="rounded-xl border border-white/10 p-2 text-slate-400 lg:hidden" onClick={() => setMobileOpen(false)}>
               <XMarkIcon className="h-5 w-5" />
             </button>
@@ -160,10 +170,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </div>
               </div>
 
-              <Link href="/dashboard/billing" className={`mt-4 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold ${planStyle.shell}`}>
+              <button
+                type="button"
+                onClick={() => router.push('/dashboard/billing')}
+                className={`mt-4 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold ${planStyle.shell}`}
+              >
                 <span className={`h-2 w-2 rounded-full ${planStyle.dot}`} />
                 {planDisplay} Plan
-              </Link>
+              </button>
 
               <p className="mt-3 text-xs leading-5 text-slate-400">
                 Manage applications, credentials, users, sessions, and billing from one operational workspace.
@@ -180,9 +194,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     {items.map((item) => {
                       const active = pathname === item.href
                       return (
-                        <Link
+                        <button
+                          type="button"
                           key={item.name}
-                          href={item.href}
+                          onClick={() => router.push(item.href)}
                           className={`flex items-center gap-3 rounded-2xl px-3 py-3 text-sm transition-all ${
                             active
                               ? 'border border-indigo-400/25 bg-indigo-400/10 text-indigo-100 shadow-lg shadow-indigo-950/30'
@@ -191,7 +206,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         >
                           <item.icon className="h-5 w-5 flex-shrink-0" />
                           <span className="font-medium">{item.name}</span>
-                        </Link>
+                        </button>
                       )
                     })}
                   </div>
@@ -228,12 +243,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Status</p>
                   <p className="text-sm font-semibold text-indigo-200">Operational</p>
                 </div>
-                <Link
-                  href="/dashboard/profile"
+                <button
+                  type="button"
+                  onClick={() => router.push('/dashboard/profile')}
                   className="flex h-11 w-11 items-center justify-center rounded-2xl border border-indigo-400/20 bg-indigo-400/10 text-sm font-bold text-indigo-100"
                 >
                   {getAvatarInitial(user?.username ?? null, user?.email ?? '')}
-                </Link>
+                </button>
               </div>
             </div>
           </header>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -12,11 +12,18 @@ import ParticleField from '@/components/ParticleField'
 
 export default function Login() {
   const router = useRouter()
-  const { setAuth } = useAuthStore()
+  const { setAuth, accessToken, hasHydrated } = useAuthStore()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+
+  useEffect(() => {
+    if (!hasHydrated) return
+    if (accessToken) {
+      router.replace('/dashboard')
+    }
+  }, [accessToken, hasHydrated, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -32,6 +39,18 @@ export default function Login() {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (!hasHydrated) {
+    return <div className="min-h-screen bg-[#07070a]" />
+  }
+
+  if (accessToken) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#07070a] text-slate-400">
+        Redirecting...
+      </div>
+    )
   }
 
   return (
