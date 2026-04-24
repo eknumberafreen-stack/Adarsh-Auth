@@ -41,6 +41,37 @@ const dashboardItems = [
   'Session monitoring with terminate controls',
 ]
 
+const pricingPlans = [
+  {
+    name: 'Free',
+    price: '0',
+    suffix: '/month',
+    features: ['5 applications', '100 users per app', '50 licenses per app', 'Authentication dashboard access'],
+    tone: 'border-white/10 bg-white/[0.03]',
+  },
+  {
+    name: 'Pro',
+    price: '1.6',
+    suffix: '/month',
+    features: ['25 applications', '1,000 users per app', '500 licenses per app', 'Discord webhooks'],
+    tone: 'border-indigo-400/20 bg-indigo-400/10',
+  },
+  {
+    name: 'Enterprise',
+    price: '3',
+    suffix: '/month',
+    features: ['Unlimited applications', 'Unlimited users per app', 'Unlimited licenses per app', 'Priority support'],
+    tone: 'border-slate-300/20 bg-slate-300/10',
+  },
+  {
+    name: 'Yearly',
+    price: '26.5',
+    suffix: '/year',
+    features: ['Unlimited applications', 'Unlimited users per app', 'Unlimited licenses per app', '1 year access'],
+    tone: 'border-violet-400/20 bg-violet-400/10',
+  },
+]
+
 export default function Home() {
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-[#07070a] text-white">
@@ -200,6 +231,41 @@ export default function Home() {
               <div key={item} className="card-hover flex items-center gap-3">
                 <UserGroupIcon className="h-5 w-5 text-indigo-300" />
                 <p className="text-sm text-slate-300">{item}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="pricing" className="relative z-10 border-y border-white/10 bg-white/[0.02] px-6 py-20">
+        <div className="mx-auto max-w-7xl">
+          <div className="page-header">
+            <div>
+              <p className="page-eyebrow">Pricing</p>
+              <h2 className="page-title">Choose the plan that fits your authentication workload</h2>
+            </div>
+            <p className="page-subtitle">
+              Start free, upgrade for more applications and higher limits, or choose yearly access for long-term usage.
+            </p>
+          </div>
+
+          <div className="mt-12 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+            {pricingPlans.map((plan) => (
+              <div key={plan.name} className={`rounded-3xl border p-6 ${plan.tone}`}>
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">{plan.name}</p>
+                <div className="mt-5 flex items-end gap-2">
+                  <span className="text-4xl font-bold text-white">${plan.price}</span>
+                  <span className="pb-1 text-sm text-slate-400">{plan.suffix}</span>
+                </div>
+
+                <div className="mt-6 space-y-3">
+                  {plan.features.map((feature) => (
+                    <div key={feature} className="flex items-center gap-3 text-sm text-slate-300">
+                      <CheckCircleIcon className="h-4 w-4 flex-shrink-0 text-indigo-300" />
+                      {feature}
+                    </div>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
