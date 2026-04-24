@@ -65,10 +65,10 @@ export default function Sessions() {
       <section className="page-header">
         <div>
           <p className="page-eyebrow">Sessions</p>
-          <h1 className="page-title">Review active client sessions with better operational context.</h1>
+          <h1 className="page-title">Review active authenticated sessions with a clearer dark layout.</h1>
           <p className="page-subtitle">
             Monitor session heartbeat activity, device binding, and expiry windows for each application, then terminate specific or all
-            sessions when needed. Underlying logic stays exactly the same.
+            sessions when needed.
           </p>
         </div>
 
@@ -108,7 +108,7 @@ export default function Sessions() {
                 <div className="stat-tile">
                   <div className="flex items-center justify-between">
                     <p className="stat-label">Selected App</p>
-                    <SignalIcon className="h-5 w-5 text-sky-300" />
+                    <SignalIcon className="h-5 w-5 text-indigo-300" />
                   </div>
                   <p className="mt-4 text-xl font-bold text-white">{activeApplication?.name ?? 'Unknown'}</p>
                   <p className="stat-meta">Version {activeApplication?.version ?? 'N/A'}</p>
@@ -117,7 +117,7 @@ export default function Sessions() {
                 <div className="stat-tile">
                   <div className="flex items-center justify-between">
                     <p className="stat-label">Active Sessions</p>
-                    <ClockIcon className="h-5 w-5 text-amber-300" />
+                    <ClockIcon className="h-5 w-5 text-slate-200" />
                   </div>
                   <p className="stat-value">{sessions.length}</p>
                   <p className="stat-meta">Real-time count for the selected application</p>
@@ -131,7 +131,7 @@ export default function Sessions() {
 
               {loading ? (
                 <div className="flex justify-center py-16">
-                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-sky-400 border-t-transparent" />
+                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-400 border-t-transparent" />
                 </div>
               ) : sessions.length === 0 ? (
                 <div className="mt-6 rounded-2xl border border-dashed border-white/10 px-5 py-16 text-center">
@@ -145,7 +145,7 @@ export default function Sessions() {
                       <div className="flex items-start justify-between gap-4">
                         <div>
                           <div className="flex items-center gap-3">
-                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-400/10 text-sky-200">
+                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-400/10 text-indigo-200">
                               <UserCircleIcon className="h-6 w-6" />
                             </div>
                             <div>

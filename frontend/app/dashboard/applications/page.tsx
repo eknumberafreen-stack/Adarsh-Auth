@@ -146,10 +146,10 @@ export default function Applications() {
   const filtered = applications.filter((app: any) => app.name.toLowerCase().includes(search.toLowerCase()))
 
   const statTiles = [
-    { label: 'Total Apps', value: stats.total, icon: CubeIcon, tone: 'text-sky-300' },
+    { label: 'Total Apps', value: stats.total, icon: CubeIcon, tone: 'text-indigo-300' },
     { label: 'Active', value: stats.active, icon: CheckIcon, tone: 'text-emerald-300' },
-    { label: 'Paused', value: stats.paused, icon: PauseIcon, tone: 'text-amber-300' },
-    { label: 'Active Sessions', value: stats.sessions, icon: SignalIcon, tone: 'text-violet-300' },
+    { label: 'Paused', value: stats.paused, icon: PauseIcon, tone: 'text-zinc-200' },
+    { label: 'Active Sessions', value: stats.sessions, icon: SignalIcon, tone: 'text-slate-200' },
   ]
 
   return (
@@ -157,10 +157,9 @@ export default function Applications() {
       <section className="page-header">
         <div>
           <p className="page-eyebrow">Applications</p>
-          <h1 className="page-title">Manage the apps that power every client authentication flow.</h1>
+          <h1 className="page-title">Manage the applications behind your authentication workflow.</h1>
           <p className="page-subtitle">
-            Create applications, review credentials, rotate secrets, and control lifecycle status from one workspace without changing
-            how the existing backend logic works.
+            Create applications, review credentials, rotate secrets, and control status from one classic dark workspace.
           </p>
         </div>
 
@@ -186,7 +185,7 @@ export default function Applications() {
       <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
         <div className="card">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-400/10 text-sky-200">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-400/10 text-indigo-200">
               <DocumentDuplicateIcon className="h-5 w-5" />
             </div>
             <div>
@@ -264,7 +263,7 @@ export default function Applications() {
           <div className="mt-6 space-y-4">
             {loading ? (
               <div className="flex justify-center py-10">
-                <div className="h-8 w-8 animate-spin rounded-full border-2 border-sky-400 border-t-transparent" />
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-400 border-t-transparent" />
               </div>
             ) : filtered.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-white/10 px-5 py-14 text-center text-sm text-slate-400">
@@ -278,7 +277,7 @@ export default function Applications() {
                     key={app._id}
                     className={`rounded-2xl border p-5 transition-all ${
                       isSelected
-                        ? 'border-sky-400/25 bg-sky-400/10 shadow-lg shadow-sky-500/10'
+                        ? 'border-indigo-400/25 bg-indigo-400/10 shadow-lg shadow-indigo-950/30'
                         : 'border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.05]'
                     }`}
                   >
@@ -290,7 +289,7 @@ export default function Applications() {
                             className={`badge ${
                               app.status === 'active'
                                 ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-200'
-                                : 'border-amber-400/20 bg-amber-400/10 text-amber-200'
+                                : 'border-zinc-400/20 bg-zinc-400/10 text-zinc-200'
                             }`}
                           >
                             {app.status}

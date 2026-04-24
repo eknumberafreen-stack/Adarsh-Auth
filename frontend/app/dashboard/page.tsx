@@ -79,28 +79,28 @@ export default function Dashboard() {
       value: stats.applications,
       icon: CubeIcon,
       meta: `${recentApps.length} recently active`,
-      color: 'text-sky-300',
+      color: 'text-indigo-300',
     },
     {
       name: 'Licenses',
       value: stats.licenses,
       icon: KeyIcon,
       meta: `${stats.usedLicenses} activated`,
-      color: 'text-emerald-300',
+      color: 'text-slate-200',
     },
     {
       name: 'Users',
       value: stats.users,
       icon: UsersIcon,
       meta: `${Math.max(stats.users - stats.bannedUsers, 0)} currently active`,
-      color: 'text-violet-300',
+      color: 'text-zinc-200',
     },
     {
       name: 'Sessions',
       value: stats.sessions,
       icon: ClockIcon,
       meta: 'Live authenticated client sessions',
-      color: 'text-amber-300',
+      color: 'text-indigo-200',
     },
   ]
 
@@ -113,21 +113,21 @@ export default function Dashboard() {
         <div className="page-header">
           <div>
             <p className="page-eyebrow">Overview</p>
-            <h1 className="page-title">Run every auth surface from one professional control center.</h1>
+            <h1 className="page-title">Manage authentication, licenses, users, and sessions from one workspace.</h1>
             <p className="page-subtitle">
               Welcome back, {getDisplayName(user?.username ?? null, user?.email ?? '')}. This view consolidates your applications,
-              license inventory, user base, and active sessions without changing how the underlying platform works.
+              license inventory, users, and active sessions with a cleaner classic dark layout.
             </p>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-200/80">Security posture</p>
-              <p className="mt-2 text-lg font-bold text-white">Replay protection, HWID lock, audit logging</p>
+            <div className="rounded-2xl border border-indigo-400/20 bg-indigo-400/10 px-5 py-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-indigo-200/80">Authentication</p>
+              <p className="mt-2 text-lg font-bold text-white">Secure sign-in, tokens, and request protection</p>
             </div>
-            <div className="rounded-2xl border border-sky-400/20 bg-sky-400/10 px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200/80">Operator focus</p>
-              <p className="mt-2 text-lg font-bold text-white">Faster scanning for apps, users, and live sessions</p>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Dashboard</p>
+              <p className="mt-2 text-lg font-bold text-white">Clearer views for apps, licenses, users, and live sessions</p>
             </div>
           </div>
         </div>
@@ -135,7 +135,7 @@ export default function Dashboard() {
 
       {loading ? (
         <div className="flex justify-center py-24">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-sky-400 border-t-transparent" />
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-400 border-t-transparent" />
         </div>
       ) : (
         <>
@@ -155,7 +155,7 @@ export default function Dashboard() {
           <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
             <div className="card">
               <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-400/10 text-sky-200">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-400/10 text-indigo-200">
                   <ChartBarIcon className="h-5 w-5" />
                 </div>
                 <div>
@@ -183,7 +183,7 @@ export default function Dashboard() {
                           className={`badge ${
                             app.status === 'active'
                               ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-200'
-                              : 'border-amber-400/20 bg-amber-400/10 text-amber-200'
+                              : 'border-zinc-400/20 bg-zinc-400/10 text-zinc-200'
                           }`}
                         >
                           {app.status}
@@ -198,7 +198,7 @@ export default function Dashboard() {
             <div className="space-y-6">
               <div className="card">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-400/10 text-amber-200">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-400/10 text-indigo-200">
                     <ArrowTrendingUpIcon className="h-5 w-5" />
                   </div>
                   <div>
@@ -213,7 +213,7 @@ export default function Dashboard() {
                       label: 'License activation',
                       value: licenseUsage,
                       caption: `${stats.usedLicenses} of ${stats.licenses} licenses have been consumed`,
-                      color: 'bg-sky-400',
+                      color: 'bg-indigo-400',
                     },
                     {
                       label: 'User health',
@@ -238,7 +238,7 @@ export default function Dashboard() {
 
               <div className="card">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-400/10 text-emerald-200">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.06] text-slate-200">
                     <ShieldCheckIcon className="h-5 w-5" />
                   </div>
                   <div>
@@ -248,10 +248,10 @@ export default function Dashboard() {
                 </div>
                 <div className="mt-6 grid gap-3">
                   {[
-                    'HMAC verification and replay protection',
-                    'Rate limiting and session heartbeat tracking',
-                    'HWID-aware client login protection',
-                    'Audit visibility for suspicious activity',
+                    'JWT access and refresh handling',
+                    'Signed client requests and replay protection',
+                    'HWID-aware session validation',
+                    'Audit visibility for authentication events',
                   ].map((item) => (
                     <div key={item} className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4 text-sm text-slate-300">
                       {item}

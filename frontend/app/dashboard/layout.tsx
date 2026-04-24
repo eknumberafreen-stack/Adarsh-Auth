@@ -6,6 +6,7 @@ import { useAuthStore } from '@/lib/store'
 import Link from 'next/link'
 import api from '@/lib/api'
 import toast from 'react-hot-toast'
+import ParticleField from '@/components/ParticleField'
 import {
   ArrowRightOnRectangleIcon,
   BanknotesIcon,
@@ -24,17 +25,23 @@ import {
 import { getAvatarInitial, getDisplayName, getEmailPrefix } from '@/lib/username'
 
 const PLAN_STYLE: Record<string, { shell: string; dot: string }> = {
-  free: { shell: 'border-slate-400/20 bg-slate-400/10 text-slate-200', dot: 'bg-slate-300' },
-  pro: { shell: 'border-sky-400/20 bg-sky-400/10 text-sky-200', dot: 'bg-sky-300' },
-  enterprise: { shell: 'border-amber-400/20 bg-amber-400/10 text-amber-200', dot: 'bg-amber-300' },
-  yearly: { shell: 'border-cyan-400/20 bg-cyan-400/10 text-cyan-200', dot: 'bg-cyan-300' },
+  free: { shell: 'border-zinc-400/20 bg-zinc-400/10 text-zinc-200', dot: 'bg-zinc-300' },
+  pro: { shell: 'border-indigo-400/20 bg-indigo-400/10 text-indigo-200', dot: 'bg-indigo-300' },
+  enterprise: { shell: 'border-slate-300/20 bg-slate-300/10 text-slate-200', dot: 'bg-slate-200' },
+  yearly: { shell: 'border-violet-400/20 bg-violet-400/10 text-violet-200', dot: 'bg-violet-300' },
 }
 
 function DashboardBackdrop() {
   return (
     <>
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.12),transparent_26%),radial-gradient(circle_at_bottom_right,rgba(245,158,11,0.12),transparent_24%)]" />
-      <div className="pointer-events-none fixed left-1/2 top-0 h-[420px] w-[620px] -translate-x-1/2 rounded-full bg-sky-500/8 blur-[160px]" />
+      <ParticleField
+        className="pointer-events-none fixed inset-0 opacity-60"
+        particleColor="rgba(161, 161, 170, 0.16)"
+        lineColor="rgba(99, 102, 241, 0.12)"
+        count={60}
+      />
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top_left,rgba(79,70,229,0.12),transparent_24%),radial-gradient(circle_at_bottom_right,rgba(39,39,42,0.24),transparent_26%)]" />
+      <div className="pointer-events-none fixed left-1/2 top-0 h-[420px] w-[620px] -translate-x-1/2 rounded-full bg-indigo-500/8 blur-[160px]" />
     </>
   )
 }
@@ -178,7 +185,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                           href={item.href}
                           className={`flex items-center gap-3 rounded-2xl px-3 py-3 text-sm transition-all ${
                             active
-                              ? 'border border-sky-400/25 bg-sky-400/10 text-sky-100 shadow-lg shadow-sky-500/10'
+                              ? 'border border-indigo-400/25 bg-indigo-400/10 text-indigo-100 shadow-lg shadow-indigo-950/30'
                               : 'border border-transparent text-slate-400 hover:border-white/10 hover:bg-white/[0.04] hover:text-white'
                           }`}
                         >
@@ -219,11 +226,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <div className="ml-auto flex items-center gap-3">
                 <div className="hidden rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2 text-right md:block">
                   <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Status</p>
-                  <p className="text-sm font-semibold text-emerald-300">Operational</p>
+                  <p className="text-sm font-semibold text-indigo-200">Operational</p>
                 </div>
                 <Link
                   href="/dashboard/profile"
-                  className="flex h-11 w-11 items-center justify-center rounded-2xl border border-sky-400/20 bg-sky-400/10 text-sm font-bold text-sky-100"
+                  className="flex h-11 w-11 items-center justify-center rounded-2xl border border-indigo-400/20 bg-indigo-400/10 text-sm font-bold text-indigo-100"
                 >
                   {getAvatarInitial(user?.username ?? null, user?.email ?? '')}
                 </Link>
