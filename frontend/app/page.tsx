@@ -99,6 +99,7 @@ export default function Home() {
             <a href="#features" className="transition-colors hover:text-white">Features</a>
             <a href="#dashboard" className="transition-colors hover:text-white">Dashboard</a>
             <a href="#security" className="transition-colors hover:text-white">Security</a>
+            <a href="#pricing" className="transition-colors hover:text-white">Pricing</a>
           </div>
 
           <div className="flex items-center gap-3">
