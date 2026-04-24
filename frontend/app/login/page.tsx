@@ -5,25 +5,54 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { EyeIcon, EyeSlashIcon, FingerPrintIcon, KeyIcon, LockClosedIcon, ShieldCheckIcon } from '@heroicons/react/24/outline'
-import api from '@/lib/api'
+import api, { clearStoredAuth, refreshAccessToken } from '@/lib/api'
 import { useAuthStore } from '@/lib/store'
 import toast from 'react-hot-toast'
 import ParticleField from '@/components/ParticleField'
 
 export default function Login() {
   const router = useRouter()
-  const { setAuth, accessToken, hasHydrated } = useAuthStore()
+  const { setAuth, accessToken, refreshToken, hasHydrated } = useAuthStore()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [checkingSession, setCheckingSession] = useState(true)
 
   useEffect(() => {
-    if (!hasHydrated) return
-    if (accessToken) {
-      router.replace('/dashboard')
+    let active = true
+
+    const checkSession = async () => {
+      if (!hasHydrated) return
+
+      if (accessToken) {
+        router.replace('/dashboard')
+        return
+      }
+
+      if (refreshToken) {
+        try {
+          await refreshAccessToken()
+          if (active) {
+            router.replace('/dashboard')
+            return
+          }
+        } catch {
+          clearStoredAuth()
+        }
+      }
+
+      if (active) {
+        setCheckingSession(false)
+      }
     }
-  }, [accessToken, hasHydrated, router])
+
+    checkSession()
+
+    return () => {
+      active = false
+    }
+  }, [accessToken, refreshToken, hasHydrated, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -41,7 +70,7 @@ export default function Login() {
     }
   }
 
-  if (!hasHydrated) {
+  if (!hasHydrated || checkingSession) {
     return <div className="min-h-screen bg-[#07070a]" />
   }
 

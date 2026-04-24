@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '@/lib/store'
-import api from '@/lib/api'
+import api, { clearStoredAuth, refreshAccessToken } from '@/lib/api'
 import toast from 'react-hot-toast'
 import ParticleField from '@/components/ParticleField'
 import {
@@ -48,10 +48,11 @@ function DashboardBackdrop() {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
-  const { accessToken, hasHydrated, user, logout } = useAuthStore()
+  const { accessToken, refreshToken, hasHydrated, user, logout } = useAuthStore()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [planName, setPlanName] = useState<string>('free')
   const [planDisplay, setPlanDisplay] = useState<string>('Free')
+  const [checkingSession, setCheckingSession] = useState(true)
 
   const isOwner = user?.email === (process.env.NEXT_PUBLIC_OWNER_EMAIL || 'donumberafreen@gmail.com')
 
@@ -85,9 +86,39 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [navigation])
 
   useEffect(() => {
-    if (!hasHydrated) return
-    if (!accessToken) router.replace('/login')
-  }, [accessToken, hasHydrated, router])
+    let active = true
+
+    const ensureSession = async () => {
+      if (!hasHydrated) return
+
+      if (accessToken) {
+        if (active) setCheckingSession(false)
+        return
+      }
+
+      if (refreshToken) {
+        try {
+          await refreshAccessToken()
+          if (active) {
+            setCheckingSession(false)
+            return
+          }
+        } catch {
+          clearStoredAuth()
+        }
+      }
+
+      if (active) {
+        router.replace('/login')
+      }
+    }
+
+    ensureSession()
+
+    return () => {
+      active = false
+    }
+  }, [accessToken, refreshToken, hasHydrated, router])
 
   useEffect(() => {
     if (!hasHydrated || !accessToken) return
@@ -116,7 +147,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     router.push('/login')
   }
 
-  if (!hasHydrated) {
+  if (!hasHydrated || checkingSession) {
     return <div className="min-h-screen bg-[#07070a]" />
   }
 

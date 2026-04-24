@@ -1,6 +1,7 @@
 import axios from 'axios'
 import React from 'react'
 import toast from 'react-hot-toast'
+import { useAuthStore } from '@/lib/store'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
 
@@ -25,6 +26,56 @@ api.interceptors.request.use(
     return Promise.reject(error)
   }
 )
+
+function getStoredRefreshToken(): string | null {
+  let refreshToken = localStorage.getItem('refreshToken')
+  if (refreshToken) return refreshToken
+
+  try {
+    const stored = localStorage.getItem('auth-storage')
+    if (!stored) return null
+    const parsed = JSON.parse(stored)
+    return parsed?.state?.refreshToken || null
+  } catch {
+    return null
+  }
+}
+
+export function clearStoredAuth(): void {
+  localStorage.removeItem('accessToken')
+  localStorage.removeItem('refreshToken')
+  useAuthStore.setState({
+    user: null,
+    accessToken: null,
+    refreshToken: null,
+    isAuthenticated: false,
+  })
+}
+
+export async function refreshAccessToken(): Promise<string> {
+  const refreshToken = getStoredRefreshToken()
+
+  if (!refreshToken) {
+    throw new Error('No refresh token')
+  }
+
+  const response = await axios.post(`${API_URL}/auth/refresh`, { refreshToken })
+  const { accessToken, refreshToken: nextRefreshToken } = response.data
+
+  localStorage.setItem('accessToken', accessToken)
+  if (nextRefreshToken) {
+    localStorage.setItem('refreshToken', nextRefreshToken)
+  }
+
+  useAuthStore.setState((state) => ({
+    user: state.user,
+    accessToken,
+    refreshToken: nextRefreshToken || refreshToken,
+    isAuthenticated: true,
+  }))
+
+  return accessToken
+}
 
 /**
  * Determines whether an axios error represents a plan-limit 403 response.
@@ -75,37 +126,12 @@ api.interceptors.response.use(
       originalRequest._retry = true
 
       try {
-        // Try direct key first, fallback to zustand persist store
-        let refreshToken = localStorage.getItem('refreshToken')
-        if (!refreshToken) {
-          try {
-            const stored = localStorage.getItem('auth-storage')
-            if (stored) {
-              const parsed = JSON.parse(stored)
-              refreshToken = parsed?.state?.refreshToken || null
-            }
-          } catch {}
-        }
-
-        if (!refreshToken) {
-          localStorage.removeItem('accessToken')
-          localStorage.removeItem('refreshToken')
-          window.location.href = '/login'
-          return Promise.reject(new Error('No refresh token'))
-        }
-
-        const response = await axios.post(`${API_URL}/auth/refresh`, {
-          refreshToken,
-        })
-
-        const { accessToken } = response.data
-        localStorage.setItem('accessToken', accessToken)
+        const accessToken = await refreshAccessToken()
 
         originalRequest.headers.Authorization = `Bearer ${accessToken}`
         return api(originalRequest)
       } catch (refreshError) {
-        localStorage.removeItem('accessToken')
-        localStorage.removeItem('refreshToken')
+        clearStoredAuth()
         window.location.href = '/login'
         return Promise.reject(refreshError)
       }

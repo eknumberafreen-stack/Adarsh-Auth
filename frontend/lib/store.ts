@@ -1,6 +1,20 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
+export function isTokenExpired(token: string): boolean {
+  try {
+    const [, payload] = token.split('.')
+    if (!payload) return true
+
+    const decoded = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')))
+    if (!decoded?.exp) return true
+
+    return decoded.exp * 1000 <= Date.now()
+  } catch {
+    return true
+  }
+}
+
 interface User {
   id: string
   email: string
@@ -41,10 +55,16 @@ export const useAuthStore = create<AuthState>()(
       syncAuthFromStorage: () => {
         const accessToken = localStorage.getItem('accessToken')
         const refreshToken = localStorage.getItem('refreshToken')
+        const validAccessToken = accessToken && !isTokenExpired(accessToken) ? accessToken : null
+
+        if (accessToken && !validAccessToken) {
+          localStorage.removeItem('accessToken')
+        }
+
         set((state) => ({
-          accessToken: accessToken || state.accessToken,
+          accessToken: validAccessToken,
           refreshToken: refreshToken || state.refreshToken,
-          isAuthenticated: Boolean(accessToken || state.accessToken),
+          isAuthenticated: Boolean(validAccessToken),
         }))
       },
     }),
