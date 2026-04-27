@@ -98,6 +98,9 @@ const defaultPlans = [
  */
 const seedPlans = async () => {
   try {
+    // Fix username index first — ensure it is sparse
+    await fixUsernameIndex();
+
     // Upsert each plan — always update limits and features to keep them in sync
     for (const planData of defaultPlans) {
       await SubscriptionPlan.findOneAndUpdate(
@@ -131,4 +134,4 @@ const seedPlans = async () => {
   }
 };
 
-module.exports = { seedPlans };
+module.exports = { seedPlans, fixUsernameIndex };

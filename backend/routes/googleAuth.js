@@ -33,9 +33,7 @@ passport.use(new GoogleStrategy({
           username: null,
         });
       } catch (createErr) {
-        // Handle duplicate key error (e.g. username null index conflict)
         if (createErr.code === 11000) {
-          // Try finding by email again in case of race condition
           user = await User.findOne({ email });
           if (!user) return done(createErr, null);
         } else {
@@ -43,16 +41,22 @@ passport.use(new GoogleStrategy({
         }
       }
 
-      // Assign Free plan to new user
+      // Assign Free plan to new user — use updateOne to avoid index conflict
       const freePlan = await SubscriptionPlan.findOne({ name: 'free' });
       if (freePlan) {
+        await User.updateOne(
+          { _id: user._id },
+          { $set: { plan: freePlan._id, planAssignedAt: new Date() } }
+        );
         user.plan = freePlan._id;
-        user.planAssignedAt = new Date();
-        await user.save();
       }
     } else if (!user.googleId) {
+      // Use updateOne instead of save() to avoid username index conflict
+      await User.updateOne(
+        { _id: user._id },
+        { $set: { googleId: profile.id } }
+      );
       user.googleId = profile.id;
-      await user.save();
     }
 
     return done(null, user);
