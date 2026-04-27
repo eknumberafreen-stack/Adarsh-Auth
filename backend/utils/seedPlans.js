@@ -1,7 +1,6 @@
 /**
  * Plan Seeder Utility
  * Seeds default Free, Pro, and Enterprise subscription plans on startup.
- * Uses upsert with $setOnInsert to avoid overwriting existing plan documents.
  */
 
 const SubscriptionPlan = require('../models/SubscriptionPlan');
@@ -93,15 +92,39 @@ const defaultPlans = [
 ];
 
 /**
+ * Fix username index — ensures it is sparse so multiple null values are allowed.
+ * Uses User.collection (no extra mongoose import needed).
+ */
+const fixUsernameIndex = async () => {
+  try {
+    const collection = User.collection;
+    const indexes = await collection.indexes();
+    const usernameIndex = indexes.find(i => i.name === 'username_1');
+
+    if (usernameIndex && !usernameIndex.sparse) {
+      await collection.dropIndex('username_1');
+      await collection.createIndex(
+        { username: 1 },
+        { unique: true, sparse: true, name: 'username_1' }
+      );
+      console.log('[fixUsernameIndex] Rebuilt username index as sparse unique.');
+    }
+  } catch (err) {
+    // Non-fatal — log and continue
+    console.error('[fixUsernameIndex] Error (non-fatal):', err.message);
+  }
+};
+
+/**
  * Seed default subscription plans and backfill existing users without a plan.
- * Safe to call multiple times — existing plans are never overwritten.
+ * Safe to call multiple times.
  */
 const seedPlans = async () => {
   try {
-    // Fix username index first — ensure it is sparse
+    // Fix username index first
     await fixUsernameIndex();
 
-    // Upsert each plan — always update limits and features to keep them in sync
+    // Upsert each plan
     for (const planData of defaultPlans) {
       await SubscriptionPlan.findOneAndUpdate(
         { name: planData.name },
@@ -110,7 +133,6 @@ const seedPlans = async () => {
       );
     }
 
-    // Retrieve the free plan to use its _id for backfilling
     const freePlan = await SubscriptionPlan.findOne({ name: 'free' });
 
     if (!freePlan) {
@@ -118,7 +140,6 @@ const seedPlans = async () => {
       return;
     }
 
-    // Assign the free plan to any existing users that have no plan set
     const result = await User.updateMany(
       { plan: null },
       { $set: { plan: freePlan._id, planAssignedAt: new Date() } }
