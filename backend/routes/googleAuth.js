@@ -25,11 +25,23 @@ passport.use(new GoogleStrategy({
     let user = await User.findOne({ email });
 
     if (!user) {
-      user = await User.create({
-        email,
-        password: require('crypto').randomBytes(32).toString('hex'), // random password
-        googleId: profile.id,
-      });
+      try {
+        user = await User.create({
+          email,
+          password: require('crypto').randomBytes(32).toString('hex'),
+          googleId: profile.id,
+          username: null,
+        });
+      } catch (createErr) {
+        // Handle duplicate key error (e.g. username null index conflict)
+        if (createErr.code === 11000) {
+          // Try finding by email again in case of race condition
+          user = await User.findOne({ email });
+          if (!user) return done(createErr, null);
+        } else {
+          return done(createErr, null);
+        }
+      }
 
       // Assign Free plan to new user
       const freePlan = await SubscriptionPlan.findOne({ name: 'free' });
