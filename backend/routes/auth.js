@@ -44,12 +44,13 @@ router.post('/register', authRateLimiter, validate(schemas.register), asyncHandl
     }
   }
 
-  // Create user
-  const user = await User.create({ email, password, username: username || null });
+  // Create user — use updateOne pattern to avoid username index issues
+  const user = await User.create({ email, password, username: username || undefined });
 
   // Assign Free plan
   const freePlan = await SubscriptionPlan.findOne({ name: 'free' });
   if (freePlan) {
+    await User.updateOne({ _id: user._id }, { $set: { plan: freePlan._id, planAssignedAt: new Date() } });
     user.plan = freePlan._id;
     user.planAssignedAt = new Date();
   }

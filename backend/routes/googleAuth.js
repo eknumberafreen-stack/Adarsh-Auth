@@ -26,12 +26,21 @@ passport.use(new GoogleStrategy({
 
     if (!user) {
       try {
-        user = await User.create({
+        // Use insertOne directly to bypass Mongoose schema index validation
+        const result = await User.collection.insertOne({
           email,
           password: require('crypto').randomBytes(32).toString('hex'),
           googleId: profile.id,
-          username: null,
+          refreshToken: null,
+          loginAttempts: 0,
+          lockUntil: null,
+          lastLogin: null,
+          plan: null,
+          planAssignedAt: new Date(),
+          createdAt: new Date(),
+          updatedAt: new Date(),
         });
+        user = await User.findById(result.insertedId);
       } catch (createErr) {
         if (createErr.code === 11000) {
           user = await User.findOne({ email });
@@ -41,9 +50,9 @@ passport.use(new GoogleStrategy({
         }
       }
 
-      // Assign Free plan to new user — use updateOne to avoid index conflict
+      // Assign Free plan
       const freePlan = await SubscriptionPlan.findOne({ name: 'free' });
-      if (freePlan) {
+      if (freePlan && user) {
         await User.updateOne(
           { _id: user._id },
           { $set: { plan: freePlan._id, planAssignedAt: new Date() } }
@@ -51,7 +60,6 @@ passport.use(new GoogleStrategy({
         user.plan = freePlan._id;
       }
     } else if (!user.googleId) {
-      // Use updateOne instead of save() to avoid username index conflict
       await User.updateOne(
         { _id: user._id },
         { $set: { googleId: profile.id } }
