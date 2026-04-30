@@ -152,7 +152,7 @@ export default function Users() {
       })
       toast.success('User banned (soft)')
       loadUsers()
-    } catch { toast.error('Failed to ban user') }
+    } catch (e: any) { toast.error(e.response?.data?.error || 'Failed to ban user') }
   }
 
   // Pause user — sets expiryDate to now (blocks login without banning)
@@ -167,7 +167,7 @@ export default function Users() {
         toast.success('User paused')
       }
       loadUsers()
-    } catch { toast.error('Failed to update user') }
+    } catch (e: any) { toast.error(e.response?.data?.error || 'Failed to update user') }
   }
 
   // Open edit modal
@@ -189,7 +189,7 @@ export default function Users() {
       toast.success('User updated!')
       setShowEditModal(false)
       loadUsers()
-    } catch { toast.error('Failed to update user') }
+    } catch (e: any) { toast.error(e.response?.data?.error || 'Failed to update user') }
   }
 
   const executeBan = async () => {
@@ -204,25 +204,25 @@ export default function Users() {
       toast.success(`Permanently banned. ${res.data.licensesBlacklisted} license(s) blacklisted.`)
       setShowBanModal(false)
       loadUsers()
-    } catch { toast.error('Failed to ban user') }
+    } catch (e: any) { toast.error(e.response?.data?.error || 'Failed to ban user') }
     finally { setBanning(false) }
   }
 
   const unbanUser = async (id: string) => {
     try { await api.post(`/users/${id}/unban`); toast.success('User unbanned'); loadUsers() }
-    catch { toast.error('Failed to unban') }
+    catch (e: any) { toast.error(e.response?.data?.error || 'Failed to unban') }
   }
 
   const resetHwid = async (id: string) => {
     if (!confirm('Reset HWID for this user?')) return
     try { await api.post(`/users/${id}/reset-hwid`); toast.success('HWID reset'); loadUsers() }
-    catch { toast.error('Failed to reset HWID') }
+    catch (e: any) { toast.error(e.response?.data?.error || 'Failed to reset HWID') }
   }
 
   const deleteUser = async (id: string) => {
     if (!confirm('Delete this user permanently?')) return
     try { await api.delete(`/users/${id}`); toast.success('User deleted'); loadUsers() }
-    catch { toast.error('Failed to delete') }
+    catch (e: any) { toast.error(e.response?.data?.error || 'Failed to delete') }
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
