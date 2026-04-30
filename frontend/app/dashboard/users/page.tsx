@@ -86,6 +86,14 @@ export default function Users() {
   })
   const [creating, setCreating] = useState(false)
 
+  const isStrictValidDate = (dateStr: string) => {
+    const d = new Date(dateStr)
+    if (isNaN(d.getTime())) return false
+    const [datePart] = dateStr.split('T')
+    const [y, m, day] = datePart.split('-').map(Number)
+    return d.getFullYear() === y && (d.getMonth() + 1) === m && d.getDate() === day
+  }
+
   // Ban modal
   const [showBanModal, setShowBanModal] = useState(false)
   const [banTarget, setBanTarget] = useState<any>(null)
@@ -123,6 +131,9 @@ export default function Users() {
     if (!newUser.username || !newUser.password) return toast.error('Username and password required')
     
     if (newUser.expiryDate) {
+      if (!isStrictValidDate(newUser.expiryDate)) {
+        return toast.error('The selected date does not exist (e.g. April 31st)')
+      }
       if (new Date(newUser.expiryDate) <= new Date()) {
         return toast.error('Expiration date must be in the future')
       }
@@ -202,6 +213,9 @@ export default function Users() {
     if (!editTarget) return
 
     if (editData.expiryDate) {
+      if (!isStrictValidDate(editData.expiryDate)) {
+        return toast.error('The selected date does not exist (e.g. April 31st)')
+      }
       if (new Date(editData.expiryDate) <= new Date()) {
         return toast.error('Expiration date must be in the future')
       }
