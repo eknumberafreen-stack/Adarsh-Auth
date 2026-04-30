@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import api from '@/lib/api'
 import { useAppStore, useAuthStore } from '@/lib/store'
 import toast from 'react-hot-toast'
-import { PlusIcon, XMarkIcon, TrashIcon } from '@heroicons/react/24/outline'
+import { PlusIcon, XMarkIcon, TrashIcon, PencilSquareIcon } from '@heroicons/react/24/outline'
 
 export default function TeamPage() {
   const { applications } = useAppStore()
@@ -13,14 +13,18 @@ export default function TeamPage() {
   const [application, setApplication] = useState<any>(null)
   const [loading, setLoading] = useState(false)
 
-  // Modals
+  // Add modal
   const [showAddModal, setShowAddModal] = useState(false)
   const [email, setEmail] = useState('')
   const [role, setRole] = useState('reseller')
   const [permissions, setPermissions] = useState<string[]>(['manage_licenses'])
 
-  const [targetAppIds, setTargetAppIds] = useState<string[]>([])
-  const [inviting, setInviting] = useState(false)
+  // Edit modal
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editTarget, setEditTarget] = useState<any>(null)
+  const [editRole, setEditRole] = useState('reseller')
+  const [editPermissions, setEditPermissions] = useState<string[]>([])
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (applications.length > 0 && !selectedAppId) setSelectedAppId(applications[0]._id)
@@ -42,35 +46,49 @@ export default function TeamPage() {
     }
   }
 
+  // ── Add Member ──────────────────────────────────────────────────────────────
   const handleAddMember = async () => {
-    if (targetAppIds.length === 0) return toast.error('Select at least one application')
-    setInviting(true)
-    let successCount = 0
-    let lastError = ''
-    
-    for (const appId of targetAppIds) {
-      try {
-        await api.post(`/applications/${appId}/team`, { email, role, permissions })
-        successCount++
-      } catch (e: any) {
-        lastError = e.response?.data?.error || 'Failed to add to ' + applications.find(a => a._id === appId)?.name
-      }
-    }
-    
-    setInviting(false)
-    if (successCount > 0) {
-      toast.success(`Successfully added to ${successCount} application(s)!`)
+    if (!email) return toast.error('Enter an email')
+    try {
+      await api.post(`/applications/${selectedAppId}/team`, { email, role, permissions })
+      toast.success('Team member added!')
       setShowAddModal(false)
       setEmail('')
+      setRole('reseller')
+      setPermissions(['manage_licenses'])
       loadApplication()
-      if (successCount < targetAppIds.length) {
-        toast.error(`Some failed: ${lastError}`)
-      }
-    } else {
-      toast.error(lastError || 'Failed to add team member')
+    } catch (e: any) {
+      toast.error(e.response?.data?.error || 'Failed to add team member')
     }
   }
 
+  // ── Edit Member ─────────────────────────────────────────────────────────────
+  const openEditModal = (member: any) => {
+    setEditTarget(member)
+    setEditRole(member.role)
+    setEditPermissions([...member.permissions])
+    setShowEditModal(true)
+  }
+
+  const handleEditMember = async () => {
+    if (!editTarget) return
+    setSaving(true)
+    try {
+      await api.patch(`/applications/${selectedAppId}/team/${editTarget.userId}`, {
+        role: editRole,
+        permissions: editPermissions
+      })
+      toast.success('Member updated!')
+      setShowEditModal(false)
+      loadApplication()
+    } catch (e: any) {
+      toast.error(e.response?.data?.error || 'Failed to update member')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // ── Remove Member ───────────────────────────────────────────────────────────
   const handleRemoveMember = async (userId: string) => {
     if (!confirm('Are you sure you want to remove this member?')) return
     try {
@@ -86,16 +104,35 @@ export default function TeamPage() {
     setPermissions(prev => prev.includes(perm) ? prev.filter(p => p !== perm) : [...prev, perm])
   }
 
-  const toggleTargetApp = (appId: string) => {
-    setTargetAppIds(prev => prev.includes(appId) ? prev.filter(id => id !== appId) : [...prev, appId])
+  const toggleEditPermission = (perm: string) => {
+    setEditPermissions(prev => prev.includes(perm) ? prev.filter(p => p !== perm) : [...prev, perm])
   }
 
   const isOwner = application?.userId === user?.id
 
-  const openAddModal = () => {
-    setTargetAppIds([selectedAppId])
-    setShowAddModal(true)
-  }
+  // ── Permission Checkboxes (reusable) ────────────────────────────────────────
+  const PermissionCheckboxes = ({ perms, toggle, currentRole }: { perms: string[], toggle: (p: string) => void, currentRole: string }) => (
+    <div className="space-y-2.5 bg-black/20 p-3 rounded-xl border border-white/5">
+      <label className="flex items-center gap-3 cursor-pointer">
+        <input type="checkbox" checked={perms.includes('manage_licenses')} onChange={() => toggle('manage_licenses')} className="rounded border-white/20 bg-black/50 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0" />
+        <span className="text-sm text-gray-300">Manage Licenses</span>
+      </label>
+      <label className="flex items-center gap-3 cursor-pointer">
+        <input type="checkbox" checked={perms.includes('manage_users')} onChange={() => toggle('manage_users')} className="rounded border-white/20 bg-black/50 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0" />
+        <span className="text-sm text-gray-300">Manage Users & Sessions</span>
+      </label>
+      <label className="flex items-center gap-3 cursor-pointer">
+        <input type="checkbox" checked={perms.includes('view_logs')} onChange={() => toggle('view_logs')} className="rounded border-white/20 bg-black/50 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0" />
+        <span className="text-sm text-gray-300">View Logs & Stats</span>
+      </label>
+      {currentRole === 'manager' && (
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input type="checkbox" checked={perms.includes('manage_settings')} onChange={() => toggle('manage_settings')} className="rounded border-white/20 bg-black/50 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0" />
+          <span className="text-sm text-gray-300">Manage App Settings</span>
+        </label>
+      )}
+    </div>
+  )
 
   return (
     <div>
@@ -103,7 +140,7 @@ export default function TeamPage() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Team Management</h1>
         <button
-          onClick={openAddModal}
+          onClick={() => setShowAddModal(true)}
           className="btn btn-primary flex items-center gap-2"
           disabled={!selectedAppId || !isOwner}
         >
@@ -178,13 +215,22 @@ export default function TeamPage() {
                           </td>
                           <td className="px-4 py-3 text-right">
                             {isOwner && (
-                              <button
-                                onClick={() => handleRemoveMember(member.userId)}
-                                className="p-1.5 rounded-lg text-rose-400 hover:bg-rose-500/10 transition-colors inline-flex"
-                                title="Remove member"
-                              >
-                                <TrashIcon className="w-4 h-4" />
-                              </button>
+                              <div className="flex items-center justify-end gap-1">
+                                <button
+                                  onClick={() => openEditModal(member)}
+                                  className="p-1.5 rounded-lg text-indigo-400 hover:bg-indigo-500/10 transition-colors inline-flex"
+                                  title="Edit member"
+                                >
+                                  <PencilSquareIcon className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleRemoveMember(member.userId)}
+                                  className="p-1.5 rounded-lg text-rose-400 hover:bg-rose-500/10 transition-colors inline-flex"
+                                  title="Remove member"
+                                >
+                                  <TrashIcon className="w-4 h-4" />
+                                </button>
+                              </div>
                             )}
                           </td>
                         </tr>
@@ -232,50 +278,52 @@ export default function TeamPage() {
               </div>
               
               <div>
-                <label className="block text-sm font-medium mb-3 text-gray-300">Assign to Applications</label>
-                <div className="space-y-2.5 bg-black/20 p-3 rounded-xl border border-white/5 max-h-40 overflow-y-auto">
-                  {applications.map((app: any) => (
-                    <label key={app._id} className="flex items-center gap-3 cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={targetAppIds.includes(app._id)} 
-                        onChange={() => toggleTargetApp(app._id)} 
-                        className="rounded border-white/20 bg-black/50 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0" 
-                      />
-                      <span className="text-sm text-gray-300">{app.name}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-              
-              <div>
                 <label className="block text-sm font-medium mb-3 text-gray-300">Permissions</label>
-                <div className="space-y-2.5 bg-black/20 p-3 rounded-xl border border-white/5">
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input type="checkbox" checked={permissions.includes('manage_licenses')} onChange={() => togglePermission('manage_licenses')} className="rounded border-white/20 bg-black/50 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0" />
-                    <span className="text-sm text-gray-300">Manage Licenses</span>
-                  </label>
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input type="checkbox" checked={permissions.includes('manage_users')} onChange={() => togglePermission('manage_users')} className="rounded border-white/20 bg-black/50 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0" />
-                    <span className="text-sm text-gray-300">Manage Users & Sessions</span>
-                  </label>
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input type="checkbox" checked={permissions.includes('view_logs')} onChange={() => togglePermission('view_logs')} className="rounded border-white/20 bg-black/50 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0" />
-                    <span className="text-sm text-gray-300">View Logs & Stats</span>
-                  </label>
-                  {role === 'manager' && (
-                    <label className="flex items-center gap-3 cursor-pointer">
-                      <input type="checkbox" checked={permissions.includes('manage_settings')} onChange={() => togglePermission('manage_settings')} className="rounded border-white/20 bg-black/50 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0" />
-                      <span className="text-sm text-gray-300">Manage App Settings</span>
-                    </label>
-                  )}
-                </div>
+                <PermissionCheckboxes perms={permissions} toggle={togglePermission} currentRole={role} />
               </div>
               
               <div className="flex gap-3 pt-2">
                 <button onClick={() => setShowAddModal(false)} className="btn bg-white/5 hover:bg-white/10 text-white flex-1 border border-white/10">Cancel</button>
-                <button onClick={handleAddMember} disabled={!email || inviting} className="btn btn-primary flex-1 disabled:opacity-50">
-                  {inviting ? 'Inviting...' : 'Send Invite'}
+                <button onClick={handleAddMember} disabled={!email} className="btn btn-primary flex-1 disabled:opacity-50">Send Invite</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Edit Member Modal ───────────────────────────────────────────── */}
+      {showEditModal && editTarget && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+          <div className="card max-w-md w-full border border-white/10 bg-[#0f1015]">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-xl font-bold">Edit Team Member</h2>
+                <p className="text-xs text-gray-500 mt-1 font-mono">{editTarget.userId}</p>
+              </div>
+              <button onClick={() => setShowEditModal(false)} className="text-gray-400 hover:text-white"><XMarkIcon className="w-5 h-5" /></button>
+            </div>
+            
+            <div className="space-y-5">
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-300">Role</label>
+                <select value={editRole} onChange={(e) => setEditRole(e.target.value)} className="input w-full bg-black/20">
+                  <option value="reseller">Reseller (Limited Access)</option>
+                  <option value="manager">Manager (Admin Access)</option>
+                </select>
+                <p className="text-[11px] text-gray-500 mt-1.5">
+                  {editRole === 'reseller' ? 'Resellers can only generate and manage licenses they created.' : 'Managers can see all licenses and change app settings.'}
+                </p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-3 text-gray-300">Permissions</label>
+                <PermissionCheckboxes perms={editPermissions} toggle={toggleEditPermission} currentRole={editRole} />
+              </div>
+              
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => setShowEditModal(false)} className="btn bg-white/5 hover:bg-white/10 text-white flex-1 border border-white/10">Cancel</button>
+                <button onClick={handleEditMember} disabled={saving} className="btn btn-primary flex-1 disabled:opacity-50">
+                  {saving ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </div>
