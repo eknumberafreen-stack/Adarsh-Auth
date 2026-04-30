@@ -75,9 +75,10 @@ export default function Users() {
   // Create user modal
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const getDefaultExpiry = () => new Date().toISOString().slice(0, 16)
   const [newUser, setNewUser] = useState({
     username: '', password: '', email: '',
-    subscription: 'default', expiryDate: '', hwidAffected: true
+    subscription: 'default', expiryDate: getDefaultExpiry(), hwidAffected: true
   })
   const [creating, setCreating] = useState(false)
 
@@ -125,7 +126,7 @@ export default function Users() {
       })
       toast.success('User created!')
       setShowCreateModal(false)
-      setNewUser({ username: '', password: '', email: '', subscription: 'default', expiryDate: '', hwidAffected: true })
+      setNewUser({ username: '', password: '', email: '', subscription: 'default', expiryDate: getDefaultExpiry(), hwidAffected: true })
       loadUsers()
     } catch (e: any) {
       toast.error(e.response?.data?.error || 'Failed to create user')
