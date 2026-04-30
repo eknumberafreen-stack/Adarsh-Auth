@@ -1,7 +1,7 @@
 const express = require('express');
 const Session = require('../models/Session');
 const Application = require('../models/Application');
-const { verifyToken } = require('../middleware/auth');
+const { verifyToken, verifyAppAccess } = require('../middleware/auth');
 const { asyncHandler } = require('../middleware/errorHandler');
 
 const router = express.Router();
@@ -9,19 +9,36 @@ const router = express.Router();
 // All routes require authentication
 router.use(verifyToken);
 
-// Get all sessions for application
-router.get('/application/:applicationId', asyncHandler(async (req, res) => {
-  const { applicationId } = req.params;
+// Helper to verify session permissions when we only have the Session document
+const verifySessionActionAccess = async (req, res, session, requiredPermission) => {
+  const application = session.applicationId; // Assumes populated
+  if (!application) return false;
 
-  // Verify application ownership
-  const application = await Application.findOne({
-    _id: applicationId,
-    userId: req.userId
-  });
-
-  if (!application) {
-    return res.status(404).json({ error: 'Application not found' });
+  // 1. Is Owner?
+  if (application.userId.toString() === req.userId.toString()) {
+    req.isOwner = true;
+    return true;
   }
+
+  // 2. Is Team Member?
+  const member = application.team?.find(m => m.userId.toString() === req.userId.toString());
+  if (member) {
+    req.isOwner = false;
+    req.teamRole = member.role;
+    req.teamPermissions = member.permissions;
+
+    if (requiredPermission && !member.permissions.includes(requiredPermission)) {
+      return false; // Lacks specific permission
+    }
+    return true; // Has access
+  }
+
+  return false; // Not owner, not team member
+};
+
+// Get all sessions for application
+router.get('/application/:applicationId', verifyAppAccess(), asyncHandler(async (req, res) => {
+  const { applicationId } = req.params;
 
   const sessions = await Session.find({ applicationId })
     .populate('userId', 'username lastLogin')
@@ -38,10 +55,8 @@ router.delete('/:id', asyncHandler(async (req, res) => {
     return res.status(404).json({ error: 'Session not found' });
   }
 
-  // Verify application ownership
-  if (session.applicationId.userId.toString() !== req.userId.toString()) {
-    return res.status(403).json({ error: 'Access denied' });
-  }
+  const hasAccess = await verifySessionActionAccess(req, res, session, 'manage_users');
+  if (!hasAccess) return res.status(403).json({ error: 'Access denied: You need manage_users permission.' });
 
   await Session.deleteOne({ _id: session._id });
 
@@ -49,18 +64,8 @@ router.delete('/:id', asyncHandler(async (req, res) => {
 }));
 
 // Terminate all sessions for application
-router.delete('/application/:applicationId/all', asyncHandler(async (req, res) => {
+router.delete('/application/:applicationId/all', verifyAppAccess('manage_users'), asyncHandler(async (req, res) => {
   const { applicationId } = req.params;
-
-  // Verify application ownership
-  const application = await Application.findOne({
-    _id: applicationId,
-    userId: req.userId
-  });
-
-  if (!application) {
-    return res.status(404).json({ error: 'Application not found' });
-  }
 
   const result = await Session.deleteMany({ applicationId });
 

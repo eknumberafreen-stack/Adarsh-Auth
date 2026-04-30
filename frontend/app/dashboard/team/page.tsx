@@ -210,6 +210,10 @@ export default function TeamPage() {
                     <span className="text-sm text-gray-300">Manage Licenses</span>
                   </label>
                   <label className="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" checked={permissions.includes('manage_users')} onChange={() => togglePermission('manage_users')} className="rounded border-white/20 bg-black/50 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0" />
+                    <span className="text-sm text-gray-300">Manage Users & Sessions</span>
+                  </label>
+                  <label className="flex items-center gap-3 cursor-pointer">
                     <input type="checkbox" checked={permissions.includes('view_logs')} onChange={() => togglePermission('view_logs')} className="rounded border-white/20 bg-black/50 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0" />
                     <span className="text-sm text-gray-300">View Logs & Stats</span>
                   </label>

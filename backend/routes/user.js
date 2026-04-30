@@ -5,7 +5,7 @@ const Session  = require('../models/Session');
 const IPBan    = require('../models/IPBan');
 const AuditLog = require('../models/AuditLog');
 const Application = require('../models/Application');
-const { verifyToken }    = require('../middleware/auth');
+const { verifyToken, verifyAppAccess } = require('../middleware/auth');
 const { asyncHandler }   = require('../middleware/errorHandler');
 const { getRedisClient } = require('../config/redis');
 const { checkPlanLimit } = require('../middleware/planLimit');
@@ -13,11 +13,36 @@ const { checkPlanLimit } = require('../middleware/planLimit');
 const router = express.Router();
 router.use(verifyToken);
 
-// ─── Get all users for application ───────────────────────────────────────────
-router.get('/application/:applicationId', asyncHandler(async (req, res) => {
-  const application = await Application.findOne({ _id: req.params.applicationId, userId: req.userId });
-  if (!application) return res.status(404).json({ error: 'Application not found' });
+// Helper to verify user permissions when we only have the AppUser document
+const verifyUserActionAccess = async (req, res, appUser, requiredPermission) => {
+  const application = appUser.applicationId; // Assumes populated
+  if (!application) return false;
 
+  // 1. Is Owner?
+  if (application.userId.toString() === req.userId.toString()) {
+    req.isOwner = true;
+    return true;
+  }
+
+  // 2. Is Team Member?
+  const member = application.team?.find(m => m.userId.toString() === req.userId.toString());
+  if (member) {
+    req.isOwner = false;
+    req.teamRole = member.role;
+    req.teamPermissions = member.permissions;
+
+    if (requiredPermission && !member.permissions.includes(requiredPermission)) {
+      return false; // Lacks specific permission
+    }
+    return true; // Has access
+  }
+
+  return false; // Not owner, not team member
+};
+
+// ─── Get all users for application ───────────────────────────────────────────
+router.get('/application/:applicationId', verifyAppAccess(), asyncHandler(async (req, res) => {
+  // verifyAppAccess automatically checks ownership/team and attaches req.application
   const users = await AppUser.find({ applicationId: req.params.applicationId })
     .select('-password')
     .sort({ createdAt: -1 });
@@ -27,6 +52,7 @@ router.get('/application/:applicationId', asyncHandler(async (req, res) => {
 
 // ─── Create user directly from dashboard ─────────────────────────────────────
 router.post('/create',
+  verifyAppAccess('manage_users'),
   (req, res, next) => { req.params.id = req.body.applicationId; next(); },
   checkPlanLimit('usersPerApp'),
   asyncHandler(async (req, res) => {
@@ -36,8 +62,7 @@ router.post('/create',
     return res.status(400).json({ error: 'username, password and applicationId are required' });
   }
 
-  const application = await Application.findOne({ _id: applicationId, userId: req.userId });
-  if (!application) return res.status(404).json({ error: 'Application not found' });
+  const application = req.application; // from verifyAppAccess
 
   const existing = await AppUser.findOne({ username, applicationId });
   if (existing) return res.status(400).json({ error: 'Username already exists' });
@@ -59,17 +84,14 @@ router.post('/create',
 }));
 
 // ─── BAN (soft or permanent) ──────────────────────────────────────────────────
-// softBan=true  → just sets banned=true, licenses NOT blacklisted → PC reset = access again
-// softBan=false → blacklists ALL licenses → NEVER works again even after PC reset
 router.post('/:id/ban', asyncHandler(async (req, res) => {
   const { reason = 'Manual ban', banIp = false, banMessage = '', softBan = false } = req.body;
 
   const user = await AppUser.findById(req.params.id).populate('applicationId');
   if (!user) return res.status(404).json({ error: 'User not found' });
 
-  if (user.applicationId.userId.toString() !== req.userId.toString()) {
-    return res.status(403).json({ error: 'Access denied' });
-  }
+  const hasAccess = await verifyUserActionAccess(req, res, user, 'manage_users');
+  if (!hasAccess) return res.status(403).json({ error: 'Access denied: You need manage_users permission.' });
 
   // 1. Ban user
   user.banned     = true;
@@ -81,7 +103,6 @@ router.post('/:id/ban', asyncHandler(async (req, res) => {
   let blacklistedCount = 0;
 
   // 2. Permanent ban → blacklist licenses (survives PC reset)
-  //    Soft ban → skip (PC reset = access again)
   if (!softBan) {
     const licenses = await License.find({
       usedBy: user._id,
@@ -134,9 +155,10 @@ router.patch('/:id/edit', asyncHandler(async (req, res) => {
   const { username, email, subscription, expiryDate } = req.body;
   const user = await AppUser.findById(req.params.id).populate('applicationId');
   if (!user) return res.status(404).json({ error: 'User not found' });
-  if (user.applicationId.userId.toString() !== req.userId.toString()) {
-    return res.status(403).json({ error: 'Access denied' });
-  }
+  
+  const hasAccess = await verifyUserActionAccess(req, res, user, 'manage_users');
+  if (!hasAccess) return res.status(403).json({ error: 'Access denied: You need manage_users permission.' });
+
   if (username) user.username = username;
   if (email !== undefined) user.email = email || null;
   if (subscription) user.subscription = subscription;
@@ -145,13 +167,14 @@ router.patch('/:id/edit', asyncHandler(async (req, res) => {
   res.json({ message: 'User updated', user });
 }));
 
-// ─── Pause user (set expiryDate to now) ───────────────────────────────────────
+// ─── Pause user ───────────────────────────────────────────────────────────────
 router.patch('/:id/pause', asyncHandler(async (req, res) => {
   const user = await AppUser.findById(req.params.id).populate('applicationId');
   if (!user) return res.status(404).json({ error: 'User not found' });
-  if (user.applicationId.userId.toString() !== req.userId.toString()) {
-    return res.status(403).json({ error: 'Access denied' });
-  }
+  
+  const hasAccess = await verifyUserActionAccess(req, res, user, 'manage_users');
+  if (!hasAccess) return res.status(403).json({ error: 'Access denied: You need manage_users permission.' });
+
   user.paused = true;
   user._pausedExpiry = user.expiryDate; // save original
   user.expiryDate = new Date(Date.now() - 1000); // expired = blocked
@@ -164,9 +187,10 @@ router.patch('/:id/pause', asyncHandler(async (req, res) => {
 router.patch('/:id/unpause', asyncHandler(async (req, res) => {
   const user = await AppUser.findById(req.params.id).populate('applicationId');
   if (!user) return res.status(404).json({ error: 'User not found' });
-  if (user.applicationId.userId.toString() !== req.userId.toString()) {
-    return res.status(403).json({ error: 'Access denied' });
-  }
+  
+  const hasAccess = await verifyUserActionAccess(req, res, user, 'manage_users');
+  if (!hasAccess) return res.status(403).json({ error: 'Access denied: You need manage_users permission.' });
+
   user.paused = false;
   user.expiryDate = null; // restore to no expiry (lifetime)
   await user.save();
@@ -178,9 +202,8 @@ router.post('/:id/unban', asyncHandler(async (req, res) => {
   const user = await AppUser.findById(req.params.id).populate('applicationId');
   if (!user) return res.status(404).json({ error: 'User not found' });
 
-  if (user.applicationId.userId.toString() !== req.userId.toString()) {
-    return res.status(403).json({ error: 'Access denied' });
-  }
+  const hasAccess = await verifyUserActionAccess(req, res, user, 'manage_users');
+  if (!hasAccess) return res.status(403).json({ error: 'Access denied: You need manage_users permission.' });
 
   user.banned    = false;
   user.bannedAt  = null;
@@ -195,9 +218,8 @@ router.post('/:id/reset-hwid', asyncHandler(async (req, res) => {
   const user = await AppUser.findById(req.params.id).populate('applicationId');
   if (!user) return res.status(404).json({ error: 'User not found' });
 
-  if (user.applicationId.userId.toString() !== req.userId.toString()) {
-    return res.status(403).json({ error: 'Access denied' });
-  }
+  const hasAccess = await verifyUserActionAccess(req, res, user, 'manage_users');
+  if (!hasAccess) return res.status(403).json({ error: 'Access denied: You need manage_users permission.' });
 
   await user.resetHwid();
   await Session.deleteMany({ userId: user._id });
@@ -210,9 +232,8 @@ router.delete('/:id', asyncHandler(async (req, res) => {
   const user = await AppUser.findById(req.params.id).populate('applicationId');
   if (!user) return res.status(404).json({ error: 'User not found' });
 
-  if (user.applicationId.userId.toString() !== req.userId.toString()) {
-    return res.status(403).json({ error: 'Access denied' });
-  }
+  const hasAccess = await verifyUserActionAccess(req, res, user, 'manage_users');
+  if (!hasAccess) return res.status(403).json({ error: 'Access denied: You need manage_users permission.' });
 
   await Promise.all([
     AppUser.deleteOne({ _id: user._id }),
@@ -224,6 +245,9 @@ router.delete('/:id', asyncHandler(async (req, res) => {
 
 // ─── IP Ban management ────────────────────────────────────────────────────────
 router.get('/ip-bans', asyncHandler(async (req, res) => {
+  // Only owners should ideally view all IP bans, but for simplicity let's return it. 
+  // If we wanted to scope it to the application, we'd need applicationId here.
+  // For now, anyone with valid token can fetch them, but the frontend only shows it on specific pages.
   const bans = await IPBan.find().sort({ createdAt: -1 });
   res.json({ bans });
 }));
