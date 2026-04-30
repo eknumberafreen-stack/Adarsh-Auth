@@ -30,7 +30,19 @@ router.get('/', asyncHandler(async (req, res) => {
 
 // Get single application with credentials
 router.get('/:id', verifyAppAccess(), asyncHandler(async (req, res) => {
+  // Populate team user details
+  await req.application.populate('team.userId', 'email username');
   const application = req.application.toObject();
+
+  // Flatten populated team data for frontend convenience
+  if (application.team) {
+    application.team = application.team.map(m => ({
+      ...m,
+      userEmail: m.userId?.email || 'Unknown',
+      userName: m.userId?.username || null,
+      userId: m.userId?._id || m.userId // keep the ID as a string
+    }));
+  }
 
   // Security: only owner and managers can see appSecret
   if (!req.isOwner && req.teamRole !== 'manager') {

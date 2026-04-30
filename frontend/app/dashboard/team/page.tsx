@@ -183,7 +183,7 @@ export default function TeamPage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-white/10">
-                        <th className="text-left px-4 py-4 text-gray-400 font-medium">User ID</th>
+                        <th className="text-left px-4 py-4 text-gray-400 font-medium">Member</th>
                         <th className="text-left px-4 py-4 text-gray-400 font-medium">Role</th>
                         <th className="text-left px-4 py-4 text-gray-400 font-medium">Permissions</th>
                         <th className="text-left px-4 py-4 text-gray-400 font-medium">Added</th>
@@ -194,7 +194,10 @@ export default function TeamPage() {
                       {application.team?.map((member: any) => (
                         <tr key={member.userId} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
                           <td className="px-4 py-3">
-                            <code className="font-mono text-xs text-gray-300">{member.userId}</code>
+                            <div>
+                              <p className="text-sm text-white font-medium">{member.userEmail || member.userId}</p>
+                              {member.userName && <p className="text-[11px] text-gray-500">{member.userName}</p>}
+                            </div>
                           </td>
                           <td className="px-4 py-3">
                             <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${
@@ -298,7 +301,7 @@ export default function TeamPage() {
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h2 className="text-xl font-bold">Edit Team Member</h2>
-                <p className="text-xs text-gray-500 mt-1 font-mono">{editTarget.userId}</p>
+                <p className="text-sm text-gray-400 mt-1">{editTarget.userEmail || editTarget.userId}</p>
               </div>
               <button onClick={() => setShowEditModal(false)} className="text-gray-400 hover:text-white"><XMarkIcon className="w-5 h-5" /></button>
             </div>
