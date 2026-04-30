@@ -6,7 +6,11 @@ const nextConfig = {
     NEXT_PUBLIC_BACKEND_URL: process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000',
   },
   images: {
-    domains: ['api.qrserver.com', 'i.imgur.com', 'images2.imgbox.com'],
+    remotePatterns: [
+      { protocol: 'https', hostname: 'api.qrserver.com' },
+      { protocol: 'https', hostname: 'i.imgur.com' },
+      { protocol: 'https', hostname: 'images2.imgbox.com' },
+    ],
   },
 }
 
