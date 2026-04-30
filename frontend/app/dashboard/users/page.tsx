@@ -87,10 +87,26 @@ export default function Users() {
   const [creating, setCreating] = useState(false)
 
   const isStrictValidDate = (dateStr: string) => {
+    if (!dateStr) return false
     const d = new Date(dateStr)
     if (isNaN(d.getTime())) return false
-    const [datePart] = dateStr.split('T')
-    const [y, m, day] = datePart.split('-').map(Number)
+
+    // Extract digits to handle both YYYY-MM-DD and DD-MM-YYYY fallbacks
+    const digits = dateStr.match(/\d+/g)
+    if (!digits || digits.length < 3) return false
+
+    // Standard datetime-local is YYYY-MM-DD
+    let y = parseInt(digits[0])
+    let m = parseInt(digits[1])
+    let day = parseInt(digits[2])
+
+    // Detect if format is DD-MM-YYYY (if year is at the end)
+    if (y < 1000 && parseInt(digits[2]) > 1000) {
+      day = parseInt(digits[0])
+      m = parseInt(digits[1])
+      y = parseInt(digits[2])
+    }
+
     return d.getFullYear() === y && (d.getMonth() + 1) === m && d.getDate() === day
   }
 

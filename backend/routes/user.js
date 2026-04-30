@@ -67,13 +67,16 @@ router.post('/create',
     if (isNaN(d.getTime())) return res.status(400).json({ error: 'Invalid expiration date' });
     
     // Strict date check: Prevent rollover (e.g. April 31 -> May 1)
-    try {
-      const [datePart] = expiryDate.split('T');
-      const [y, m, d_val] = datePart.split('-').map(Number);
-      if (d.getFullYear() !== y || (d.getMonth() + 1) !== m || d.getDate() !== d_val) {
+    const digits = expiryDate.match(/\d+/g);
+    if (digits && digits.length >= 3) {
+      let y = parseInt(digits[0]), m = parseInt(digits[1]), day = parseInt(digits[2]);
+      if (y < 1000 && parseInt(digits[2]) > 1000) { // DD-MM-YYYY
+        day = parseInt(digits[0]); m = parseInt(digits[1]); y = parseInt(digits[2]);
+      }
+      if (d.getFullYear() !== y || (d.getMonth() + 1) !== m || d.getDate() !== day) {
         return res.status(400).json({ error: 'The selected date does not exist (e.g. April 31st)' });
       }
-    } catch (e) {}
+    }
 
     if (d <= new Date()) return res.status(400).json({ error: 'Expiration date must be in the future' });
   }
@@ -180,13 +183,16 @@ router.patch('/:id/edit', asyncHandler(async (req, res) => {
     if (isNaN(d.getTime())) return res.status(400).json({ error: 'Invalid expiration date' });
 
     // Strict date check: Prevent rollover
-    try {
-      const [datePart] = expiryDate.split('T');
-      const [y, m, d_val] = datePart.split('-').map(Number);
-      if (d.getFullYear() !== y || (d.getMonth() + 1) !== m || d.getDate() !== d_val) {
+    const digits = expiryDate.match(/\d+/g);
+    if (digits && digits.length >= 3) {
+      let y = parseInt(digits[0]), m = parseInt(digits[1]), day = parseInt(digits[2]);
+      if (y < 1000 && parseInt(digits[2]) > 1000) { // DD-MM-YYYY
+        day = parseInt(digits[0]); m = parseInt(digits[1]); y = parseInt(digits[2]);
+      }
+      if (d.getFullYear() !== y || (d.getMonth() + 1) !== m || d.getDate() !== day) {
         return res.status(400).json({ error: 'The selected date does not exist (e.g. April 31st)' });
       }
-    } catch (e) {}
+    }
 
     if (d <= new Date()) return res.status(400).json({ error: 'Expiration date must be in the future' });
   }
