@@ -4,6 +4,8 @@ const AppUser = require('../models/AppUser');
 const License = require('../models/License');
 const Session = require('../models/Session');
 const AuditLog = require('../models/AuditLog');
+const User = require('../models/User');
+const SubscriptionPlan = require('../models/SubscriptionPlan');
 const { verifyToken, verifyAppAccess } = require('../middleware/auth');
 const { validate, schemas } = require('../middleware/validation');
 const { asyncHandler } = require('../middleware/errorHandler');
@@ -196,8 +198,6 @@ router.post('/:id/team', verifyAppAccess(), asyncHandler(async (req, res) => {
   }
 
   // Block free plan users
-  const User = require('../models/User');
-  const SubscriptionPlan = require('../models/SubscriptionPlan');
   const owner = await User.findById(req.userId).populate('plan');
   const ownerPlan = owner?.plan || await SubscriptionPlan.findOne({ name: 'free' });
   if (!ownerPlan || ownerPlan.name === 'free') {
@@ -208,7 +208,6 @@ router.post('/:id/team', verifyAppAccess(), asyncHandler(async (req, res) => {
   if (!email) return res.status(400).json({ error: 'Email is required' });
 
   // Find user by email
-  const User = require('../models/User');
   const userToAdd = await User.findOne({ email });
   
   if (!userToAdd) {
