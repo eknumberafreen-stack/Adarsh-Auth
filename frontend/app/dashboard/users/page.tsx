@@ -75,7 +75,11 @@ export default function Users() {
   // Create user modal
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-  const getDefaultExpiry = () => new Date().toISOString().slice(0, 16)
+  const getDefaultExpiry = () => {
+    const now = new Date()
+    const pad = (n: number) => String(n).padStart(2, '0')
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`
+  }
   const [newUser, setNewUser] = useState({
     username: '', password: '', email: '',
     subscription: 'default', expiryDate: getDefaultExpiry(), hwidAffected: true

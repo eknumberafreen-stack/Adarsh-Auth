@@ -197,7 +197,13 @@ router.post('/register',
       success: true,
       message: 'Registration successful',
       sessionToken,
-      expiryDate: user.expiryDate
+      expiryDate: user.expiryDate,
+      username: user.username,
+      ip,
+      hwid: user.hwid,
+      createdate: Math.floor(new Date(user.createdAt).getTime() / 1000).toString(),
+      lastlogin: Math.floor(new Date(user.lastLogin || user.createdAt).getTime() / 1000).toString(),
+      subscription: user.subscription || 'default'
     });
   })
 );
@@ -341,7 +347,144 @@ router.post('/login',
       success: true,
       message: 'Login successful',
       sessionToken,
-      expiryDate: user.expiryDate
+      expiryDate: user.expiryDate,
+      username: user.username,
+      ip,
+      hwid: user.hwid,
+      createdate: Math.floor(new Date(user.createdAt).getTime() / 1000).toString(),
+      lastlogin: Math.floor(new Date(user.lastLogin).getTime() / 1000).toString(),
+      subscription: user.subscription || 'default'
+    });
+  })
+);
+
+// ─── POST /api/client/license ─────────────────────────────────────────────────
+router.post('/license',
+  endpointLimiter('license', 10, 60_000),
+  verifyClientRequest,
+  asyncHandler(async (req, res) => {
+    const { key, hwid } = req.clientBody;
+    const ip = req.clientIp;
+
+    if (!key || !hwid) {
+      return fail(res, 400, 'Missing required fields');
+    }
+
+    // Find license
+    const license = await License.findOne({
+      key,
+      applicationId: req.application._id,
+      revoked: false,
+      blacklisted: false
+    });
+
+    if (!license) {
+      return fail(res, 400, 'Invalid License Key.');
+    }
+
+    // If license already used — try to log in the bound user
+    if (license.used && license.usedBy) {
+      const user = await AppUser.findOne({ _id: license.usedBy, applicationId: req.application._id });
+
+      if (!user) return fail(res, 400, 'Invalid License Key.');
+
+      if (user.banned) {
+        sendDiscordWebhook(req.application.discordWebhook,
+          bannedEmbed(user.username, ip, req.application.name, user.banMessage));
+        return res.status(403).json({
+          success: false,
+          banned: true,
+          message: user.banMessage || 'Your account has been permanently banned.'
+        });
+      }
+
+      if (user.expiryDate && user.expiryDate < Date.now()) {
+        return fail(res, 403, 'License has expired');
+      }
+
+      if (user.hwid && user.hwid !== hwid) {
+        sendDiscordWebhook(req.application.discordWebhook,
+          hwidMismatchEmbed(user.username, ip, req.application.name));
+        return fail(res, 403, 'Hardware ID mismatch');
+      }
+
+      if (!user.hwid) user.hwid = hwid;
+      user.trackHwid(hwid);
+      user.trackIp(ip);
+      user.lastLogin = new Date();
+      user.lastIp = ip;
+      await user.save();
+
+      const sessionToken = await createSession(user._id, req.application._id, hwid, ip);
+
+      sendDiscordWebhook(req.application.discordWebhook,
+        loginEmbed(user.username, ip, hwid, req.application.name, user.expiryDate));
+
+      return res.json({
+        success: true,
+        message: 'Login successful',
+        sessionToken,
+        expiryDate: user.expiryDate,
+        username: user.username,
+        ip,
+        hwid: user.hwid,
+        createdate: Math.floor(new Date(user.createdAt).getTime() / 1000).toString(),
+        lastlogin: Math.floor(new Date(user.lastLogin).getTime() / 1000).toString(),
+        subscription: user.subscription || 'default'
+      });
+    }
+
+    // License not yet used — register a new user bound to this key
+    const expiryDate = license.expiryUnit !== 'lifetime' && license.expiryDuration
+      ? License.calcExpiry(license.expiryUnit, license.expiryDuration)
+      : null;
+
+    // Auto-generate username from key
+    const autoUsername = 'user_' + key.replace(/-/g, '').substring(0, 12).toLowerCase();
+
+    const existing = await AppUser.findOne({ username: autoUsername, applicationId: req.application._id });
+    if (existing) {
+      return fail(res, 400, 'License already in use');
+    }
+
+    // Mark license used atomically
+    const claimed = await License.findOneAndUpdate(
+      { _id: license._id, used: false },
+      { $set: { used: true, usedAt: new Date() } },
+      { new: true }
+    );
+    if (!claimed) return fail(res, 400, 'License already in use');
+
+    const user = await AppUser.create({
+      username: autoUsername,
+      password: crypto.randomBytes(32).toString('hex'), // random — key-only auth
+      applicationId: req.application._id,
+      hwid,
+      expiryDate,
+      lastLogin: new Date(),
+      lastIp: ip,
+      ipHistory: [{ ip, seenAt: new Date() }],
+      hwidHistory: [{ hwid, seenAt: new Date() }]
+    });
+
+    await License.findByIdAndUpdate(license._id, { usedBy: user._id, expiryDate });
+
+    const sessionToken = await createSession(user._id, req.application._id, hwid, ip);
+
+    sendDiscordWebhook(req.application.discordWebhook,
+      registerEmbed(autoUsername, ip, hwid, req.application.name, key));
+
+    return res.status(201).json({
+      success: true,
+      message: 'License activated',
+      sessionToken,
+      expiryDate: user.expiryDate,
+      username: user.username,
+      ip,
+      hwid: user.hwid,
+      createdate: Math.floor(new Date(user.createdAt).getTime() / 1000).toString(),
+      lastlogin: Math.floor(new Date(user.lastLogin).getTime() / 1000).toString(),
+      subscription: user.subscription || 'default'
     });
   })
 );
@@ -368,7 +511,12 @@ router.post('/validate',
       success: true,
       message: 'Session valid',
       expiryDate: req.sessionUser.expiryDate,
-      username: req.sessionUser.username
+      username: req.sessionUser.username,
+      ip: req.session.ip,
+      hwid: req.sessionUser.hwid,
+      createdate: Math.floor(new Date(req.sessionUser.createdAt).getTime() / 1000).toString(),
+      lastlogin: Math.floor(new Date(req.sessionUser.lastLogin || req.sessionUser.createdAt).getTime() / 1000).toString(),
+      subscription: req.sessionUser.subscription || 'default'
     });
   })
 );
