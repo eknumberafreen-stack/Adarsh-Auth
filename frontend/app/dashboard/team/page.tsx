@@ -25,6 +25,8 @@ export default function TeamPage() {
   const [editRole, setEditRole] = useState('reseller')
   const [editPermissions, setEditPermissions] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
+  const [editAppIds, setEditAppIds] = useState<string[]>([])
+  const [originalAppIds, setOriginalAppIds] = useState<string[]>([])
 
   useEffect(() => {
     if (applications.length > 0 && !selectedAppId) setSelectedAppId(applications[0]._id)
@@ -63,21 +65,62 @@ export default function TeamPage() {
   }
 
   // ── Edit Member ─────────────────────────────────────────────────────────────
-  const openEditModal = (member: any) => {
+  const openEditModal = async (member: any) => {
     setEditTarget(member)
     setEditRole(member.role)
     setEditPermissions([...member.permissions])
     setShowEditModal(true)
+
+    // Fetch all apps to see which ones this member is already assigned to
+    try {
+      const res = await api.get('/applications')
+      const allApps = res.data.applications
+      const memberAppIds = allApps
+        .filter((app: any) => app.team?.some((m: any) => m.userId?.toString() === member.userId?.toString()))
+        .map((app: any) => app._id)
+      setEditAppIds(memberAppIds)
+      setOriginalAppIds(memberAppIds)
+    } catch {
+      // Fallback: at minimum they're on the current app
+      setEditAppIds([selectedAppId])
+      setOriginalAppIds([selectedAppId])
+    }
   }
 
   const handleEditMember = async () => {
     if (!editTarget) return
     setSaving(true)
     try {
+      // 1. Update role/permissions on current app
       await api.patch(`/applications/${selectedAppId}/team/${editTarget.userId}`, {
         role: editRole,
         permissions: editPermissions
       })
+
+      // 2. Add to newly checked apps
+      const appsToAdd = editAppIds.filter(id => !originalAppIds.includes(id))
+      for (const appId of appsToAdd) {
+        try {
+          await api.post(`/applications/${appId}/team`, {
+            email: editTarget.userEmail,
+            role: editRole,
+            permissions: editPermissions
+          })
+        } catch (e: any) {
+          toast.error(e.response?.data?.error || 'Failed to add to an app')
+        }
+      }
+
+      // 3. Remove from unchecked apps
+      const appsToRemove = originalAppIds.filter(id => !editAppIds.includes(id))
+      for (const appId of appsToRemove) {
+        try {
+          await api.delete(`/applications/${appId}/team/${editTarget.userId}`)
+        } catch (e: any) {
+          toast.error(e.response?.data?.error || 'Failed to remove from an app')
+        }
+      }
+
       toast.success('Member updated!')
       setShowEditModal(false)
       loadApplication()
@@ -106,6 +149,10 @@ export default function TeamPage() {
 
   const toggleEditPermission = (perm: string) => {
     setEditPermissions(prev => prev.includes(perm) ? prev.filter(p => p !== perm) : [...prev, perm])
+  }
+
+  const toggleEditApp = (appId: string) => {
+    setEditAppIds(prev => prev.includes(appId) ? prev.filter(id => id !== appId) : [...prev, appId])
   }
 
   const isOwner = application?.userId === user?.id
@@ -321,6 +368,25 @@ export default function TeamPage() {
               <div>
                 <label className="block text-sm font-medium mb-3 text-gray-300">Permissions</label>
                 <PermissionCheckboxes perms={editPermissions} toggle={toggleEditPermission} currentRole={editRole} />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-3 text-gray-300">Assigned Applications</label>
+                <div className="space-y-2.5 bg-black/20 p-3 rounded-xl border border-white/5 max-h-40 overflow-y-auto">
+                  {applications.map((app: any) => (
+                    <label key={app._id} className="flex items-center gap-3 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={editAppIds.includes(app._id)} 
+                        onChange={() => toggleEditApp(app._id)} 
+                        className="rounded border-white/20 bg-black/50 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0" 
+                      />
+                      <span className="text-sm text-gray-300">{app.name}</span>
+                      {originalAppIds.includes(app._id) && <span className="text-[10px] text-gray-600">(current)</span>}
+                    </label>
+                  ))}
+                </div>
+                <p className="text-[11px] text-gray-500 mt-1.5">Check/uncheck to add or remove this member from your applications.</p>
               </div>
               
               <div className="flex gap-3 pt-2">
