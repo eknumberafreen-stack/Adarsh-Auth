@@ -195,6 +195,15 @@ router.post('/:id/team', verifyAppAccess(), asyncHandler(async (req, res) => {
     return res.status(403).json({ error: 'Only the owner can manage the team.' });
   }
 
+  // Block free plan users
+  const User = require('../models/User');
+  const SubscriptionPlan = require('../models/SubscriptionPlan');
+  const owner = await User.findById(req.userId).populate('plan');
+  const ownerPlan = owner?.plan || await SubscriptionPlan.findOne({ name: 'free' });
+  if (!ownerPlan || ownerPlan.name === 'free') {
+    return res.status(403).json({ error: 'Team Management is a paid feature. Please upgrade your plan to invite team members.' });
+  }
+
   const { email, role, permissions } = req.body;
   if (!email) return res.status(400).json({ error: 'Email is required' });
 

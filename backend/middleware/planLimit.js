@@ -34,8 +34,20 @@ const checkPlanLimit = (resource) => {
       }
 
       if (!plan) {
+        // Determine whose plan to check:
+        // If this is a per-app resource and the user is a team member, use the APP OWNER's plan
+        let planUserId = req.userId;
+
+        if (resource !== 'applications' && req.params.id) {
+          const app = await Application.findById(req.params.id);
+          if (app && app.userId.toString() !== req.userId.toString()) {
+            // Current user is a team member — use the owner's plan
+            planUserId = app.userId;
+          }
+        }
+
         // Load user with populated plan from MongoDB
-        const user = await User.findById(req.userId).populate('plan');
+        const user = await User.findById(planUserId).populate('plan');
 
         if (!user.plan) {
           // Fall back to Free plan limits
