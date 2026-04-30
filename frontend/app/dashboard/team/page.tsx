@@ -66,7 +66,7 @@ export default function TeamPage() {
     setPermissions(prev => prev.includes(perm) ? prev.filter(p => p !== perm) : [...prev, perm])
   }
 
-  const isOwner = application?.userId === user?._id
+  const isOwner = application?.userId === user?.id
 
   return (
     <div>
@@ -104,7 +104,7 @@ export default function TeamPage() {
             <>
               {!isOwner && (
                 <div className="mb-6 p-4 rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-200 text-sm">
-                  You are viewing this application as a Team Member (Role: {application.team?.find((m: any) => m.userId === user?._id)?.role || 'Unknown'}). Only the owner can invite or remove members.
+                  You are viewing this application as a Team Member (Role: {application.team?.find((m: any) => m.userId === user?.id)?.role || 'Unknown'}). Only the owner can invite or remove members.
                 </div>
               )}
 
