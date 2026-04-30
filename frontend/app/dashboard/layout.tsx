@@ -60,6 +60,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     () => [
       { name: 'Overview', href: '/dashboard', icon: HomeIcon, group: 'Workspace' },
       { name: 'Applications', href: '/dashboard/applications', icon: CubeIcon, group: 'Workspace' },
+      { name: 'Team', href: '/dashboard/team', icon: UserGroupIcon, group: 'Workspace' },
       { name: 'Licenses', href: '/dashboard/licenses', icon: KeyIcon, group: 'Operations' },
       { name: 'Users', href: '/dashboard/users', icon: UsersIcon, group: 'Operations' },
       { name: 'Sessions', href: '/dashboard/sessions', icon: ClockIcon, group: 'Operations' },

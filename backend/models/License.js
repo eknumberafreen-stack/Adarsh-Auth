@@ -42,6 +42,9 @@ const licenseSchema = new mongoose.Schema({
   blacklistedAt: { type: Date, default: null },
   blacklistReason: { type: String, default: null },
 
+  // Tracking who generated the key (Owner or Reseller)
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+
   createdAt: { type: Date, default: Date.now }
 }, { timestamps: true });
 

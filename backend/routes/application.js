@@ -4,7 +4,7 @@ const AppUser = require('../models/AppUser');
 const License = require('../models/License');
 const Session = require('../models/Session');
 const AuditLog = require('../models/AuditLog');
-const { verifyToken } = require('../middleware/auth');
+const { verifyToken, verifyAppAccess } = require('../middleware/auth');
 const { validate, schemas } = require('../middleware/validation');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { checkPlanLimit } = require('../middleware/planLimit');
@@ -14,9 +14,14 @@ const router = express.Router();
 // All routes require authentication
 router.use(verifyToken);
 
-// Get all applications for user
+// Get all applications for user (Owner or Team Member)
 router.get('/', asyncHandler(async (req, res) => {
-  const applications = await Application.find({ userId: req.userId })
+  const applications = await Application.find({
+    $or: [
+      { userId: req.userId },
+      { 'team.userId': req.userId }
+    ]
+  })
     .select('-appSecret')
     .sort({ createdAt: -1 });
 
@@ -24,14 +29,12 @@ router.get('/', asyncHandler(async (req, res) => {
 }));
 
 // Get single application with credentials
-router.get('/:id', asyncHandler(async (req, res) => {
-  const application = await Application.findOne({
-    _id: req.params.id,
-    userId: req.userId
-  });
+router.get('/:id', verifyAppAccess(), asyncHandler(async (req, res) => {
+  const application = req.application.toObject();
 
-  if (!application) {
-    return res.status(404).json({ error: 'Application not found' });
+  // Security: only owner and managers can see appSecret
+  if (!req.isOwner && req.teamRole !== 'manager') {
+    delete application.appSecret;
   }
 
   res.json({ application });
@@ -49,7 +52,8 @@ router.post('/', validate(schemas.createApplication), checkPlanLimit('applicatio
     version: version || '1.0.0',
     ownerId: credentials.ownerId,
     appSecret: credentials.appSecret,
-    userId: req.userId
+    userId: req.userId,
+    team: [] // starts empty
   });
 
   res.status(201).json({
@@ -59,15 +63,8 @@ router.post('/', validate(schemas.createApplication), checkPlanLimit('applicatio
 }));
 
 // Update application
-router.patch('/:id', validate(schemas.updateApplication), asyncHandler(async (req, res) => {
-  const application = await Application.findOne({
-    _id: req.params.id,
-    userId: req.userId
-  });
-
-  if (!application) {
-    return res.status(404).json({ error: 'Application not found' });
-  }
+router.patch('/:id', validate(schemas.updateApplication), verifyAppAccess('manage_settings'), asyncHandler(async (req, res) => {
+  const application = req.application;
 
   // Update allowed fields
   if (req.body.name) application.name = req.body.name;
@@ -83,16 +80,9 @@ router.patch('/:id', validate(schemas.updateApplication), asyncHandler(async (re
   });
 }));
 
-// Regenerate app secret — invalidates ALL sessions (Fix #6)
-router.post('/:id/regenerate-secret', asyncHandler(async (req, res) => {
-  const application = await Application.findOne({
-    _id: req.params.id,
-    userId: req.userId
-  });
-
-  if (!application) {
-    return res.status(404).json({ error: 'Application not found' });
-  }
+// Regenerate app secret — invalidates ALL sessions
+router.post('/:id/regenerate-secret', verifyAppAccess('manage_settings'), asyncHandler(async (req, res) => {
+  const application = req.application;
 
   // Regenerate secret
   const newSecret = application.regenerateSecret();
@@ -120,13 +110,8 @@ router.post('/:id/regenerate-secret', asyncHandler(async (req, res) => {
 }));
 
 // Test Discord webhook
-router.post('/:id/test-webhook', asyncHandler(async (req, res) => {
-  const application = await Application.findOne({
-    _id: req.params.id,
-    userId: req.userId
-  });
-
-  if (!application) return res.status(404).json({ error: 'Application not found' });
+router.post('/:id/test-webhook', verifyAppAccess('manage_settings'), asyncHandler(async (req, res) => {
+  const application = req.application;
 
   const { webhookUrl } = req.body;
   if (!webhookUrl) return res.status(400).json({ error: 'webhookUrl required' });
@@ -148,16 +133,13 @@ router.post('/:id/test-webhook', asyncHandler(async (req, res) => {
   res.json({ message: 'Test webhook sent!' });
 }));
 
-// Delete application
-router.delete('/:id', asyncHandler(async (req, res) => {
-  const application = await Application.findOne({
-    _id: req.params.id,
-    userId: req.userId
-  });
-
-  if (!application) {
-    return res.status(404).json({ error: 'Application not found' });
+// Delete application (OWNER ONLY)
+router.delete('/:id', verifyAppAccess(), asyncHandler(async (req, res) => {
+  if (!req.isOwner) {
+    return res.status(403).json({ error: 'Only the application owner can delete it.' });
   }
+
+  const application = req.application;
 
   // Delete all related data
   await Promise.all([
@@ -171,16 +153,11 @@ router.delete('/:id', asyncHandler(async (req, res) => {
 }));
 
 // Get application statistics
-router.get('/:id/stats', asyncHandler(async (req, res) => {
-  const application = await Application.findOne({
-    _id: req.params.id,
-    userId: req.userId
-  });
+router.get('/:id/stats', verifyAppAccess(), asyncHandler(async (req, res) => {
+  const application = req.application;
 
-  if (!application) {
-    return res.status(404).json({ error: 'Application not found' });
-  }
-
+  // For resellers, they might only want to see stats for their own licenses
+  // But for simplicity, we'll just show overall stats for now.
   const [userCount, licenseCount, activeSessionCount, usedLicenseCount] = await Promise.all([
     AppUser.countDocuments({ applicationId: application._id }),
     License.countDocuments({ applicationId: application._id }),
@@ -196,6 +173,78 @@ router.get('/:id/stats', asyncHandler(async (req, res) => {
       activeSessions: activeSessionCount
     }
   });
+}));
+
+// --- TEAM MANAGEMENT ROUTES ---
+
+// Add a team member
+router.post('/:id/team', verifyAppAccess(), asyncHandler(async (req, res) => {
+  if (!req.isOwner) {
+    return res.status(403).json({ error: 'Only the owner can manage the team.' });
+  }
+
+  const { email, role, permissions } = req.body;
+  if (!email) return res.status(400).json({ error: 'Email is required' });
+
+  // Find user by email
+  const User = require('../models/User');
+  const userToAdd = await User.findOne({ email });
+  
+  if (!userToAdd) {
+    return res.status(404).json({ error: 'User not found. They must register first.' });
+  }
+
+  if (userToAdd._id.toString() === req.userId.toString()) {
+    return res.status(400).json({ error: 'You cannot add yourself to the team.' });
+  }
+
+  const application = req.application;
+  
+  // Check if already in team
+  const existing = application.team.find(m => m.userId.toString() === userToAdd._id.toString());
+  if (existing) {
+    return res.status(400).json({ error: 'User is already in the team.' });
+  }
+
+  application.team.push({
+    userId: userToAdd._id,
+    role: role || 'reseller',
+    permissions: permissions || ['manage_licenses']
+  });
+
+  await application.save();
+  res.json({ message: 'Team member added successfully', team: application.team });
+}));
+
+// Remove team member
+router.delete('/:id/team/:userId', verifyAppAccess(), asyncHandler(async (req, res) => {
+  if (!req.isOwner) {
+    return res.status(403).json({ error: 'Only the owner can manage the team.' });
+  }
+
+  const application = req.application;
+  application.team = application.team.filter(m => m.userId.toString() !== req.params.userId);
+  
+  await application.save();
+  res.json({ message: 'Team member removed', team: application.team });
+}));
+
+// Update team member permissions/role
+router.patch('/:id/team/:userId', verifyAppAccess(), asyncHandler(async (req, res) => {
+  if (!req.isOwner) {
+    return res.status(403).json({ error: 'Only the owner can manage the team.' });
+  }
+
+  const application = req.application;
+  const member = application.team.find(m => m.userId.toString() === req.params.userId);
+  
+  if (!member) return res.status(404).json({ error: 'Team member not found' });
+
+  if (req.body.role) member.role = req.body.role;
+  if (req.body.permissions) member.permissions = req.body.permissions;
+
+  await application.save();
+  res.json({ message: 'Team member updated', team: application.team });
 }));
 
 module.exports = router;

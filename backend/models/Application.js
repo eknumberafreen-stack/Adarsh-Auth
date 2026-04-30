@@ -1,6 +1,13 @@
 const mongoose = require('mongoose');
 const crypto = require('crypto');
 
+const teamMemberSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  role: { type: String, enum: ['manager', 'reseller', 'developer'], default: 'reseller' },
+  permissions: [{ type: String, enum: ['manage_licenses', 'manage_users', 'manage_settings', 'view_logs'] }],
+  addedAt: { type: Date, default: Date.now }
+});
+
 const applicationSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -43,6 +50,7 @@ const applicationSchema = new mongoose.Schema({
     default: '',
     trim: true
   },
+  team: [teamMemberSchema],
   createdAt: {
     type: Date,
     default: Date.now

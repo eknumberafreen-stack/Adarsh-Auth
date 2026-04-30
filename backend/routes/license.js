@@ -1,7 +1,7 @@
 const express = require('express');
 const License = require('../models/License');
 const Application = require('../models/Application');
-const { verifyToken } = require('../middleware/auth');
+const { verifyToken, verifyAppAccess } = require('../middleware/auth');
 const { validate, schemas } = require('../middleware/validation');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { checkPlanLimit } = require('../middleware/planLimit');
@@ -13,7 +13,7 @@ router.use(verifyToken);
 
 // Generate licenses
 router.post('/generate',
-  (req, res, next) => { req.params.id = req.body.applicationId; next(); },
+  verifyAppAccess('manage_licenses'),
   checkPlanLimit('licensesPerApp'),
   asyncHandler(async (req, res) => {
   const { applicationId, count, mask, uppercase, subscriptionLevel, note, expiryUnit, expiryDuration } = req.body
@@ -21,9 +21,6 @@ router.post('/generate',
   if (!applicationId || !expiryUnit) {
     return res.status(400).json({ error: 'applicationId and expiryUnit are required' })
   }
-
-  const application = await Application.findOne({ _id: applicationId, userId: req.userId })
-  if (!application) return res.status(404).json({ error: 'Application not found' })
 
   const licenses = []
   for (let i = 0; i < (count || 1); i++) {
@@ -40,7 +37,8 @@ router.post('/generate',
       subscriptionLevel: subscriptionLevel || 1,
       expiryUnit,
       expiryDuration: expiryUnit !== 'lifetime' ? expiryDuration : null,
-      expiryDate
+      expiryDate,
+      createdBy: req.userId // Track the reseller/owner who made this
     })
     licenses.push(license)
   }
@@ -52,31 +50,49 @@ router.post('/generate',
 }))
 
 // Get all licenses for application
-router.get('/application/:applicationId', asyncHandler(async (req, res) => {
+router.get('/application/:applicationId', verifyAppAccess('manage_licenses'), asyncHandler(async (req, res) => {
   const { applicationId } = req.params;
 
-  // Verify application ownership
-  const application = await Application.findOne({
-    _id: applicationId,
-    userId: req.userId
-  });
-
-  if (!application) {
-    return res.status(404).json({ error: 'Application not found' });
+  let filter = { applicationId };
+  // If they are a reseller, they ONLY see licenses they generated
+  if (!req.isOwner && req.teamRole === 'reseller') {
+    filter.createdBy = req.userId;
   }
 
-  const licenses = await License.find({ applicationId })
+  const licenses = await License.find(filter)
     .populate('usedBy', 'username')
     .sort({ createdAt: -1 });
 
   res.json({ licenses });
 }));
 
+// --- Helper for License ID routes ---
+const checkLicenseAccess = async (req, res) => {
+  const license = await License.findById(req.params.id).populate('applicationId');
+  if (!license) { res.status(404).json({ error: 'License not found' }); return null; }
+  
+  const app = license.applicationId;
+  const isOwner = app.userId.toString() === req.userId.toString();
+  const teamMember = app.team.find(m => m.userId.toString() === req.userId.toString());
+
+  if (!isOwner) {
+    if (!teamMember || !teamMember.permissions.includes('manage_licenses')) {
+      res.status(403).json({ error: 'Access denied. Require manage_licenses permission.' });
+      return null;
+    }
+    // Resellers can only modify their own keys
+    if (teamMember.role === 'reseller' && license.createdBy?.toString() !== req.userId.toString()) {
+      res.status(403).json({ error: 'Access denied. Resellers can only modify their own licenses.' });
+      return null;
+    }
+  }
+  return license;
+};
+
 // Revoke license
 router.post('/:id/revoke', asyncHandler(async (req, res) => {
-  const license = await License.findById(req.params.id).populate('applicationId');
-  if (!license) return res.status(404).json({ error: 'License not found' });
-  if (license.applicationId.userId.toString() !== req.userId.toString()) return res.status(403).json({ error: 'Access denied' });
+  const license = await checkLicenseAccess(req, res);
+  if (!license) return;
   license.revoked = true;
   license.revokedAt = new Date();
   await license.save();
@@ -85,9 +101,8 @@ router.post('/:id/revoke', asyncHandler(async (req, res) => {
 
 // Unrevoke license
 router.post('/:id/unrevoke', asyncHandler(async (req, res) => {
-  const license = await License.findById(req.params.id).populate('applicationId');
-  if (!license) return res.status(404).json({ error: 'License not found' });
-  if (license.applicationId.userId.toString() !== req.userId.toString()) return res.status(403).json({ error: 'Access denied' });
+  const license = await checkLicenseAccess(req, res);
+  if (!license) return;
   license.revoked = false;
   license.revokedAt = null;
   await license.save();
@@ -96,9 +111,8 @@ router.post('/:id/unrevoke', asyncHandler(async (req, res) => {
 
 // Pause license
 router.post('/:id/pause', asyncHandler(async (req, res) => {
-  const license = await License.findById(req.params.id).populate('applicationId');
-  if (!license) return res.status(404).json({ error: 'License not found' });
-  if (license.applicationId.userId.toString() !== req.userId.toString()) return res.status(403).json({ error: 'Access denied' });
+  const license = await checkLicenseAccess(req, res);
+  if (!license) return;
   license.paused = true;
   await license.save();
   res.json({ message: 'License paused' });
@@ -106,9 +120,8 @@ router.post('/:id/pause', asyncHandler(async (req, res) => {
 
 // Unpause license
 router.post('/:id/unpause', asyncHandler(async (req, res) => {
-  const license = await License.findById(req.params.id).populate('applicationId');
-  if (!license) return res.status(404).json({ error: 'License not found' });
-  if (license.applicationId.userId.toString() !== req.userId.toString()) return res.status(403).json({ error: 'Access denied' });
+  const license = await checkLicenseAccess(req, res);
+  if (!license) return;
   license.paused = false;
   await license.save();
   res.json({ message: 'License unpaused' });
@@ -116,10 +129,9 @@ router.post('/:id/unpause', asyncHandler(async (req, res) => {
 
 // Blacklist license permanently
 router.post('/:id/blacklist', asyncHandler(async (req, res) => {
+  const license = await checkLicenseAccess(req, res);
+  if (!license) return;
   const { reason = 'Manual blacklist' } = req.body;
-  const license = await License.findById(req.params.id).populate('applicationId');
-  if (!license) return res.status(404).json({ error: 'License not found' });
-  if (license.applicationId.userId.toString() !== req.userId.toString()) return res.status(403).json({ error: 'Access denied' });
   license.blacklist(reason);
   await license.save();
   res.json({ message: 'License permanently blacklisted' });
@@ -127,10 +139,9 @@ router.post('/:id/blacklist', asyncHandler(async (req, res) => {
 
 // Edit license
 router.patch('/:id', asyncHandler(async (req, res) => {
+  const license = await checkLicenseAccess(req, res);
+  if (!license) return;
   const { note, subscriptionLevel, expiryUnit, expiryDuration } = req.body;
-  const license = await License.findById(req.params.id).populate('applicationId');
-  if (!license) return res.status(404).json({ error: 'License not found' });
-  if (license.applicationId.userId.toString() !== req.userId.toString()) return res.status(403).json({ error: 'Access denied' });
   if (note !== undefined) license.note = note;
   if (subscriptionLevel) license.subscriptionLevel = subscriptionLevel;
   if (expiryUnit) license.expiryUnit = expiryUnit;
@@ -141,9 +152,8 @@ router.patch('/:id', asyncHandler(async (req, res) => {
 
 // Delete license
 router.delete('/:id', asyncHandler(async (req, res) => {
-  const license = await License.findById(req.params.id).populate('applicationId');
-  if (!license) return res.status(404).json({ error: 'License not found' });
-  if (license.applicationId.userId.toString() !== req.userId.toString()) return res.status(403).json({ error: 'Access denied' });
+  const license = await checkLicenseAccess(req, res);
+  if (!license) return;
   await License.deleteOne({ _id: license._id });
   res.json({ message: 'License deleted successfully' });
 }));
