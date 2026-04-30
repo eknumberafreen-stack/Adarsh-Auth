@@ -121,6 +121,13 @@ export default function Users() {
   // ── Actions ────────────────────────────────────────────────────────────────
   const createUser = async () => {
     if (!newUser.username || !newUser.password) return toast.error('Username and password required')
+    
+    if (newUser.expiryDate) {
+      if (new Date(newUser.expiryDate) <= new Date()) {
+        return toast.error('Expiration date must be in the future')
+      }
+    }
+
     setCreating(true)
     try {
       await api.post('/users/create', {
@@ -193,6 +200,13 @@ export default function Users() {
 
   const saveEdit = async () => {
     if (!editTarget) return
+
+    if (editData.expiryDate) {
+      if (new Date(editData.expiryDate) <= new Date()) {
+        return toast.error('Expiration date must be in the future')
+      }
+    }
+
     try {
       await api.patch(`/users/${editTarget._id}/edit`, editData)
       toast.success('User updated!')

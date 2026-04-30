@@ -62,6 +62,12 @@ router.post('/create',
     return res.status(400).json({ error: 'username, password and applicationId are required' });
   }
 
+  if (expiryDate) {
+    const d = new Date(expiryDate);
+    if (isNaN(d.getTime())) return res.status(400).json({ error: 'Invalid expiration date' });
+    if (d <= new Date()) return res.status(400).json({ error: 'Expiration date must be in the future' });
+  }
+
   const application = req.application; // from verifyAppAccess
 
   const existing = await AppUser.findOne({ username, applicationId });
@@ -158,6 +164,12 @@ router.patch('/:id/edit', asyncHandler(async (req, res) => {
   
   const hasAccess = await verifyUserActionAccess(req, res, user, 'manage_users');
   if (!hasAccess) return res.status(403).json({ error: 'Access denied: You need manage_users permission.' });
+
+  if (expiryDate) {
+    const d = new Date(expiryDate);
+    if (isNaN(d.getTime())) return res.status(400).json({ error: 'Invalid expiration date' });
+    if (d <= new Date()) return res.status(400).json({ error: 'Expiration date must be in the future' });
+  }
 
   if (username) user.username = username;
   if (email !== undefined) user.email = email || null;
