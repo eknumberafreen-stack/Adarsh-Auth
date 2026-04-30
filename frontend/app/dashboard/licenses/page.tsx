@@ -68,7 +68,7 @@ function LicenseMenu({ license, onEdit, onPause, onRevoke, onBlacklist, onDelete
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function Licenses() {
-  const { applications } = useAppStore()
+  const { applications, selectedApp } = useAppStore()
   const [selectedAppId, setSelectedAppId] = useState('')
   const [licenses, setLicenses] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
@@ -92,8 +92,11 @@ export default function Licenses() {
   const [blacklistReason, setBlacklistReason] = useState('')
 
   useEffect(() => {
-    if (applications.length > 0 && !selectedAppId) setSelectedAppId(applications[0]._id)
-  }, [applications])
+    if (applications.length > 0 && !selectedAppId) {
+      const defaultId = selectedApp?._id || applications[0]._id
+      setSelectedAppId(defaultId)
+    }
+  }, [applications, selectedApp, selectedAppId])
 
   useEffect(() => { if (selectedAppId) loadLicenses() }, [selectedAppId])
 

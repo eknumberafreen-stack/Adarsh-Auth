@@ -7,7 +7,7 @@ import toast from 'react-hot-toast'
 import { PlusIcon, XMarkIcon, TrashIcon, PencilSquareIcon } from '@heroicons/react/24/outline'
 
 export default function TeamPage() {
-  const { applications } = useAppStore()
+  const { applications, selectedApp } = useAppStore()
   const { user } = useAuthStore()
   const [selectedAppId, setSelectedAppId] = useState('')
   const [application, setApplication] = useState<any>(null)
@@ -29,8 +29,11 @@ export default function TeamPage() {
   const [originalAppIds, setOriginalAppIds] = useState<string[]>([])
 
   useEffect(() => {
-    if (applications.length > 0 && !selectedAppId) setSelectedAppId(applications[0]._id)
-  }, [applications])
+    if (applications.length > 0 && !selectedAppId) {
+      const defaultId = selectedApp?._id || applications[0]._id
+      setSelectedAppId(defaultId)
+    }
+  }, [applications, selectedApp, selectedAppId])
 
   useEffect(() => {
     if (selectedAppId) loadApplication()

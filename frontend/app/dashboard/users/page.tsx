@@ -67,7 +67,7 @@ function UserMenu({ user, onEdit, onBan, onPermanentBan, onUnban, onPause, onRes
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function Users() {
-  const { applications } = useAppStore()
+  const { applications, selectedApp } = useAppStore()
   const [selectedAppId, setSelectedAppId] = useState('')
   const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
@@ -100,8 +100,12 @@ export default function Users() {
   const [editData, setEditData] = useState({ username: '', email: '', subscription: 'default', expiryDate: '' })
 
   useEffect(() => {
-    if (applications.length > 0 && !selectedAppId) setSelectedAppId(applications[0]._id)
-  }, [applications])
+    if (applications.length > 0 && !selectedAppId) {
+      // Use the globally selected app if available, otherwise fall back to first
+      const defaultId = selectedApp?._id || applications[0]._id
+      setSelectedAppId(defaultId)
+    }
+  }, [applications, selectedApp])
 
   useEffect(() => { if (selectedAppId) loadUsers() }, [selectedAppId])
 

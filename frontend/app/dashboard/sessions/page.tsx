@@ -7,16 +7,17 @@ import toast from 'react-hot-toast'
 import { ClockIcon, SignalIcon, TrashIcon, UserCircleIcon, XMarkIcon } from '@heroicons/react/24/outline'
 
 export default function Sessions() {
-  const { applications } = useAppStore()
+  const { applications, selectedApp } = useAppStore()
   const [selectedAppId, setSelectedAppId] = useState('')
   const [sessions, setSessions] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (applications.length > 0 && !selectedAppId) {
-      setSelectedAppId(applications[0]._id)
+      const defaultId = selectedApp?._id || applications[0]._id
+      setSelectedAppId(defaultId)
     }
-  }, [applications, selectedAppId])
+  }, [applications, selectedApp, selectedAppId])
 
   useEffect(() => {
     if (selectedAppId) {
