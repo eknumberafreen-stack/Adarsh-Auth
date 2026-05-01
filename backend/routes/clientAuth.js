@@ -221,7 +221,7 @@ router.post('/login',
     const ip = req.clientIp;
 
     if (!username || !password || !hwid) {
-      return fail(req, res);
+      return fail(req, res, 401, 'invalidUsername', 'Invalid username');
     }
 
     const user = await AppUser.findOne({ username, applicationId: req.application._id });
@@ -234,7 +234,7 @@ router.post('/login',
         severity: 'warning',
         details: { username, reason: 'not_found' }
       });
-      return fail(req, res);
+      return fail(req, res, 401, 'invalidUsername', 'Invalid username');
     }
 
     // Check ban
@@ -300,7 +300,7 @@ router.post('/login',
       // Discord webhook — failed login
       sendDiscordWebhook(req.application.discordWebhook,
         loginFailedEmbed(username, ip, req.application.name, 'Wrong password'));
-      return fail(req, res);
+      return fail(req, res, 401, 'invalidUsername', 'Invalid username');
     }
 
     // HWID check (strict)
@@ -316,7 +316,7 @@ router.post('/login',
       // Discord webhook — HWID mismatch
       sendDiscordWebhook(req.application.discordWebhook,
         hwidMismatchEmbed(username, ip, req.application.name));
-      return fail(res, 403, 'Hardware ID mismatch');
+      return fail(req, res, 403, 'hwidMismatch', 'Hardware ID mismatch');
     }
 
     // Bind HWID on first login
@@ -351,7 +351,7 @@ router.post('/login',
       success: true,
       message: 'Login successful',
       sessionToken,
-      expiryDate: user.expiryDate,
+      expiryDate: user.expiryDate ? Math.floor(new Date(user.expiryDate).getTime() / 1000).toString() : "0",
       username: user.username,
       ip,
       hwid: user.hwid,
