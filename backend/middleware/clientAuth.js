@@ -54,10 +54,11 @@ const verifyClientRequest = async (req, res, next) => {
       timestamp,
       nonce,
       signature,
+      version,
       ...bodyData
     } = req.body;
 
-    if (!app_name || !owner_id || !timestamp || !nonce || !signature) {
+    if (!app_name || !owner_id || !timestamp || !nonce || !signature || !version) {
       await audit('suspicious_activity', 'warning', ip, null, { reason: 'missing_fields' });
       return fail(res, 400);
     }
@@ -102,7 +103,7 @@ const verifyClientRequest = async (req, res, next) => {
     }
 
     // ── Step 5: Version check ────────────────────────────────────────────────
-    const clientVersion = String(req.body.version || bodyData.version || '');
+    const clientVersion = String(version || '');
     if (clientVersion && clientVersion !== String(application.version)) {
       const msg = application.customMessages?.versionMismatch || 'Application version mismatch.';
       return res.status(403).json({ 
