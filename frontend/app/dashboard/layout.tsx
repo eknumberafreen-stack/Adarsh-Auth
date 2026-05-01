@@ -298,8 +298,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </div>
 
               {/* Global App Selector */}
-              {applications.length > 0 && ['Users', 'Licenses', 'Sessions', 'Settings'].includes(activePage) && (
-                <div className="ml-8 hidden items-center gap-3 lg:flex">
+              {applications.length > 0 && (pathname.includes('/users') || pathname.includes('/licenses') || pathname.includes('/sessions') || pathname.includes('/settings')) && (
+                <div className="relative z-50 ml-8 flex items-center gap-3">
                   <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 whitespace-nowrap">Select Application:</span>
                   <select
                     value={selectedApp?._id || ''}
