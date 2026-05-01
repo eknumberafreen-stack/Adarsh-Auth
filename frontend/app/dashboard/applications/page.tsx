@@ -129,9 +129,9 @@ export default function Applications() {
     setConfirmModal({
       show: true,
       title: 'Delete Application?',
-      message: 'Are you sure you want to delete this application and ALL its associated data? This action is permanent and cannot be undone.',
+      message: 'Are you sure you want to delete this application and ALL its associated data? This action cannot be undone.',
       type: 'danger',
-      confirmText: 'Delete Permanently',
+      confirmText: 'Delete',
       onConfirm: async () => {
         try {
           await api.delete(`/applications/${id}`)

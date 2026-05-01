@@ -265,7 +265,7 @@ export default function PayPage() {
             <div>
               <p className="text-sm font-semibold text-red-400">Important Warning</p>
               <p className="text-xs text-gray-500 mt-1">
-                Submitting a fake, invalid, or duplicate transaction ID will result in a <strong className="text-red-400">permanent account ban</strong>. All payments are manually verified.
+                Submitting a fake, invalid, or duplicate transaction ID will result in an <strong className="text-red-400">account ban</strong>. All payments are manually verified.
               </p>
             </div>
           </div>

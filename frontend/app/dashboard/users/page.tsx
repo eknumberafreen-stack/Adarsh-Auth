@@ -54,7 +54,7 @@ function UserMenu({ user, onEdit, onBan, onPermanentBan, onUnban, onPause, onRes
             </button>
           )}
           <button onClick={() => { setOpen(false); onPermanentBan(user) }} className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors flex items-center gap-2">
-            <span>⛔</span> Permanent Ban
+            <span>⛔</span> Full Ban
           </button>
           <button onClick={() => { setOpen(false); onDelete(user._id) }} className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-500/10 transition-colors flex items-center gap-2">
             <span>🗑️</span> Delete
@@ -274,7 +274,7 @@ export default function Users() {
         banMessage: banMessage || null,
         banIp
       })
-      toast.success(`Permanently banned. ${res.data.licensesBlacklisted} license(s) blacklisted.`)
+      toast.success(`User banned. ${res.data.licensesBlacklisted} license(s) blacklisted.`)
       setShowBanModal(false)
       loadUsers()
     } catch (e: any) { toast.error(e.response?.data?.error || 'Failed to ban user') }
@@ -305,9 +305,9 @@ export default function Users() {
     setConfirmModal({
       show: true,
       title: 'Delete User?',
-      message: 'Are you sure you want to permanently delete this user? This action cannot be undone.',
+      message: 'Are you sure you want to delete this user? This action cannot be undone.',
       type: 'danger',
-      confirmText: 'Delete Permanently',
+      confirmText: 'Delete User',
       onConfirm: async () => {
         try { await api.delete(`/users/${id}`); toast.success('User deleted'); loadUsers() }
         catch (e: any) { toast.error(e.response?.data?.error || 'Failed to delete') }
@@ -511,7 +511,7 @@ export default function Users() {
         </div>
       )}
 
-      {/* ── Permanent Ban Modal ───────────────────────────────────────── */}
+      {/* ── Full Ban Modal ───────────────────────────────────────── */}
       {showBanModal && banTarget && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
           <div className="w-full max-w-md bg-[#13131a] border border-dark-border rounded-2xl p-6 shadow-2xl">
@@ -523,7 +523,7 @@ export default function Users() {
                   <div className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0">
                     <span className="text-white text-xs font-bold">—</span>
                   </div>
-                  <h2 className="text-xl font-bold text-red-400">Permanent Ban</h2>
+                  <h2 className="text-xl font-bold text-red-400">Full Ban</h2>
                 </div>
                 <p className="text-sm text-gray-400 ml-8">
                   Banning: <span className="text-white font-semibold">{banTarget.username}</span>
@@ -561,7 +561,7 @@ export default function Users() {
                   onChange={(e) => setBanMessage(e.target.value)}
                   rows={4}
                   className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-xl text-white placeholder-gray-600 text-sm focus:outline-none focus:border-red-500/50 transition-all resize-none"
-                  placeholder="e.g. You have been permanently banned for cheating. This decision is final."
+                  placeholder="e.g. You have been banned for cheating. This decision is final."
                 />
                 <p className="text-xs text-gray-500 mt-1.5 flex items-center gap-1">
                   <span>💡</span> This exact message will appear on the user's screen when they try to login.
@@ -587,7 +587,7 @@ export default function Users() {
               <div className="flex items-start gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
                 <span className="text-yellow-400 text-sm flex-shrink-0">⚠️</span>
                 <p className="text-xs text-red-300 leading-relaxed">
-                  This will permanently ban the user, blacklist all their licenses, and kill all sessions. This action cannot be undone.
+                  This will ban the user, blacklist all their licenses, and kill all sessions. This action cannot be undone.
                 </p>
               </div>
 
@@ -611,7 +611,7 @@ export default function Users() {
                       <div className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center">
                         <span className="text-xs font-bold">—</span>
                       </div>
-                      Permanently Ban
+                      Full Ban
                     </>
                   )}
                 </button>

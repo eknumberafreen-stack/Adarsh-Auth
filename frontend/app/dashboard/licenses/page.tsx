@@ -55,7 +55,7 @@ function LicenseMenu({ license, onEdit, onPause, onRevoke, onBlacklist, onDelete
             </button>
           )}
           <button onClick={() => { setOpen(false); onBlacklist(license) }} className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors flex items-center gap-2">
-            <span>⛔</span> Permanent Ban
+            <span>⛔</span> Full Ban
           </button>
           <button onClick={() => { setOpen(false); onDelete(license._id) }} className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-500/10 transition-colors flex items-center gap-2">
             <span>🗑️</span> Delete
@@ -210,7 +210,7 @@ export default function Licenses() {
   const executeBlacklist = async () => {
     try {
       await api.post(`/licenses/${blacklistTarget._id}/blacklist`, { reason: blacklistReason })
-      toast.success('License permanently blacklisted!')
+      toast.success('License blacklisted!')
       setShowBlacklistModal(false)
       loadLicenses()
     } catch { toast.error('Failed to blacklist') }
@@ -220,7 +220,7 @@ export default function Licenses() {
     setConfirmModal({
       show: true,
       title: 'Delete License?',
-      message: 'Are you sure you want to permanently delete this license key? This action cannot be undone.',
+      message: 'Are you sure you want to delete this license key? This action cannot be undone.',
       type: 'danger',
       confirmText: 'Delete Key',
       onConfirm: async () => {
@@ -445,7 +445,7 @@ export default function Licenses() {
                   <div className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0">
                     <span className="text-white text-xs font-bold">—</span>
                   </div>
-                  <h2 className="text-xl font-bold text-red-400">Permanent Ban</h2>
+                  <h2 className="text-xl font-bold text-red-400">Full Ban</h2>
                 </div>
                 <p className="text-sm text-gray-400 ml-8 font-mono text-xs">{blacklistTarget.key.slice(0, 20)}...</p>
               </div>
@@ -469,7 +469,7 @@ export default function Licenses() {
               <div className="flex items-start gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
                 <span className="text-yellow-400 text-sm flex-shrink-0">⚠️</span>
                 <p className="text-xs text-red-300 leading-relaxed">
-                  Permanently ban this license. It can never be used again, even after PC reset.
+                  Ban this license. It can never be used again, even after PC reset.
                 </p>
               </div>
               <div className="flex gap-3 pt-1">
@@ -480,7 +480,7 @@ export default function Licenses() {
                   <div className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center">
                     <span className="text-xs font-bold">—</span>
                   </div>
-                  Permanently Ban
+                  Ban License
                 </button>
               </div>
             </div>
