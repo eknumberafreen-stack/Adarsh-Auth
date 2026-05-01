@@ -171,7 +171,7 @@ router.post('/:id/ban', asyncHandler(async (req, res) => {
 
 // ─── Edit user ────────────────────────────────────────────────────────────────
 router.patch('/:id/edit', asyncHandler(async (req, res) => {
-  const { username, email, subscription, expiryDate } = req.body;
+  const { username, email, subscription, expiryDate, hwidAffected } = req.body;
   const user = await AppUser.findById(req.params.id).populate('applicationId');
   if (!user) return res.status(404).json({ error: 'User not found' });
   
@@ -201,6 +201,7 @@ router.patch('/:id/edit', asyncHandler(async (req, res) => {
   if (email !== undefined) user.email = email || null;
   if (subscription) user.subscription = subscription;
   if (expiryDate !== undefined) user.expiryDate = expiryDate ? new Date(expiryDate) : null;
+  if (hwidAffected !== undefined) user.hwidAffected = hwidAffected;
   await user.save();
   res.json({ message: 'User updated', user });
 }));

@@ -121,7 +121,7 @@ export default function Users() {
   // Edit modal
   const [showEditModal, setShowEditModal] = useState(false)
   const [editTarget, setEditTarget] = useState<any>(null)
-  const [editData, setEditData] = useState({ username: '', email: '', subscription: 'default', expiryDate: '' })
+  const [editData, setEditData] = useState({ username: '', email: '', subscription: 'default', expiryDate: '', hwidAffected: true })
 
   // Custom Confirm Modal
   const [confirmModal, setConfirmModal] = useState({
@@ -239,7 +239,8 @@ export default function Users() {
       username: user.username,
       email: user.email || '',
       subscription: user.subscription || 'default',
-      expiryDate: user.expiryDate ? new Date(user.expiryDate).toISOString().slice(0, 16) : ''
+      expiryDate: user.expiryDate ? new Date(user.expiryDate).toISOString().slice(0, 16) : '',
+      hwidAffected: user.hwidAffected !== false
     })
     setShowEditModal(true)
   }
@@ -496,6 +497,10 @@ export default function Users() {
               <div>
                 <label className="block text-sm font-medium mb-2">Expiry Date</label>
                 <input type="datetime-local" value={editData.expiryDate} onChange={(e) => setEditData({ ...editData, expiryDate: e.target.value })} className="input" />
+              </div>
+              <div className="flex items-center gap-3">
+                <input type="checkbox" id="editHwidAffected" checked={editData.hwidAffected} onChange={(e) => setEditData({ ...editData, hwidAffected: e.target.checked })} className="w-4 h-4 accent-primary-600" />
+                <label htmlFor="editHwidAffected" className="text-sm">HWID Affected</label>
               </div>
               <div className="flex gap-2 pt-2">
                 <button onClick={() => setShowEditModal(false)} className="btn btn-secondary flex-1">Cancel</button>
