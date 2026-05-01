@@ -84,11 +84,6 @@ interface Application {
   ownerId: string
   appSecret: string
 
-interface Application {
-  _id: string
-  name: string
-  ownerId: string
-  appSecret: string
   version: string
   status: string
   userCount: number

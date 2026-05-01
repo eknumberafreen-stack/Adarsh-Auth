@@ -46,6 +46,8 @@ export default function Dashboard() {
     }
     setRecentApps(appsToUse.slice(0, 4))
 
+    try {
+
       let totalLicenses = 0
       let usedLicenses = 0
       let totalUsers = 0
