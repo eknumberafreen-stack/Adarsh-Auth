@@ -237,33 +237,35 @@ export default function Applications() {
                 Regenerate Secret
               </button>
 
-              {/* Code Snippet Section */}
+              {/* Systematic Code Snippet Section */}
               <div className="mt-8 pt-8 border-t border-white/10 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <CodeBracketIcon className="h-5 w-5 text-indigo-400" />
+                    <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-indigo-500/20 text-indigo-400">
+                      <CodeBracketIcon className="h-4 w-4" />
+                    </div>
                     <span className="text-sm font-bold text-white">Display Code Snippet</span>
                   </div>
                   <button
                     onClick={() => setShowSnippet(!showSnippet)}
-                    className={`relative w-12 h-6 rounded-full transition-all flex-shrink-0 ${
+                    className={`relative w-11 h-5 rounded-full transition-all flex-shrink-0 ${
                       showSnippet ? 'bg-indigo-600' : 'bg-slate-700'
                     }`}
                   >
-                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${
-                      showSnippet ? 'left-7' : 'left-1'
+                    <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${
+                      showSnippet ? 'left-6' : 'left-0.5'
                     }`}></div>
                   </button>
                 </div>
 
                 {showSnippet && (
-                  <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-300">
-                    <div>
-                      <label className="text-xs text-slate-500 uppercase font-bold tracking-widest mb-2 block">Select Language</label>
+                  <div className="space-y-4 animate-in fade-in zoom-in-95 duration-300">
+                    <div className="flex flex-col gap-2">
+                      <label className="text-[10px] text-slate-500 uppercase font-bold tracking-[0.2em]">Select Language:</label>
                       <select
                         value={selectedLang}
                         onChange={(e) => setSelectedLang(e.target.value)}
-                        className="input text-sm"
+                        className="input h-10 text-sm bg-slate-900/50 border-white/5 focus:border-indigo-500/50"
                       >
                         <option>C++</option>
                         <option>C#</option>
@@ -272,21 +274,26 @@ export default function Applications() {
                       </select>
                     </div>
 
-                    <div className="relative group">
-                      <div className="absolute right-4 top-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={() => {
-                            const code = getSnippet(selectedLang, credentials)
-                            copy(code)
-                          }}
-                          className="p-2 bg-white/10 hover:bg-white/20 rounded-lg text-white"
-                        >
-                          <DocumentDuplicateIcon className="h-4 w-4" />
-                        </button>
-                      </div>
-                      <pre className="p-4 bg-slate-900 rounded-2xl border border-white/10 overflow-x-auto text-xs font-mono text-indigo-300 leading-relaxed">
-                        {getSnippet(selectedLang, credentials)}
+                    <div className="relative group rounded-2xl border border-white/5 bg-slate-950 p-1">
+                      <pre className="p-4 overflow-x-auto text-[11px] font-mono leading-relaxed bg-black/20 rounded-xl min-h-[140px]">
+                        {renderSystematicSnippet(selectedLang, credentials)}
                       </pre>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      <button
+                        onClick={() => copy(getSnippet(selectedLang, credentials))}
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-indigo-900/20"
+                      >
+                        <DocumentDuplicateIcon className="h-4 w-4" />
+                        Copy Code
+                      </button>
+                      <button className="flex-1 px-4 py-2 bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-400 border border-emerald-500/20 rounded-xl text-xs font-bold transition-all">
+                        View Example
+                      </button>
+                      <button className="flex-1 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition-all">
+                        View Tutorial
+                      </button>
                     </div>
                   </div>
                 )}
@@ -468,6 +475,44 @@ export default function Applications() {
     </div>
   )
 }
+function renderSystematicSnippet(lang: string, app: any) {
+  if (!app) return null;
+  const name = app.name;
+  const ownerid = app.ownerId;
+  const secret = app.appSecret || 'YOUR_APP_SECRET';
+  const version = app.version || '1.0';
+  const url = 'https://adarsh-auth-backend-production.up.railway.app/api/client';
+
+  if (lang === 'C++') {
+    return (
+      <div className="space-y-0.5">
+        <div><span className="text-blue-400">std::string</span> name = <span className="text-orange-400">skCrypt("{name}").decrypt()</span>;</div>
+        <div><span className="text-blue-400">std::string</span> ownerid = <span className="text-orange-400">skCrypt("{ownerid}").decrypt()</span>;</div>
+        <div><span className="text-blue-400">std::string</span> secret = <span className="text-orange-400">skCrypt("{secret}").decrypt()</span>;</div>
+        <div><span className="text-blue-400">std::string</span> version = <span className="text-orange-400">skCrypt("{version}").decrypt()</span>;</div>
+        <div><span className="text-blue-400">std::string</span> url = <span className="text-orange-400">skCrypt("{url}").decrypt()</span>;</div>
+        <div className="pt-2 text-slate-500">// Initialize API</div>
+        <div><span className="text-blue-400">AdarshAuth::api</span> <span className="text-indigo-300">AuthApp</span>(name, ownerid, version, url, secret);</div>
+      </div>
+    );
+  }
+
+  if (lang === 'C#') {
+    return (
+      <div className="space-y-0.5">
+        <div><span className="text-blue-400">public static api</span> <span className="text-indigo-300">AuthApp</span> = <span className="text-blue-400">new api</span>(</div>
+        <div className="pl-4">name: <span className="text-orange-400">"{name}"</span>,</div>
+        <div className="pl-4">ownerid: <span className="text-orange-400">"{ownerid}"</span>,</div>
+        <div className="pl-4">secret: <span className="text-orange-400">"{secret}"</span>,</div>
+        <div className="pl-4">version: <span className="text-orange-400">"{version}"</span></div>
+        <div>);</div>
+      </div>
+    );
+  }
+
+  return <span className="text-slate-500">// Integration coming soon...</span>;
+}
+
 function getSnippet(lang: string, app: any) {
   if (!app) return ''
   const name = app.name
@@ -478,19 +523,19 @@ function getSnippet(lang: string, app: any) {
 
   switch (lang) {
     case 'C++':
-      return `KeyAuth::api AuthApp(
-    "${name}",
-    "${ownerid}",
-    "${version}",
-    "${url}",
-    "${secret}"
-);`
+      return `std::string name = skCrypt("${name}").decrypt();
+std::string ownerid = skCrypt("${ownerid}").decrypt();
+std::string secret = skCrypt("${secret}").decrypt();
+std::string version = skCrypt("${version}").decrypt();
+std::string url = skCrypt("${url}").decrypt();
+
+AdarshAuth::api AuthApp(name, ownerid, version, url, secret);`
     case 'C#':
       return `public static api AuthApp = new api(
     name: "${name}",
     ownerid: "${ownerid}",
-    version: "${version}",
-    secret: "${secret}"
+    secret: "${secret}",
+    version: "${version}"
 );`
     case 'Python':
       return `# Python Integration Coming Soon\n# Stay tuned for the library update!`
