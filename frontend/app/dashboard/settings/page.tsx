@@ -15,7 +15,8 @@ import {
   BellIcon,
   TrashIcon,
   PencilIcon,
-  CheckIcon
+  CheckIcon,
+  ChatBubbleBottomCenterTextIcon
 } from '@heroicons/react/24/outline'
 
 export default function Settings() {
@@ -45,6 +46,23 @@ export default function Settings() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [newUsername, setNewUsername] = useState('')
   const [usernameSaving, setUsernameSaving] = useState(false)
+
+  // Custom Messages state
+  const [customMessages, setCustomMessages] = useState<any>({
+    appDisabled: '',
+    appPaused: '',
+    invalidLicense: '',
+    licenseUsed: '',
+    invalidUsername: '',
+    usernameTaken: '',
+    hwidMismatch: '',
+    userBanned: '',
+    invalidCreds: '',
+    noSubscription: '',
+    subPaused: '',
+    expiredLicense: ''
+  })
+  const [messagesSaving, setMessagesSaving] = useState(false)
 
   useEffect(() => {
     setNewUsername(user?.username ?? '')
@@ -94,6 +112,9 @@ export default function Settings() {
       setVersion(app.version)
       setNewVersion(app.version)
       setDiscordWebhook(app.discordWebhook || '')
+      if (app.customMessages) {
+        setCustomMessages(app.customMessages)
+      }
     } catch {
       toast.error('Failed to load application')
     }
@@ -157,6 +178,18 @@ export default function Settings() {
     }
   }
 
+  const saveMessages = async () => {
+    setMessagesSaving(true)
+    try {
+      await api.patch(`/applications/${selectedAppId}`, { customMessages })
+      toast.success('Custom messages saved!')
+    } catch {
+      toast.error('Failed to save custom messages')
+    } finally {
+      setMessagesSaving(false)
+    }
+  }
+
   const deleteApp = async () => {    if (!confirm('Are you sure? This will delete ALL data for this application.')) return
     if (!confirm('This action is IRREVERSIBLE. Type confirm to proceed.')) return
     try {
@@ -187,6 +220,7 @@ export default function Settings() {
   const tabs = [
     { id: 'app-config', label: 'App Config', icon: Cog6ToothIcon },
     { id: 'webhooks',   label: 'Webhooks',   icon: BellIcon },
+    { id: 'messages',   label: 'Messages',   icon: ChatBubbleBottomCenterTextIcon },
     { id: 'account',   label: 'Account',    icon: UserCircleIcon },
     { id: 'security',  label: 'Security',   icon: ShieldCheckIcon },
   ]
@@ -605,6 +639,59 @@ export default function Settings() {
                 <p className="text-white font-medium mb-1">HWID Locking</p>
                 <p>Users are bound to their hardware ID on first login. Reset from Users page if needed.</p>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Messages Tab */}
+      {activeTab === 'messages' && (
+        <div className="space-y-6">
+          <div className="card space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold flex items-center gap-2">
+                <ChatBubbleBottomCenterTextIcon className="w-5 h-5 text-primary-400" />
+                Alert Messages
+              </h2>
+              <button
+                onClick={saveMessages}
+                disabled={messagesSaving}
+                className="btn btn-primary"
+              >
+                {messagesSaving ? 'Saving...' : '💾 Save Changes'}
+              </button>
+            </div>
+            <p className="text-sm text-gray-400">
+              Customize the messages returned to your client app for various error scenarios.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[
+                { id: 'appDisabled', label: 'Application is Disabled', desc: 'Shown when the app status is set to inactive' },
+                { id: 'appPaused', label: 'Application is Paused', desc: 'Shown when maintenance mode is active' },
+                { id: 'invalidLicense', label: 'Invalid License', desc: 'Shown when an unknown license key is provided' },
+                { id: 'licenseUsed', label: 'License Already Used', desc: 'Shown when a key is already bound to another user' },
+                { id: 'invalidUsername', label: 'Invalid Username', desc: 'Shown during registration for invalid chars' },
+                { id: 'usernameTaken', label: 'Username Taken', desc: 'Shown when a username is already registered' },
+                { id: 'hwidMismatch', label: 'HWID Mismatch', desc: 'Shown when a user logs in from a different device' },
+                { id: 'userBanned', label: 'User is Blacklisted', desc: 'Shown when a banned user attempts login' },
+                { id: 'invalidCreds', label: 'Invalid Credentials', desc: 'Shown for wrong username or password' },
+                { id: 'noSubscription', label: 'No Active Subscription', desc: 'Shown when user has no valid plan' },
+                { id: 'subPaused', label: 'Subscription Paused', desc: 'Shown when user plan is temporarily disabled' },
+                { id: 'expiredLicense', label: 'Expired License', desc: 'Shown when user subscription has ended' },
+              ].map((field) => (
+                <div key={field.id} className="p-4 bg-dark-bg rounded-xl border border-dark-border space-y-2">
+                  <label className="block text-sm font-medium text-gray-300">{field.label}</label>
+                  <input
+                    type="text"
+                    value={customMessages[field.id] || ''}
+                    onChange={(e) => setCustomMessages({ ...customMessages, [field.id]: e.target.value })}
+                    className="input text-sm"
+                    placeholder={`Enter custom message for ${field.label}...`}
+                  />
+                  <p className="text-[10px] text-gray-500">{field.desc}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>

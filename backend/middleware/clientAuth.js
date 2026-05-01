@@ -90,7 +90,8 @@ const verifyClientRequest = async (req, res, next) => {
     // ── Step 4: App status enforcement ───────────────────────────────────────
     if (application.status !== 'active') {
       await audit('suspicious_activity', 'info', ip, application._id, { reason: 'app_paused' });
-      return res.status(403).json({ success: false, message: 'Application is disabled' });
+      const msg = application.customMessages?.appDisabled || 'Application is disabled';
+      return res.status(403).json({ success: false, message: msg });
     }
 
     // ── Step 5: Nonce check (anti-replay layer 2) ────────────────────────────

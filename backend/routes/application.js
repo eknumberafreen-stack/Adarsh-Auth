@@ -85,6 +85,13 @@ router.patch('/:id', validate(schemas.updateApplication), verifyAppAccess('manag
   if (req.body.version) application.version = req.body.version;
   if (req.body.status) application.status = req.body.status;
   if (req.body.discordWebhook !== undefined) application.discordWebhook = req.body.discordWebhook;
+  
+  if (req.body.customMessages) {
+    application.customMessages = {
+      ...application.customMessages,
+      ...req.body.customMessages
+    };
+  }
 
   await application.save();
 

@@ -51,6 +51,20 @@ const applicationSchema = new mongoose.Schema({
     trim: true
   },
   team: [teamMemberSchema],
+  customMessages: {
+    appDisabled: { type: String, default: 'This application is disabled.' },
+    appPaused: { type: String, default: 'Application is currently paused.' },
+    invalidLicense: { type: String, default: 'Invalid license key.' },
+    licenseUsed: { type: String, default: 'License key has already been used.' },
+    invalidUsername: { type: String, default: 'Invalid username.' },
+    usernameTaken: { type: String, default: 'Username already taken.' },
+    hwidMismatch: { type: String, default: 'HWID doesn\'t match. Ask for a reset!' },
+    userBanned: { type: String, default: 'You have been blacklisted!' },
+    invalidCreds: { type: String, default: 'Invalid username or password.' },
+    noSubscription: { type: String, default: 'No active subscription found.' },
+    subPaused: { type: String, default: 'Your subscription is paused.' },
+    expiredLicense: { type: String, default: 'Your license has expired.' }
+  },
   createdAt: {
     type: Date,
     default: Date.now

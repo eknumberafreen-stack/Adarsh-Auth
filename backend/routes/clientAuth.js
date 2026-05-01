@@ -36,9 +36,13 @@ router.use(clientApiRateLimiter);
 const randomDelay = (min = 100, max = 400) =>
   new Promise(r => setTimeout(r, Math.floor(Math.random() * (max - min + 1)) + min));
 
-const fail = async (res, code = 401, msg = 'Request failed') => {
+const fail = async (req, res, code = 401, msgKey = 'invalidCreds', defaultMsg = 'Request failed') => {
   await randomDelay();
-  return res.status(code).json({ success: false, message: msg });
+  let message = defaultMsg;
+  if (req.application && req.application.customMessages && req.application.customMessages[msgKey]) {
+    message = req.application.customMessages[msgKey];
+  }
+  return res.status(code).json({ success: false, message: message });
 };
 
 /** Create session — invalidates any existing session for user+app */
@@ -146,7 +150,7 @@ router.post('/register',
         severity: 'warning',
         details: { username, reason: 'invalid_or_used_license' }
       });
-      return fail(res, 400, 'Invalid or already used license key');
+      return fail(req, res, 400, 'licenseUsed', 'Invalid or already used license key');
     }
 
     // Check username uniqueness
@@ -154,7 +158,7 @@ router.post('/register',
     if (existing) {
       // Rollback license usage
       await License.findByIdAndUpdate(license._id, { used: false, usedAt: null });
-      return fail(res, 400, 'Username already taken');
+      return fail(req, res, 400, 'usernameTaken', 'Username already taken');
     }
 
     // Calculate expiry
@@ -217,7 +221,7 @@ router.post('/login',
     const ip = req.clientIp;
 
     if (!username || !password || !hwid) {
-      return fail(res);
+      return fail(req, res);
     }
 
     const user = await AppUser.findOne({ username, applicationId: req.application._id });
@@ -230,7 +234,7 @@ router.post('/login',
         severity: 'warning',
         details: { username, reason: 'not_found' }
       });
-      return fail(res);
+      return fail(req, res);
     }
 
     // Check ban
@@ -256,7 +260,7 @@ router.post('/login',
 
     // Check expiry
     if (user.expiryDate && user.expiryDate < Date.now()) {
-      return fail(res, 403, 'Account has expired');
+      return fail(req, res, 403, 'expiredLicense', 'Account has expired');
     }
 
     // Check if user's license is blacklisted
@@ -277,7 +281,7 @@ router.post('/login',
       const msg = user.banMessage
         ? user.banMessage
         : 'Your license has been permanently revoked.';
-      return fail(res, 403, msg);
+      return fail(req, res, 403, 'userBanned', msg);
     }
 
     // Verify password
@@ -296,7 +300,7 @@ router.post('/login',
       // Discord webhook — failed login
       sendDiscordWebhook(req.application.discordWebhook,
         loginFailedEmbed(username, ip, req.application.name, 'Wrong password'));
-      return fail(res);
+      return fail(req, res);
     }
 
     // HWID check (strict)
@@ -379,14 +383,14 @@ router.post('/license',
     });
 
     if (!license) {
-      return fail(res, 400, 'Invalid License Key.');
+      return fail(req, res, 400, 'invalidLicense', 'Invalid License Key.');
     }
 
     // If license already used — try to log in the bound user
     if (license.used && license.usedBy) {
       const user = await AppUser.findOne({ _id: license.usedBy, applicationId: req.application._id });
 
-      if (!user) return fail(res, 400, 'Invalid License Key.');
+      if (!user) return fail(req, res, 400, 'invalidLicense', 'Invalid License Key.');
 
       if (user.banned) {
         sendDiscordWebhook(req.application.discordWebhook,
@@ -399,13 +403,13 @@ router.post('/license',
       }
 
       if (user.expiryDate && user.expiryDate < Date.now()) {
-        return fail(res, 403, 'License has expired');
+        return fail(req, res, 403, 'expiredLicense', 'License has expired');
       }
 
       if (user.hwid && user.hwid !== hwid) {
         sendDiscordWebhook(req.application.discordWebhook,
           hwidMismatchEmbed(user.username, ip, req.application.name));
-        return fail(res, 403, 'Hardware ID mismatch');
+        return fail(req, res, 403, 'hwidMismatch', 'Hardware ID mismatch');
       }
 
       if (!user.hwid) user.hwid = hwid;
@@ -444,7 +448,7 @@ router.post('/license',
 
     const existing = await AppUser.findOne({ username: autoUsername, applicationId: req.application._id });
     if (existing) {
-      return fail(res, 400, 'License already in use');
+      return fail(req, res, 400, 'licenseUsed', 'License already in use');
     }
 
     // Mark license used atomically
@@ -453,7 +457,7 @@ router.post('/license',
       { $set: { used: true, usedAt: new Date() } },
       { new: true }
     );
-    if (!claimed) return fail(res, 400, 'License already in use');
+    if (!claimed) return fail(req, res, 400, 'licenseUsed', 'License already in use');
 
     const user = await AppUser.create({
       username: autoUsername,
@@ -504,7 +508,7 @@ router.post('/validate',
 
     if (blacklisted) {
       await Session.deleteOne({ _id: req.session._id });
-      return fail(res, 403, 'Account is permanently banned');
+      return fail(req, res, 403, 'userBanned', 'Account is permanently banned');
     }
 
     res.json({
