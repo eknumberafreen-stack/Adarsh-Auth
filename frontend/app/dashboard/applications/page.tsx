@@ -17,6 +17,8 @@ import {
   TrashIcon,
   UserGroupIcon,
   XMarkIcon,
+  CodeBracketIcon,
+  CommandLineIcon
 } from '@heroicons/react/24/outline'
 
 export default function Applications() {
@@ -32,6 +34,8 @@ export default function Applications() {
   const [stats, setStats] = useState({ total: 0, active: 0, paused: 0, sessions: 0 })
   const [credentials, setCredentials] = useState<any>(null)
   const [showSecret, setShowSecret] = useState(false)
+  const [showSnippet, setShowSnippet] = useState(false)
+  const [selectedLang, setSelectedLang] = useState('C++')
 
   useEffect(() => {
     loadApplications()
@@ -232,6 +236,61 @@ export default function Applications() {
               <button onClick={regenerateSecret} className="btn btn-danger w-full">
                 Regenerate Secret
               </button>
+
+              {/* Code Snippet Section */}
+              <div className="mt-8 pt-8 border-t border-white/10 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CodeBracketIcon className="h-5 w-5 text-indigo-400" />
+                    <span className="text-sm font-bold text-white">Display Code Snippet</span>
+                  </div>
+                  <button
+                    onClick={() => setShowSnippet(!showSnippet)}
+                    className={`relative w-12 h-6 rounded-full transition-all flex-shrink-0 ${
+                      showSnippet ? 'bg-indigo-600' : 'bg-slate-700'
+                    }`}
+                  >
+                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${
+                      showSnippet ? 'left-7' : 'left-1'
+                    }`}></div>
+                  </button>
+                </div>
+
+                {showSnippet && (
+                  <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-300">
+                    <div>
+                      <label className="text-xs text-slate-500 uppercase font-bold tracking-widest mb-2 block">Select Language</label>
+                      <select
+                        value={selectedLang}
+                        onChange={(e) => setSelectedLang(e.target.value)}
+                        className="input text-sm"
+                      >
+                        <option>C++</option>
+                        <option>C#</option>
+                        <option>Python</option>
+                        <option>Java</option>
+                      </select>
+                    </div>
+
+                    <div className="relative group">
+                      <div className="absolute right-4 top-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => {
+                            const code = getSnippet(selectedLang, credentials)
+                            copy(code)
+                          }}
+                          className="p-2 bg-white/10 hover:bg-white/20 rounded-lg text-white"
+                        >
+                          <DocumentDuplicateIcon className="h-4 w-4" />
+                        </button>
+                      </div>
+                      <pre className="p-4 bg-slate-900 rounded-2xl border border-white/10 overflow-x-auto text-xs font-mono text-indigo-300 leading-relaxed">
+                        {getSnippet(selectedLang, credentials)}
+                      </pre>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             <div className="mt-6 rounded-2xl border border-dashed border-white/10 px-5 py-16 text-center">
@@ -408,4 +467,36 @@ export default function Applications() {
       )}
     </div>
   )
+}
+function getSnippet(lang: string, app: any) {
+  if (!app) return ''
+  const name = app.name
+  const ownerid = app.ownerId
+  const secret = app.appSecret || 'YOUR_APP_SECRET'
+  const version = app.version || '1.0'
+  const url = 'https://adarsh-auth-backend-production.up.railway.app/api/client'
+
+  switch (lang) {
+    case 'C++':
+      return `KeyAuth::api AuthApp(
+    "${name}",
+    "${ownerid}",
+    "${version}",
+    "${url}",
+    "${secret}"
+);`
+    case 'C#':
+      return `public static api AuthApp = new api(
+    name: "${name}",
+    ownerid: "${ownerid}",
+    version: "${version}",
+    secret: "${secret}"
+);`
+    case 'Python':
+      return `# Python Integration Coming Soon\n# Stay tuned for the library update!`
+    case 'Java':
+      return `// Java Integration Coming Soon\n// Stay tuned for the library update!`
+    default:
+      return ''
+  }
 }
