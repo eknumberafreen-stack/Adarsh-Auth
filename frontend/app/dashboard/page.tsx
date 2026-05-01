@@ -15,6 +15,7 @@ import {
 } from '@heroicons/react/24/outline'
 
 export default function Dashboard() {
+  const { user } = useAuthStore()
   const { applications, loadingApplications } = useAppStore()
   const [stats, setStats] = useState({
     applications: 0,
