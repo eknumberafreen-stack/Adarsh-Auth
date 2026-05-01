@@ -68,7 +68,6 @@ function UserMenu({ user, onEdit, onBan, onPermanentBan, onUnban, onPause, onRes
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function Users() {
   const { applications, selectedApp, loadingApplications, usersCache, setUsersCache } = useAppStore()
-  const [selectedAppId, setSelectedAppId] = useState('')
   const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -133,32 +132,25 @@ export default function Users() {
     confirmText: 'Confirm'
   })
 
-  useEffect(() => {
-    if (applications.length > 0 && !selectedAppId) {
-      // Use the globally selected app if available, otherwise fall back to first
-      const defaultId = selectedApp?._id || applications[0]._id
-      setSelectedAppId(defaultId)
-    }
-  }, [applications, selectedApp])
-
   useEffect(() => { 
-    if (selectedAppId) {
+    if (selectedApp?._id) {
       // If we have cached users, show them instantly
-      if (usersCache[selectedAppId]) {
-        setUsers(usersCache[selectedAppId])
+      if (usersCache[selectedApp._id]) {
+        setUsers(usersCache[selectedApp._id])
         setLoading(false)
       } else {
         setLoading(true)
       }
       loadUsers() 
     } 
-  }, [selectedAppId])
+  }, [selectedApp?._id])
 
   const loadUsers = async () => {
+    if (!selectedApp?._id) return
     try {
-      const res = await api.get(`/users/application/${selectedAppId}`)
+      const res = await api.get(`/users/application/${selectedApp._id}`)
       setUsers(res.data.users)
-      setUsersCache(selectedAppId, res.data.users)
+      setUsersCache(selectedApp._id, res.data.users)
     } catch { toast.error('Failed to load users') }
     finally { setLoading(false) }
   }
@@ -333,7 +325,7 @@ export default function Users() {
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Users</h1>
-        {selectedAppId && (
+        {selectedApp?._id && (
           <button onClick={() => setShowCreateModal(true)} className="btn btn-primary flex items-center gap-2">
             <PlusIcon className="w-4 h-4" /> Create User
           </button>
@@ -348,14 +340,6 @@ export default function Users() {
         <div className="text-center py-12 text-gray-400">Create an application first</div>
       ) : (
         <>
-          {/* App selector */}
-          <div className="mb-6">
-            <select value={selectedAppId} onChange={(e) => setSelectedAppId(e.target.value)} className="input max-w-xs text-sm">
-              {applications.map((app: any) => (
-                <option key={app._id} value={app._id}>{app.name}</option>
-              ))}
-            </select>
-          </div>
 
           {/* Users table */}
           {loading ? (

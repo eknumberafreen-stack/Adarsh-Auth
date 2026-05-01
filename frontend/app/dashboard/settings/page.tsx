@@ -21,9 +21,7 @@ import {
 
 export default function Settings() {
   const { user } = useAuthStore()
-  const { applications } = useAppStore()
-  const [selectedAppId, setSelectedAppId] = useState('')
-  const [selectedApp, setSelectedApp] = useState<any>(null)
+  const { applications, selectedApp, setSelectedApp } = useAppStore()
   const [activeTab, setActiveTab] = useState('app-config')
   const [loading, setLoading] = useState(false)
 
@@ -69,13 +67,6 @@ export default function Settings() {
     setNewUsername(user?.username ?? '')
   }, [user])
 
-  useEffect(() => {
-    if (applications.length > 0 && !selectedAppId) {
-      setSelectedAppId(applications[0]._id)
-    }
-    loadMaintenanceMode()
-  }, [applications])
-
   const loadMaintenanceMode = async () => {
     try {
       const res = await api.get('/admin/config')
@@ -95,20 +86,20 @@ export default function Settings() {
   }
 
   useEffect(() => {
-    if (applications.length > 0 && !selectedAppId) {
-      setSelectedAppId(applications[0]._id)
-    }
-  }, [applications])
+    loadMaintenanceMode()
+  }, [])
 
   useEffect(() => {
-    if (selectedAppId) loadApp()
-  }, [selectedAppId])
+    if (selectedApp?._id) {
+      loadApp()
+    }
+  }, [selectedApp?._id])
 
   const loadApp = async () => {
+    if (!selectedApp?._id) return
     try {
-      const res = await api.get(`/applications/${selectedAppId}`)
+      const res = await api.get(`/applications/${selectedApp._id}`)
       const app = res.data.application
-      setSelectedApp(app)
       setAppStatus(app.status === 'active')
       setVersion(app.version)
       setNewVersion(app.version)
@@ -122,9 +113,10 @@ export default function Settings() {
   }
 
   const toggleAppStatus = async () => {
+    if (!selectedApp?._id) return
     try {
       const newStatus = appStatus ? 'paused' : 'active'
-      await api.patch(`/applications/${selectedAppId}`, { status: newStatus })
+      await api.patch(`/applications/${selectedApp._id}`, { status: newStatus })
       setAppStatus(!appStatus)
       toast.success(`Application ${newStatus}`)
     } catch {
@@ -133,8 +125,9 @@ export default function Settings() {
   }
 
   const saveVersion = async () => {
+    if (!selectedApp?._id) return
     try {
-      await api.patch(`/applications/${selectedAppId}`, { version: newVersion })
+      await api.patch(`/applications/${selectedApp._id}`, { version: newVersion })
       setVersion(newVersion)
       setEditingVersion(false)
       toast.success('Version updated!')
@@ -144,9 +137,10 @@ export default function Settings() {
   }
 
   const regenerateSecret = async () => {
+    if (!selectedApp?._id) return
     if (!confirm('This will invalidate all active sessions. Continue?')) return
     try {
-      await api.post(`/applications/${selectedAppId}/regenerate-secret`)
+      await api.post(`/applications/${selectedApp._id}/regenerate-secret`)
       toast.success('App secret regenerated!')
       loadApp()
     } catch {
@@ -155,9 +149,10 @@ export default function Settings() {
   }
 
   const saveWebhook = async () => {
+    if (!selectedApp?._id) return
     setWebhookSaving(true)
     try {
-      await api.patch(`/applications/${selectedAppId}`, { discordWebhook })
+      await api.patch(`/applications/${selectedApp._id}`, { discordWebhook })
       toast.success('Discord webhook saved!')
     } catch {
       toast.error('Failed to save webhook')
@@ -167,10 +162,11 @@ export default function Settings() {
   }
 
   const testWebhook = async () => {
+    if (!selectedApp?._id) return
     if (!discordWebhook) { toast.error('Enter a webhook URL first'); return }
     setWebhookTesting(true)
     try {
-      await api.post(`/applications/${selectedAppId}/test-webhook`, { webhookUrl: discordWebhook })
+      await api.post(`/applications/${selectedApp._id}/test-webhook`, { webhookUrl: discordWebhook })
       toast.success('Test message sent to Discord!')
     } catch {
       toast.error('Failed to send test message')
@@ -180,9 +176,10 @@ export default function Settings() {
   }
 
   const saveMessages = async () => {
+    if (!selectedApp?._id) return
     setMessagesSaving(true)
     try {
-      await api.patch(`/applications/${selectedAppId}`, { customMessages })
+      await api.patch(`/applications/${selectedApp._id}`, { customMessages })
       toast.success('Custom messages saved!')
     } catch {
       toast.error('Failed to save custom messages')
@@ -191,13 +188,14 @@ export default function Settings() {
     }
   }
 
-  const deleteApp = async () => {    if (!confirm('Are you sure? This will delete ALL data for this application.')) return
+  const deleteApp = async () => {
+    if (!selectedApp?._id) return
+    if (!confirm('Are you sure? This will delete ALL data for this application.')) return
     if (!confirm('This action is IRREVERSIBLE. Type confirm to proceed.')) return
     try {
-      await api.delete(`/applications/${selectedAppId}`)
+      await api.delete(`/applications/${selectedApp._id}`)
       toast.success('Application deleted')
       setSelectedApp(null)
-      setSelectedAppId('')
     } catch {
       toast.error('Failed to delete application')
     }
@@ -234,21 +232,6 @@ export default function Settings() {
         <p className="text-gray-400 text-sm mt-1">Control your application and account settings</p>
       </div>
 
-      {/* App Selector */}
-      {applications.length > 0 && (
-        <div className="flex items-center gap-4">
-          <label className="text-sm text-gray-400 whitespace-nowrap">Select Application:</label>
-          <select
-            value={selectedAppId}
-            onChange={(e) => setSelectedAppId(e.target.value)}
-            className="input max-w-xs text-sm"
-          >
-            {applications.map((app: any) => (
-              <option key={app._id} value={app._id}>{app.name}</option>
-            ))}
-          </select>
-        </div>
-      )}
 
       {/* Tabs */}
       <div className="flex gap-1 bg-dark-card border border-dark-border rounded-xl p-1 w-fit">

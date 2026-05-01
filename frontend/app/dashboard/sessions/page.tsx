@@ -8,7 +8,6 @@ import { ClockIcon, SignalIcon, TrashIcon, UserCircleIcon, XMarkIcon } from '@he
 
 export default function Sessions() {
   const { applications, selectedApp } = useAppStore()
-  const [selectedAppId, setSelectedAppId] = useState('')
   const [sessions, setSessions] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -23,23 +22,16 @@ export default function Sessions() {
   })
 
   useEffect(() => {
-    if (applications.length > 0 && !selectedAppId) {
-      const defaultId = selectedApp?._id || applications[0]._id
-      setSelectedAppId(defaultId)
-    }
-  }, [applications, selectedApp, selectedAppId])
-
-  useEffect(() => {
-    if (selectedAppId) {
+    if (selectedApp?._id) {
       loadSessions()
     }
-  }, [selectedAppId])
+  }, [selectedApp?._id])
 
   const loadSessions = async () => {
-    if (!selectedAppId) return
+    if (!selectedApp?._id) return
     setLoading(true)
     try {
-      const response = await api.get(`/sessions/application/${selectedAppId}`)
+      const response = await api.get(`/sessions/application/${selectedApp._id}`)
       setSessions(response.data.sessions)
     } catch {
       toast.error('Failed to load sessions')
@@ -77,7 +69,7 @@ export default function Sessions() {
       confirmText: 'Terminate All',
       onConfirm: async () => {
         try {
-          await api.delete(`/sessions/application/${selectedAppId}/all`)
+          await api.delete(`/sessions/application/${selectedApp?._id}/all`)
           toast.success('All sessions terminated')
           loadSessions()
         } catch {
@@ -118,30 +110,15 @@ export default function Sessions() {
       ) : (
         <>
           <section className="grid gap-4 lg:grid-cols-[0.8fr_1.2fr]">
-            <div className="card">
-              <p className="page-eyebrow">Filter</p>
-              <h2 className="mt-2 text-2xl font-bold text-white">Select application</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-400">Switch applications to view their currently active authenticated sessions.</p>
-
-              <div className="mt-6">
-                <label className="mb-2 block text-sm font-medium text-slate-300">Application</label>
-                <select value={selectedAppId} onChange={(e) => setSelectedAppId(e.target.value)} className="input">
-                  {applications.map((app: any) => (
-                    <option key={app._id} value={app._id}>
-                      {app.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+            <div className="card h-fit">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
                 <div className="stat-tile">
                   <div className="flex items-center justify-between">
                     <p className="stat-label">Selected App</p>
                     <SignalIcon className="h-5 w-5 text-indigo-300" />
                   </div>
-                  <p className="mt-4 text-xl font-bold text-white">{activeApplication?.name ?? 'Unknown'}</p>
-                  <p className="stat-meta">Version {activeApplication?.version ?? 'N/A'}</p>
+                  <p className="mt-4 text-xl font-bold text-white">{selectedApp?.name ?? 'Unknown'}</p>
+                  <p className="stat-meta">Version {selectedApp?.version ?? 'N/A'}</p>
                 </div>
 
                 <div className="stat-tile">

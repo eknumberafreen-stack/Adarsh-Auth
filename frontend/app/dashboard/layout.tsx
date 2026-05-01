@@ -297,6 +297,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <h1 className="truncate text-lg font-bold text-white">{activePage}</h1>
               </div>
 
+              {/* Global App Selector */}
+              {applications.length > 0 && ['Users', 'Licenses', 'Sessions', 'Settings'].includes(activePage) && (
+                <div className="ml-8 hidden items-center gap-3 lg:flex">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 whitespace-nowrap">Select Application:</span>
+                  <select
+                    value={selectedApp?._id || ''}
+                    onChange={(e) => {
+                      const app = applications.find(a => a._id === e.target.value)
+                      if (app) setSelectedApp(app)
+                    }}
+                    className="h-10 rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm font-semibold text-white outline-none focus:border-indigo-500/50 transition-all min-w-[180px]"
+                  >
+                    {applications.map((app) => (
+                      <option key={app._id} value={app._id} className="bg-[#0f0f13]">
+                        {app.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <div className="ml-auto flex items-center gap-3">
                 <div className="hidden rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2 text-right md:block">
                   <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Status</p>

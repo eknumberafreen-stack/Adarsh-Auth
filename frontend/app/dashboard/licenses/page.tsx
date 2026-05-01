@@ -69,7 +69,6 @@ function LicenseMenu({ license, onEdit, onPause, onRevoke, onBlacklist, onDelete
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function Licenses() {
   const { applications, selectedApp } = useAppStore()
-  const [selectedAppId, setSelectedAppId] = useState('')
   const [licenses, setLicenses] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -101,19 +100,13 @@ export default function Licenses() {
     confirmText: 'Confirm'
   })
 
-  useEffect(() => {
-    if (applications.length > 0 && !selectedAppId) {
-      const defaultId = selectedApp?._id || applications[0]._id
-      setSelectedAppId(defaultId)
-    }
-  }, [applications, selectedApp, selectedAppId])
-
-  useEffect(() => { if (selectedAppId) loadLicenses() }, [selectedAppId])
+  useEffect(() => { if (selectedApp?._id) loadLicenses() }, [selectedApp?._id])
 
   const loadLicenses = async () => {
+    if (!selectedApp?._id) return
     setLoading(true)
     try {
-      const res = await api.get(`/licenses/application/${selectedAppId}`)
+      const res = await api.get(`/licenses/application/${selectedApp._id}`)
       setLicenses(res.data.licenses)
     } catch { toast.error('Failed to load licenses') }
     finally { setLoading(false) }
@@ -121,9 +114,10 @@ export default function Licenses() {
 
   // ── Actions ────────────────────────────────────────────────────────────────
   const generateLicenses = async () => {
+    if (!selectedApp?._id) return
     try {
       await api.post('/licenses/generate', {
-        applicationId: selectedAppId,
+        applicationId: selectedApp._id,
         count: form.count,
         mask: form.mask || null,
         uppercase: form.uppercase,
@@ -247,7 +241,7 @@ export default function Licenses() {
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Licenses</h1>
-        <button onClick={() => setShowGenerateModal(true)} className="btn btn-primary flex items-center gap-2" disabled={!selectedAppId}>
+        <button onClick={() => setShowGenerateModal(true)} className="btn btn-primary flex items-center gap-2" disabled={!selectedApp?._id}>
           <PlusIcon className="w-4 h-4" /> Generate Licenses
         </button>
       </div>
@@ -256,13 +250,6 @@ export default function Licenses() {
         <div className="text-center py-12 text-gray-400">Create an application first</div>
       ) : (
         <>
-          <div className="mb-6">
-            <select value={selectedAppId} onChange={(e) => setSelectedAppId(e.target.value)} className="input max-w-xs text-sm">
-              {applications.map((app: any) => (
-                <option key={app._id} value={app._id}>{app.name}</option>
-              ))}
-            </select>
-          </div>
 
           {loading ? (
             <div className="flex justify-center py-12">
