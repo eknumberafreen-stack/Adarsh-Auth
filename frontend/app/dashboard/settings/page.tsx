@@ -362,7 +362,7 @@ export default function Settings() {
                     value={newVersion}
                     onChange={(e) => setNewVersion(e.target.value)}
                     className="input text-sm flex-1"
-                    placeholder="1.0.0"
+                    placeholder="1.0"
                   />
                   <button onClick={saveVersion} className="btn btn-primary px-3">
                     <CheckIcon className="w-4 h-4" />
@@ -370,7 +370,7 @@ export default function Settings() {
                 </div>
               ) : (
                 <div className="flex items-center justify-between">
-                  <span className="text-2xl font-bold">{version || '1.0.0'}</span>
+                  <span className="text-2xl font-bold">{version || '1.0'}</span>
                   <button
                     onClick={() => setEditingVersion(true)}
                     className="p-2 hover:bg-dark-hover rounded-lg text-gray-400"
