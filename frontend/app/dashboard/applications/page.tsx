@@ -265,7 +265,7 @@ export default function Applications() {
                       <select
                         value={selectedLang}
                         onChange={(e) => setSelectedLang(e.target.value)}
-                        className="input h-10 text-sm bg-slate-900/50 border-white/5 focus:border-indigo-500/50"
+                        className="input py-2.5 text-sm bg-slate-900/50 border-white/5 focus:border-indigo-500/50"
                       >
                         <option>C++</option>
                         <option>C#</option>
