@@ -171,7 +171,7 @@ export default function Users() {
     setCreating(true)
     try {
       await api.post('/users/create', {
-        applicationId: selectedAppId,
+        applicationId: selectedApp._id,
         username: newUser.username,
         password: newUser.password,
         email: newUser.email || null,

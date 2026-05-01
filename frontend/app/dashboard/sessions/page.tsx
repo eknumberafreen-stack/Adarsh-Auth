@@ -80,7 +80,6 @@ export default function Sessions() {
     })
   }
 
-  const activeApplication = applications.find((app: any) => app._id === selectedAppId)
 
   return (
     <div className="space-y-8">

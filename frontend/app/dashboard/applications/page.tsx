@@ -57,19 +57,23 @@ export default function Applications() {
       const apps = response.data.applications
       setApplications(apps)
 
-      let sessions = 0
-      for (const app of apps) {
-        try {
-          const sessionResponse = await api.get(`/sessions/application/${app._id}`)
-          sessions += sessionResponse.data.sessions.length
-        } catch {}
-      }
+      // Parallel fetch session counts for all apps
+      const sessionCounts = await Promise.all(
+        apps.map(async (app: any) => {
+          try {
+            const res = await api.get(`/sessions/application/${app._id}`)
+            return res.data.sessions.length
+          } catch { return 0 }
+        })
+      )
+      
+      const totalSessions = sessionCounts.reduce((a, b) => a + b, 0)
 
       setStats({
         total: apps.length,
         active: apps.filter((app: any) => app.status === 'active').length,
         paused: apps.filter((app: any) => app.status === 'paused').length,
-        sessions,
+        sessions: totalSessions,
       })
     } catch {
       toast.error('Failed to load stats')

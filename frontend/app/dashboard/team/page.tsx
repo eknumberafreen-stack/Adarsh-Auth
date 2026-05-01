@@ -9,7 +9,6 @@ import { PlusIcon, XMarkIcon, TrashIcon, PencilSquareIcon } from '@heroicons/rea
 export default function TeamPage() {
   const { applications, selectedApp } = useAppStore()
   const { user } = useAuthStore()
-  const [selectedAppId, setSelectedAppId] = useState('')
   const [application, setApplication] = useState<any>(null)
   const [loading, setLoading] = useState(false)
 
@@ -30,18 +29,11 @@ export default function TeamPage() {
   const [originalAppIds, setOriginalAppIds] = useState<string[]>([])
 
   useEffect(() => {
-    if (applications.length > 0 && !selectedAppId) {
-      const defaultId = selectedApp?._id || applications[0]._id
-      setSelectedAppId(defaultId)
-    }
-  }, [applications, selectedApp, selectedAppId])
-
-  useEffect(() => {
-    if (selectedAppId) loadApplication()
-  }, [selectedAppId])
+    if (selectedApp?._id) loadApplication()
+  }, [selectedApp?._id])
 
   const openAddModal = () => {
-    setInviteAppIds([selectedAppId])
+    setInviteAppIds([selectedApp?._id || ''])
     setEmail('')
     setRole('reseller')
     setPermissions(['manage_licenses'])
@@ -49,9 +41,10 @@ export default function TeamPage() {
   }
 
   const loadApplication = async () => {
+    if (!selectedApp?._id) return
     setLoading(true)
     try {
-      const res = await api.get(`/applications/${selectedAppId}`)
+      const res = await api.get(`/applications/${selectedApp._id}`)
       setApplication(res.data.application)
     } catch {
       toast.error('Failed to load application')
@@ -99,17 +92,17 @@ export default function TeamPage() {
       setOriginalAppIds(memberAppIds)
     } catch {
       // Fallback: at minimum they're on the current app
-      setEditAppIds([selectedAppId])
-      setOriginalAppIds([selectedAppId])
+      setEditAppIds([selectedApp?._id || ''])
+      setOriginalAppIds([selectedApp?._id || ''])
     }
   }
 
   const handleEditMember = async () => {
-    if (!editTarget) return
+    if (!selectedApp?._id) return
     setSaving(true)
     try {
       // 1. Update role/permissions on current app
-      await api.patch(`/applications/${selectedAppId}/team/${editTarget.userId}`, {
+      await api.patch(`/applications/${selectedApp._id}/team/${editTarget.userId}`, {
         role: editRole,
         permissions: editPermissions
       })
@@ -150,9 +143,10 @@ export default function TeamPage() {
 
   // ── Remove Member ───────────────────────────────────────────────────────────
   const handleRemoveMember = async (userId: string) => {
+    if (!selectedApp?._id) return
     if (!confirm('Are you sure you want to remove this member?')) return
     try {
-      await api.delete(`/applications/${selectedAppId}/team/${userId}`)
+      await api.delete(`/applications/${selectedApp._id}/team/${userId}`)
       toast.success('Member removed')
       loadApplication()
     } catch (e: any) {
@@ -206,7 +200,7 @@ export default function TeamPage() {
         <button
           onClick={openAddModal}
           className="btn btn-primary flex items-center gap-2"
-          disabled={!selectedAppId || !isOwner}
+          disabled={!selectedApp?._id || !isOwner}
         >
           <PlusIcon className="w-4 h-4" /> Invite Member
         </button>
@@ -216,13 +210,6 @@ export default function TeamPage() {
         <div className="text-center py-12 text-gray-400">Create an application first</div>
       ) : (
         <>
-          <div className="mb-6">
-            <select value={selectedAppId} onChange={(e) => setSelectedAppId(e.target.value)} className="input max-w-xs text-sm">
-              {applications.map((app: any) => (
-                <option key={app._id} value={app._id}>{app.name}</option>
-              ))}
-            </select>
-          </div>
 
           {loading ? (
             <div className="flex justify-center py-12">
