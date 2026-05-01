@@ -76,15 +76,20 @@ const applicationSchema = new mongoose.Schema({
 
 // Generate secure credentials
 applicationSchema.statics.generateCredentials = function() {
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let ownerId = '';
+  for (let i = 0; i < 10; i++) {
+    ownerId += characters.charAt(Math.floor(Math.random() * characters.length));
+  }
   return {
-    ownerId: crypto.randomBytes(16).toString('hex'),
-    appSecret: crypto.randomBytes(64).toString('hex')
+    ownerId: ownerId,
+    appSecret: crypto.randomBytes(32).toString('hex')
   };
 };
 
 // Regenerate app secret
 applicationSchema.methods.regenerateSecret = function() {
-  this.appSecret = crypto.randomBytes(64).toString('hex');
+  this.appSecret = crypto.randomBytes(32).toString('hex');
   return this.appSecret;
 };
 

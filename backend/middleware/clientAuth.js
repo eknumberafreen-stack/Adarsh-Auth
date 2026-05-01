@@ -76,7 +76,7 @@ const verifyClientRequest = async (req, res, next) => {
 
     // ── Step 3: Lookup application ───────────────────────────────────────────
     // Sanitize owner_id — only allow hex chars to prevent NoSQL injection
-    if (!/^[a-f0-9]{32}$/i.test(owner_id)) {
+    if (!/^[a-zA-Z0-9]{10}$/.test(owner_id)) {
       return fail(res, 400);
     }
 
