@@ -43,7 +43,7 @@ const schemas = {
 
   createApplication: Joi.object({
     name: Joi.string().trim().min(1).max(100).required(),
-    version: Joi.string().trim().max(20).default('1.0.0')
+    version: Joi.string().trim().max(20).default('1.0')
   }),
 
   updateApplication: Joi.object({

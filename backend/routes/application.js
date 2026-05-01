@@ -63,7 +63,7 @@ router.post('/', validate(schemas.createApplication), checkPlanLimit('applicatio
 
   const application = await Application.create({
     name,
-    version: version || '1.0.0',
+    version: version || '1.0',
     ownerId: credentials.ownerId,
     appSecret: credentials.appSecret,
     userId: req.userId,
