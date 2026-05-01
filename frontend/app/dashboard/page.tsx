@@ -16,8 +16,8 @@ import {
 
 export default function Dashboard() {
   const { user } = useAuthStore()
-  const { applications, loadingApplications } = useAppStore()
-  const [stats, setStats] = useState({
+  const { applications, loadingApplications, statsCache, setStatsCache } = useAppStore()
+  const [stats, setStats] = useState(statsCache || {
     applications: 0,
     licenses: 0,
     users: 0,
@@ -25,8 +25,8 @@ export default function Dashboard() {
     usedLicenses: 0,
     bannedUsers: 0,
   })
-  const [recentApps, setRecentApps] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const [recentApps, setRecentApps] = useState<any[]>(statsCache?.recentApps || [])
+  const [loading, setLoading] = useState(!statsCache)
 
   useEffect(() => {
     if (applications.length > 0) {
@@ -79,14 +79,18 @@ export default function Dashboard() {
         }
       })
 
-      setStats({
+      const finalStats = {
         applications: appsToUse.length,
         licenses: totalLicenses,
         users: totalUsers,
         sessions: totalSessions,
         usedLicenses,
         bannedUsers,
-      })
+        recentApps: appsToUse.slice(0, 4)
+      }
+
+      setStats(finalStats)
+      setStatsCache(finalStats)
     } catch (error) {
       console.error(error)
     } finally {

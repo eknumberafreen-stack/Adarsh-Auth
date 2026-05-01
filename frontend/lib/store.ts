@@ -94,16 +94,26 @@ interface AppState {
   selectedApp: Application | null
   applications: Application[]
   loadingApplications: boolean
+  statsCache: any | null
+  usersCache: Record<string, any[]>
   setSelectedApp: (app: Application | null) => void
   setApplications: (apps: Application[]) => void
   setLoadingApplications: (loading: boolean) => void
+  setStatsCache: (stats: any) => void
+  setUsersCache: (appId: string, users: any[]) => void
 }
 
 export const useAppStore = create<AppState>((set) => ({
   selectedApp: null,
   applications: [],
   loadingApplications: true,
+  statsCache: null,
+  usersCache: {},
   setSelectedApp: (app) => set({ selectedApp: app }),
   setApplications: (apps) => set({ applications: apps }),
   setLoadingApplications: (loading) => set({ loadingApplications: loading }),
+  setStatsCache: (stats) => set({ statsCache: stats }),
+  setUsersCache: (appId, users) => set((state) => ({ 
+    usersCache: { ...state.usersCache, [appId]: users } 
+  })),
 }))

@@ -67,7 +67,7 @@ function UserMenu({ user, onEdit, onBan, onPermanentBan, onUnban, onPause, onRes
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function Users() {
-  const { applications, selectedApp, loadingApplications } = useAppStore()
+  const { applications, selectedApp, loadingApplications, usersCache, setUsersCache } = useAppStore()
   const [selectedAppId, setSelectedAppId] = useState('')
   const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
@@ -141,13 +141,24 @@ export default function Users() {
     }
   }, [applications, selectedApp])
 
-  useEffect(() => { if (selectedAppId) loadUsers() }, [selectedAppId])
+  useEffect(() => { 
+    if (selectedAppId) {
+      // If we have cached users, show them instantly
+      if (usersCache[selectedAppId]) {
+        setUsers(usersCache[selectedAppId])
+        setLoading(false)
+      } else {
+        setLoading(true)
+      }
+      loadUsers() 
+    } 
+  }, [selectedAppId])
 
   const loadUsers = async () => {
-    setLoading(true)
     try {
       const res = await api.get(`/users/application/${selectedAppId}`)
       setUsers(res.data.users)
+      setUsersCache(selectedAppId, res.data.users)
     } catch { toast.error('Failed to load users') }
     finally { setLoading(false) }
   }
