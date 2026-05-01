@@ -88,6 +88,7 @@ export default function Licenses() {
 
   // Blacklist modal
   const [showBlacklistModal, setShowBlacklistModal] = useState(false)
+  const [blacklistTarget, setBlacklistTarget] = useState<any>(null)
   const [blacklistReason, setBlacklistReason] = useState('')
 
   // Custom Confirm Modal
