@@ -31,7 +31,7 @@ const randomDelay = () =>
 /** Generic failure response — never leaks internal reason to client */
 const fail = async (res, statusCode = 401) => {
   await randomDelay();
-  return res.status(statusCode).json({ success: false, message: 'Request failed' });
+  return res.status(statusCode).json({ success: false, message: 'Application not found' });
 };
 
 /** Write audit log without throwing */
@@ -90,7 +90,14 @@ const verifyClientRequest = async (req, res, next) => {
     // ── Step 4: App status enforcement ───────────────────────────────────────
     if (application.status !== 'active') {
       await audit('suspicious_activity', 'info', ip, application._id, { reason: 'app_paused' });
-      const msg = application.customMessages?.appDisabled || 'Application is disabled';
+      
+      let msg = 'Application is disabled';
+      if (application.status === 'paused') {
+        msg = application.customMessages?.appPaused || 'Application is currently paused.';
+      } else {
+        msg = application.customMessages?.appDisabled || 'This application is disabled.';
+      }
+      
       return res.status(403).json({ success: false, message: msg });
     }
 

@@ -36,7 +36,7 @@ router.use(clientApiRateLimiter);
 const randomDelay = (min = 100, max = 400) =>
   new Promise(r => setTimeout(r, Math.floor(Math.random() * (max - min + 1)) + min));
 
-const fail = async (req, res, code = 401, msgKey = 'invalidCreds', defaultMsg = 'Request failed') => {
+const fail = async (req, res, code = 401, msgKey = 'invalidCreds', defaultMsg = 'Application not found') => {
   await randomDelay();
   let message = defaultMsg;
   if (req.application && req.application.customMessages && req.application.customMessages[msgKey]) {
