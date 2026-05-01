@@ -102,8 +102,8 @@ const verifyClientRequest = async (req, res, next) => {
     }
 
     // ── Step 5: Version check ────────────────────────────────────────────────
-    const clientVersion = req.body.version || bodyData.version;
-    if (clientVersion && clientVersion !== application.version) {
+    const clientVersion = String(req.body.version || bodyData.version || '');
+    if (clientVersion && clientVersion !== String(application.version)) {
       const msg = application.customMessages?.versionMismatch || 'Application version mismatch.';
       return res.status(403).json({ 
         success: false, 
