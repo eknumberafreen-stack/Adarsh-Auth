@@ -492,7 +492,7 @@ function renderSystematicSnippet(lang: string, app: any) {
         <div><span className="text-blue-400">std::string</span> version = <span className="text-orange-400">skCrypt("{version}").decrypt()</span>;</div>
         <div><span className="text-blue-400">std::string</span> url = <span className="text-orange-400">skCrypt("{url}").decrypt()</span>;</div>
         <div className="pt-2 text-slate-500">// Initialize API</div>
-        <div><span className="text-blue-400">AdarshAuth::api</span> <span className="text-indigo-300">AuthApp</span>(name, ownerid, version, url, secret);</div>
+        <div><span className="text-blue-400">AdarshAuth::api</span> <span className="text-indigo-300">KeyAuthApp</span>(name, ownerid, version, url, secret);</div>
       </div>
     );
   }
@@ -529,7 +529,7 @@ std::string secret = skCrypt("${secret}").decrypt();
 std::string version = skCrypt("${version}").decrypt();
 std::string url = skCrypt("${url}").decrypt();
 
-AdarshAuth::api AuthApp(name, ownerid, version, url, secret);`
+AdarshAuth::api KeyAuthApp(name, ownerid, version, url, secret);`
     case 'C#':
       return `public static api AuthApp = new api(
     name: "${name}",
