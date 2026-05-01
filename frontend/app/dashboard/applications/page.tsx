@@ -280,19 +280,12 @@ export default function Applications() {
                       </pre>
                     </div>
 
-                    <div className="flex flex-wrap gap-2 pt-2">
                       <button
                         onClick={() => copy(getSnippet(selectedLang, credentials))}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-indigo-900/20"
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-indigo-900/20"
                       >
                         <DocumentDuplicateIcon className="h-4 w-4" />
                         Copy Code
-                      </button>
-                      <button className="flex-1 px-4 py-2 bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-400 border border-emerald-500/20 rounded-xl text-xs font-bold transition-all">
-                        View Example
-                      </button>
-                      <button className="flex-1 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition-all">
-                        View Tutorial
                       </button>
                     </div>
                   </div>
