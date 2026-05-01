@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { useAuthStore } from '@/lib/store'
+import { useAuthStore, useAppStore } from '@/lib/store'
 import api, { clearStoredAuth, refreshAccessToken } from '@/lib/api'
 import toast from 'react-hot-toast'
 import ParticleField from '@/components/ParticleField'
@@ -53,6 +53,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [planName, setPlanName] = useState<string>('free')
   const [planDisplay, setPlanDisplay] = useState<string>('Free')
   const [checkingSession, setCheckingSession] = useState(true)
+
+  // App Store for global data
+  const { applications, setApplications, selectedApp, setSelectedApp, setLoadingApplications } = useAppStore()
 
   const isOwner = user?.email === (process.env.NEXT_PUBLIC_OWNER_EMAIL || 'donumberafreen@gmail.com')
 
@@ -134,6 +137,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       })
       .catch(() => {})
   }, [accessToken, hasHydrated])
+
+  // Pre-load applications globally
+  useEffect(() => {
+    if (!hasHydrated || !accessToken) return
+    
+    // Only fetch if we haven't loaded applications yet
+    if (applications.length === 0) {
+      api.get('/applications')
+        .then((res) => {
+          const apps = res.data.applications || []
+          setApplications(apps)
+          // Automatically select the first app if none is selected
+          if (apps.length > 0 && !selectedApp) {
+            setSelectedApp(apps[0])
+          }
+        })
+        .catch(() => {})
+        .finally(() => {
+          setLoadingApplications(false)
+        })
+    } else {
+      setLoadingApplications(false)
+    }
+  }, [accessToken, hasHydrated, applications.length, selectedApp, setApplications, setSelectedApp, setLoadingApplications])
 
   useEffect(() => {
     setMobileOpen(false)

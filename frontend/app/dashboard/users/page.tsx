@@ -67,7 +67,7 @@ function UserMenu({ user, onEdit, onBan, onPermanentBan, onUnban, onPause, onRes
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function Users() {
-  const { applications, selectedApp } = useAppStore()
+  const { applications, selectedApp, loadingApplications } = useAppStore()
   const [selectedAppId, setSelectedAppId] = useState('')
   const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
@@ -329,7 +329,11 @@ export default function Users() {
         )}
       </div>
 
-      {applications.length === 0 ? (
+      {loadingApplications ? (
+        <div className="flex justify-center py-24">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary-500 border-t-transparent" />
+        </div>
+      ) : applications.length === 0 ? (
         <div className="text-center py-12 text-gray-400">Create an application first</div>
       ) : (
         <>

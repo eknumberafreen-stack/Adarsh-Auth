@@ -83,6 +83,12 @@ interface Application {
   name: string
   ownerId: string
   appSecret: string
+
+interface Application {
+  _id: string
+  name: string
+  ownerId: string
+  appSecret: string
   version: string
   status: string
   userCount: number
@@ -92,13 +98,17 @@ interface Application {
 interface AppState {
   selectedApp: Application | null
   applications: Application[]
+  loadingApplications: boolean
   setSelectedApp: (app: Application | null) => void
   setApplications: (apps: Application[]) => void
+  setLoadingApplications: (loading: boolean) => void
 }
 
 export const useAppStore = create<AppState>((set) => ({
   selectedApp: null,
   applications: [],
+  loadingApplications: true,
   setSelectedApp: (app) => set({ selectedApp: app }),
   setApplications: (apps) => set({ applications: apps }),
+  setLoadingApplications: (loading) => set({ loadingApplications: loading }),
 }))

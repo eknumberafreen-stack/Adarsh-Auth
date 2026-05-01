@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import api from '@/lib/api'
-import { useAuthStore } from '@/lib/store'
+import { useAuthStore, useAppStore } from '@/lib/store'
 import { getDisplayName } from '@/lib/username'
 import {
   ArrowTrendingUpIcon,
@@ -15,7 +15,7 @@ import {
 } from '@heroicons/react/24/outline'
 
 export default function Dashboard() {
-  const { user } = useAuthStore()
+  const { applications, loadingApplications } = useAppStore()
   const [stats, setStats] = useState({
     applications: 0,
     licenses: 0,
@@ -28,14 +28,23 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    loadStats()
-  }, [])
+    if (applications.length > 0) {
+      loadStats()
+    } else {
+      // If store is empty (first load), wait for layout to fill it or do a one-time fetch
+      api.get('/applications').then(res => {
+        setRecentApps(res.data.applications.slice(0, 4))
+        loadStats(res.data.applications)
+      })
+    }
+  }, [applications])
 
-  const loadStats = async () => {
-    try {
-      const appsRes = await api.get('/applications')
-      const apps = appsRes.data.applications
-      setRecentApps(apps.slice(0, 4))
+  const loadStats = async (appsToUse = applications) => {
+    if (appsToUse.length === 0) {
+      setLoading(false)
+      return
+    }
+    setRecentApps(appsToUse.slice(0, 4))
 
       let totalLicenses = 0
       let usedLicenses = 0
@@ -43,23 +52,32 @@ export default function Dashboard() {
       let bannedUsers = 0
       let totalSessions = 0
 
-      for (const app of apps) {
-        try {
-          const [lRes, uRes, sRes] = await Promise.all([
-            api.get(`/licenses/application/${app._id}`),
-            api.get(`/users/application/${app._id}`),
-            api.get(`/sessions/application/${app._id}`),
-          ])
+      // Fetch all stats in parallel for all apps
+      const results = await Promise.all(appsToUse.map(app => 
+        Promise.all([
+          api.get(`/licenses/application/${app._id}`),
+          api.get(`/users/application/${app._id}`),
+          api.get(`/sessions/application/${app._id}`)
+        ]).catch(() => [null, null, null])
+      ))
+
+      results.forEach(resSet => {
+        const [lRes, uRes, sRes] = resSet as any
+        if (lRes) {
           totalLicenses += lRes.data.licenses.length
           usedLicenses += lRes.data.licenses.filter((license: any) => license.used).length
+        }
+        if (uRes) {
           totalUsers += uRes.data.users.length
           bannedUsers += uRes.data.users.filter((appUser: any) => appUser.banned).length
+        }
+        if (sRes) {
           totalSessions += sRes.data.sessions.length
-        } catch {}
-      }
+        }
+      })
 
       setStats({
-        applications: apps.length,
+        applications: appsToUse.length,
         licenses: totalLicenses,
         users: totalUsers,
         sessions: totalSessions,
@@ -133,7 +151,7 @@ export default function Dashboard() {
         </div>
       </section>
 
-      {loading ? (
+      {loading || loadingApplications ? (
         <div className="flex justify-center py-24">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-400 border-t-transparent" />
         </div>

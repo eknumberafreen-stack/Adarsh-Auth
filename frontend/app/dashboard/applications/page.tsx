@@ -22,8 +22,8 @@ import {
 } from '@heroicons/react/24/outline'
 
 export default function Applications() {
-  const { applications, setApplications, selectedApp, setSelectedApp } = useAppStore()
-  const [loading, setLoading] = useState(true)
+  const { applications, setApplications, selectedApp, setSelectedApp, loadingApplications } = useAppStore()
+  const [loading, setLoading] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showRenameModal, setShowRenameModal] = useState(false)
   const [renameApp, setRenameApp] = useState<any>(null)
@@ -72,11 +72,24 @@ export default function Applications() {
         sessions,
       })
     } catch {
-      toast.error('Failed to load applications')
+      toast.error('Failed to load stats')
     } finally {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    if (applications.length > 0) {
+      // Calculate stats based on existing applications
+      let sessions = 0
+      setStats({
+        total: applications.length,
+        active: applications.filter((app: any) => app.status === 'active').length,
+        paused: applications.filter((app: any) => app.status === 'paused').length,
+        sessions,
+      })
+    }
+  }, [applications])
 
   const selectApp = async (app: any) => {
     try {
@@ -355,8 +368,8 @@ export default function Applications() {
           </div>
 
           <div className="mt-6 space-y-4">
-            {loading ? (
-              <div className="flex justify-center py-10">
+            {loading || loadingApplications ? (
+              <div className="flex justify-center py-24">
                 <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-400 border-t-transparent" />
               </div>
             ) : filtered.length === 0 ? (
