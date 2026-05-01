@@ -29,7 +29,7 @@ export default function Applications() {
   const [renameApp, setRenameApp] = useState<any>(null)
   const [newName, setNewName] = useState('')
   const [newAppName, setNewAppName] = useState('')
-  const [newAppVersion, setNewAppVersion] = useState('1.0.0')
+  const [newAppVersion, setNewAppVersion] = useState('1.0')
   const [search, setSearch] = useState('')
   const [stats, setStats] = useState({ total: 0, active: 0, paused: 0, sessions: 0 })
   const [credentials, setCredentials] = useState<any>(null)
@@ -112,7 +112,7 @@ export default function Applications() {
       toast.success('Application created!')
       setShowCreateModal(false)
       setNewAppName('')
-      setNewAppVersion('1.0.0')
+      setNewAppVersion('1.0')
       loadApplications()
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to create')
@@ -472,7 +472,7 @@ export default function Applications() {
               </div>
               <div>
                 <label className="mb-2 block text-sm font-medium text-slate-300">Version</label>
-                <input type="text" value={newAppVersion} onChange={(e) => setNewAppVersion(e.target.value)} className="input" placeholder="1.0.0" />
+                <input type="text" value={newAppVersion} onChange={(e) => setNewAppVersion(e.target.value)} className="input" placeholder="1.0" />
               </div>
               <div className="flex gap-3">
                 <button onClick={() => setShowCreateModal(false)} className="btn btn-secondary flex-1">
