@@ -101,7 +101,18 @@ const verifyClientRequest = async (req, res, next) => {
       return res.status(403).json({ success: false, message: msg });
     }
 
-    // ── Step 5: Nonce check (anti-replay layer 2) ────────────────────────────
+    // ── Step 5: Version check ────────────────────────────────────────────────
+    const clientVersion = req.body.version || bodyData.version;
+    if (clientVersion && clientVersion !== application.version) {
+      const msg = application.customMessages?.versionMismatch || 'Application version mismatch.';
+      return res.status(403).json({ 
+        success: false, 
+        message: msg,
+        downloadUrl: application.downloadUrl || ''
+      });
+    }
+
+    // ── Step 6: Nonce check (anti-replay layer 2) ────────────────────────────
     const redis    = getRedisClient();
     const nonceKey = `nonce:${owner_id}:${nonce}`;
     const exists   = await redis.exists(nonceKey);

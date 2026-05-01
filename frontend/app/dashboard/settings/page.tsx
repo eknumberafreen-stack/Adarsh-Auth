@@ -30,6 +30,7 @@ export default function Settings() {
   const [hwidLock, setHwidLock] = useState(true)
   const [version, setVersion] = useState('')
   const [newVersion, setNewVersion] = useState('')
+  const [downloadUrl, setDownloadUrl] = useState('')
   const [editingVersion, setEditingVersion] = useState(false)
   const [maintenanceMode, setMaintenanceMode] = useState(false)
 
@@ -103,6 +104,7 @@ export default function Settings() {
       setAppStatus(app.status === 'active')
       setVersion(app.version)
       setNewVersion(app.version)
+      setDownloadUrl(app.downloadUrl || '')
       setDiscordWebhook(app.discordWebhook || '')
       if (app.customMessages) {
         setCustomMessages(app.customMessages)
@@ -127,12 +129,12 @@ export default function Settings() {
   const saveVersion = async () => {
     if (!selectedApp?._id) return
     try {
-      await api.patch(`/applications/${selectedApp._id}`, { version: newVersion })
+      await api.patch(`/applications/${selectedApp._id}`, { version: newVersion, downloadUrl })
       setVersion(newVersion)
       setEditingVersion(false)
-      toast.success('Version updated!')
+      toast.success('Settings updated!')
     } catch {
-      toast.error('Failed to update version')
+      toast.error('Failed to update settings')
     }
   }
 
@@ -381,9 +383,14 @@ export default function Settings() {
 
             {/* Auto-Update Link */}
             <div className="p-4 bg-dark-bg rounded-xl border border-dark-border">
-              <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Auto-Update Download Link</p>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs text-gray-500 uppercase tracking-wider">Auto-Update Download Link</p>
+                <button onClick={saveVersion} className="text-[10px] text-primary-400 hover:underline">Save Link</button>
+              </div>
               <input
                 type="text"
+                value={downloadUrl}
+                onChange={(e) => setDownloadUrl(e.target.value)}
                 className="input text-sm"
                 placeholder="https://example.com/update.zip"
               />
@@ -664,6 +671,7 @@ export default function Settings() {
                 { id: 'noSubscription', label: 'No Active Subscription', desc: 'Shown when user has no valid plan' },
                 { id: 'subPaused', label: 'Subscription Paused', desc: 'Shown when user plan is temporarily disabled' },
                 { id: 'expiredLicense', label: 'Expired License', desc: 'Shown when user subscription has ended' },
+                { id: 'versionMismatch', label: 'Version Mismatch', desc: 'Shown when the loader version is outdated' },
               ].map((field) => (
                 <div key={field.id} className="p-4 bg-dark-bg rounded-xl border border-dark-border space-y-2">
                   <label className="block text-sm font-medium text-gray-300">{field.label}</label>

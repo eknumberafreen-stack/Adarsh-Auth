@@ -35,6 +35,11 @@ const applicationSchema = new mongoose.Schema({
     enum: ['active', 'paused'],
     default: 'active'
   },
+  downloadUrl: {
+    type: String,
+    default: '',
+    trim: true
+  },
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -64,7 +69,8 @@ const applicationSchema = new mongoose.Schema({
     invalidPassword: { type: String, default: 'Password does not match.' },
     noSubscription: { type: String, default: 'No active subscription found.' },
     subPaused: { type: String, default: 'Your subscription is paused.' },
-    expiredLicense: { type: String, default: 'Your license has expired.' }
+    expiredLicense: { type: String, default: 'Your license has expired.' },
+    versionMismatch: { type: String, default: 'Application version mismatch. Update your loader!' }
   },
   createdAt: {
     type: Date,
