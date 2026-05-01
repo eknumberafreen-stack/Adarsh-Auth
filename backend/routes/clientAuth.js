@@ -300,7 +300,7 @@ router.post('/login',
       // Discord webhook — failed login
       sendDiscordWebhook(req.application.discordWebhook,
         loginFailedEmbed(username, ip, req.application.name, 'Wrong password'));
-      return fail(req, res, 401, 'invalidCreds', 'Invalid credentials');
+      return fail(req, res, 401, 'invalidPassword', 'Password does not match.');
     }
 
     // HWID check (strict)

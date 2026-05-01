@@ -58,6 +58,7 @@ export default function Settings() {
     hwidMismatch: '',
     userBanned: '',
     invalidCreds: '',
+    invalidPassword: '',
     noSubscription: '',
     subPaused: '',
     expiredLicense: ''
@@ -675,7 +676,8 @@ export default function Settings() {
                 { id: 'usernameTaken', label: 'Username Taken', desc: 'Shown when a username is already registered' },
                 { id: 'hwidMismatch', label: 'HWID Mismatch', desc: 'Shown when a user logs in from a different device' },
                 { id: 'userBanned', label: 'User is Blacklisted', desc: 'Shown when a banned user attempts login' },
-                { id: 'invalidCreds', label: 'Invalid Credentials', desc: 'Shown for wrong username or password' },
+                { id: 'invalidCreds', label: 'Invalid Credentials', desc: 'Shown for generic login failures' },
+                { id: 'invalidPassword', label: 'Password Mismatch', desc: 'Shown when the password provided is incorrect' },
                 { id: 'noSubscription', label: 'No Active Subscription', desc: 'Shown when user has no valid plan' },
                 { id: 'subPaused', label: 'Subscription Paused', desc: 'Shown when user plan is temporarily disabled' },
                 { id: 'expiredLicense', label: 'Expired License', desc: 'Shown when user subscription has ended' },

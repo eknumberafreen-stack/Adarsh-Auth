@@ -61,6 +61,7 @@ const applicationSchema = new mongoose.Schema({
     hwidMismatch: { type: String, default: 'HWID doesn\'t match. Ask for a reset!' },
     userBanned: { type: String, default: 'You have been blacklisted!' },
     invalidCreds: { type: String, default: 'Invalid username or password.' },
+    invalidPassword: { type: String, default: 'Password does not match.' },
     noSubscription: { type: String, default: 'No active subscription found.' },
     subPaused: { type: String, default: 'Your subscription is paused.' },
     expiredLicense: { type: String, default: 'Your license has expired.' }
