@@ -33,7 +33,7 @@ const appUserSchema = new mongoose.Schema({
 
   // Pause system (temporary block without ban)
   paused: { type: Boolean, default: false },
-  banMessage: { type: String, default: null }, // Custom message shown to banned user
+  pausedExpiry: { type: Date, default: null }, // Backup of expiryDate when paused
 
   // Anomaly detection counters
   failedLoginCount: { type: Number, default: 0 },

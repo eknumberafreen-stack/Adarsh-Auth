@@ -322,6 +322,7 @@ export default function Users() {
                     <th className="text-left px-4 py-3 text-gray-400 font-medium">Last Login</th>
                     <th className="text-left px-4 py-3 text-gray-400 font-medium">Last IP</th>
                     <th className="text-left px-4 py-3 text-gray-400 font-medium">Expiry</th>
+                    <th className="text-left px-4 py-3 text-gray-400 font-medium">HWID Affected</th>
                     <th className="px-4 py-3" />
                   </tr>
                 </thead>
@@ -332,6 +333,8 @@ export default function Users() {
                       <td className="px-4 py-3">
                         {user.banned ? (
                           <span className="px-2 py-1 bg-red-500/20 text-red-400 text-xs rounded-full font-medium">Banned</span>
+                        ) : user.paused ? (
+                          <span className="px-2 py-1 bg-purple-500/20 text-purple-400 text-xs rounded-full font-medium">Paused</span>
                         ) : user.expiryDate && new Date(user.expiryDate) < new Date() ? (
                           <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded-full font-medium">Expired</span>
                         ) : (
@@ -346,7 +349,16 @@ export default function Users() {
                       </td>
                       <td className="px-4 py-3 text-gray-400 text-xs">{user.lastIp || 'N/A'}</td>
                       <td className="px-4 py-3 text-gray-400 text-xs">
-                        {user.expiryDate ? new Date(user.expiryDate).toLocaleDateString() : 'Lifetime'}
+                        {user.paused 
+                          ? (user.pausedExpiry ? new Date(user.pausedExpiry).toLocaleDateString() : 'Lifetime') 
+                          : (user.expiryDate ? new Date(user.expiryDate).toLocaleDateString() : 'Lifetime')}
+                      </td>
+                      <td className="px-4 py-3 text-gray-400 text-xs">
+                        {user.hwidAffected ? (
+                          <span className="text-indigo-400 font-medium">Yes</span>
+                        ) : (
+                          <span className="text-gray-500">No</span>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <UserMenu

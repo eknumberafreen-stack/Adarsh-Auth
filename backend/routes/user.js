@@ -214,8 +214,8 @@ router.patch('/:id/pause', asyncHandler(async (req, res) => {
   if (!hasAccess) return res.status(403).json({ error: 'Access denied: You need manage_users permission.' });
 
   user.paused = true;
-  user._pausedExpiry = user.expiryDate; // save original
-  user.expiryDate = new Date(Date.now() - 1000); // expired = blocked
+  user.pausedExpiry = user.expiryDate; // Store the actual date
+  user.expiryDate = new Date(Date.now() - 1000); // Set to expired for blocking
   await user.save();
   await Session.deleteMany({ userId: user._id });
   res.json({ message: 'User paused' });
@@ -230,7 +230,8 @@ router.patch('/:id/unpause', asyncHandler(async (req, res) => {
   if (!hasAccess) return res.status(403).json({ error: 'Access denied: You need manage_users permission.' });
 
   user.paused = false;
-  user.expiryDate = null; // restore to no expiry (lifetime)
+  user.expiryDate = user.pausedExpiry; // Restore from backup
+  user.pausedExpiry = null; // Clear backup
   await user.save();
   res.json({ message: 'User unpaused' });
 }));
