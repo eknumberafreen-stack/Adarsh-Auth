@@ -88,8 +88,17 @@ export default function Licenses() {
 
   // Blacklist modal
   const [showBlacklistModal, setShowBlacklistModal] = useState(false)
-  const [blacklistTarget, setBlacklistTarget] = useState<any>(null)
   const [blacklistReason, setBlacklistReason] = useState('')
+
+  // Custom Confirm Modal
+  const [confirmModal, setConfirmModal] = useState({
+    show: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    type: 'danger' as 'danger' | 'warning' | 'info',
+    confirmText: 'Confirm'
+  })
 
   useEffect(() => {
     if (applications.length > 0 && !selectedAppId) {
@@ -164,12 +173,31 @@ export default function Licenses() {
   }
 
   const revokeLicense = async (id: string, unrevoke = false) => {
-    if (!unrevoke && !confirm('Revoke this license?')) return
-    try {
-      await api.post(`/licenses/${id}/${unrevoke ? 'unrevoke' : 'revoke'}`)
-      toast.success(unrevoke ? 'License unrevoked' : 'License revoked')
-      loadLicenses()
-    } catch { toast.error('Failed to update') }
+    if (unrevoke) {
+      // Direct action for unrevoke
+      try {
+        await api.post(`/licenses/${id}/unrevoke`)
+        toast.success('License unrevoked')
+        loadLicenses()
+      } catch { toast.error('Failed to update') }
+      return
+    }
+
+    setConfirmModal({
+      show: true,
+      title: 'Revoke License?',
+      message: 'Are you sure you want to revoke this license? The user will lose access immediately.',
+      type: 'warning',
+      confirmText: 'Revoke Now',
+      onConfirm: async () => {
+        try {
+          await api.post(`/licenses/${id}/revoke`)
+          toast.success('License revoked')
+          loadLicenses()
+        } catch { toast.error('Failed to update') }
+        setConfirmModal(prev => ({ ...prev, show: false }))
+      }
+    })
   }
 
   const openBlacklistModal = (license: any) => {
@@ -188,12 +216,21 @@ export default function Licenses() {
   }
 
   const deleteLicense = async (id: string) => {
-    if (!confirm('Delete this license?')) return
-    try {
-      await api.delete(`/licenses/${id}`)
-      toast.success('License deleted')
-      loadLicenses()
-    } catch { toast.error('Failed to delete') }
+    setConfirmModal({
+      show: true,
+      title: 'Delete License?',
+      message: 'Are you sure you want to permanently delete this license key? This action cannot be undone.',
+      type: 'danger',
+      confirmText: 'Delete Key',
+      onConfirm: async () => {
+        try {
+          await api.delete(`/licenses/${id}`)
+          toast.success('License deleted')
+          loadLicenses()
+        } catch { toast.error('Failed to delete') }
+        setConfirmModal(prev => ({ ...prev, show: false }))
+      }
+    })
   }
 
   const getStatusBadge = (license: any) => {
@@ -443,6 +480,46 @@ export default function Licenses() {
                     <span className="text-xs font-bold">—</span>
                   </div>
                   Permanently Ban
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ── Custom Confirmation Modal ────────────────────────────────────── */}
+      {confirmModal.show && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-200">
+          <div className="w-full max-w-sm bg-[#13131a] border border-white/5 rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex flex-col items-center text-center">
+              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 ${
+                confirmModal.type === 'danger' ? 'bg-red-500/20 text-red-400' :
+                confirmModal.type === 'warning' ? 'bg-yellow-500/20 text-yellow-400' :
+                'bg-blue-500/20 text-blue-400'
+              }`}>
+                {confirmModal.type === 'danger' ? '🗑️' : confirmModal.type === 'warning' ? '⚠️' : '🔄'}
+              </div>
+              
+              <h3 className="text-xl font-bold text-white mb-2">{confirmModal.title}</h3>
+              <p className="text-sm text-gray-400 mb-8 leading-relaxed">
+                {confirmModal.message}
+              </p>
+
+              <div className="flex gap-3 w-full">
+                <button
+                  onClick={() => setConfirmModal(prev => ({ ...prev, show: false }))}
+                  className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-gray-300 rounded-2xl text-sm font-bold transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmModal.onConfirm}
+                  className={`flex-1 px-4 py-3 rounded-2xl text-sm font-bold text-white transition-all shadow-lg ${
+                    confirmModal.type === 'danger' ? 'bg-red-600 hover:bg-red-500 shadow-red-900/20' :
+                    confirmModal.type === 'warning' ? 'bg-yellow-600 hover:bg-yellow-500 shadow-yellow-900/20' :
+                    'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-900/20'
+                  }`}
+                >
+                  {confirmModal.confirmText}
                 </button>
               </div>
             </div>

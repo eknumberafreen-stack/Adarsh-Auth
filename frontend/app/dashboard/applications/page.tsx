@@ -37,6 +37,16 @@ export default function Applications() {
   const [showSnippet, setShowSnippet] = useState(false)
   const [selectedLang, setSelectedLang] = useState('C++')
 
+  // Custom Confirm Modal
+  const [confirmModal, setConfirmModal] = useState({
+    show: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    type: 'danger' as 'danger' | 'warning' | 'info',
+    confirmText: 'Confirm'
+  })
+
   useEffect(() => {
     loadApplications()
   }, [])
@@ -116,30 +126,48 @@ export default function Applications() {
   }
 
   const deleteApplication = async (id: string) => {
-    if (!confirm('Delete this application and ALL its data?')) return
-    try {
-      await api.delete(`/applications/${id}`)
-      toast.success('Deleted')
-      if (selectedApp?._id === id) {
-        setSelectedApp(null)
-        setCredentials(null)
+    setConfirmModal({
+      show: true,
+      title: 'Delete Application?',
+      message: 'Are you sure you want to delete this application and ALL its associated data? This action is permanent and cannot be undone.',
+      type: 'danger',
+      confirmText: 'Delete Permanently',
+      onConfirm: async () => {
+        try {
+          await api.delete(`/applications/${id}`)
+          toast.success('Deleted')
+          if (selectedApp?._id === id) {
+            setSelectedApp(null)
+            setCredentials(null)
+          }
+          loadApplications()
+        } catch {
+          toast.error('Failed to delete')
+        }
+        setConfirmModal(prev => ({ ...prev, show: false }))
       }
-      loadApplications()
-    } catch {
-      toast.error('Failed to delete')
-    }
+    })
   }
 
   const regenerateSecret = async () => {
     if (!credentials) return
-    if (!confirm('This will invalidate all active sessions. Continue?')) return
-    try {
-      const response = await api.post(`/applications/${credentials._id}/regenerate-secret`)
-      setCredentials({ ...credentials, appSecret: response.data.appSecret })
-      toast.success('Secret regenerated!')
-    } catch {
-      toast.error('Failed to regenerate')
-    }
+    setConfirmModal({
+      show: true,
+      title: 'Regenerate Secret?',
+      message: 'This will invalidate all current user sessions and old secrets. Your clients will need to update to the new secret to connect. Continue?',
+      type: 'warning',
+      confirmText: 'Regenerate Now',
+      onConfirm: async () => {
+        try {
+          const response = await api.post(`/applications/${credentials._id}/regenerate-secret`)
+          setCredentials({ ...credentials, appSecret: response.data.appSecret })
+          toast.success('Secret regenerated!')
+        } catch {
+          toast.error('Failed to regenerate')
+        }
+        setConfirmModal(prev => ({ ...prev, show: false }))
+      }
+    })
   }
 
   const copy = (text: string, label = 'Copied!') => {
@@ -466,6 +494,47 @@ export default function Applications() {
                 </button>
                 <button onClick={renameApplication} className="btn btn-primary flex-1">
                   Rename
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ── Custom Confirmation Modal ────────────────────────────────────── */}
+      {confirmModal.show && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-200">
+          <div className="w-full max-w-sm bg-[#13131a] border border-white/5 rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex flex-col items-center text-center">
+              {/* Icon Based on Type */}
+              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 ${
+                confirmModal.type === 'danger' ? 'bg-red-500/20 text-red-400' :
+                confirmModal.type === 'warning' ? 'bg-yellow-500/20 text-yellow-400' :
+                'bg-blue-500/20 text-blue-400'
+              }`}>
+                {confirmModal.type === 'danger' ? '🗑️' : confirmModal.type === 'warning' ? '⚠️' : '🔄'}
+              </div>
+              
+              <h3 className="text-xl font-bold text-white mb-2">{confirmModal.title}</h3>
+              <p className="text-sm text-gray-400 mb-8 leading-relaxed">
+                {confirmModal.message}
+              </p>
+
+              <div className="flex gap-3 w-full">
+                <button
+                  onClick={() => setConfirmModal(prev => ({ ...prev, show: false }))}
+                  className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-gray-300 rounded-2xl text-sm font-bold transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmModal.onConfirm}
+                  className={`flex-1 px-4 py-3 rounded-2xl text-sm font-bold text-white transition-all shadow-lg ${
+                    confirmModal.type === 'danger' ? 'bg-red-600 hover:bg-red-500 shadow-red-900/20' :
+                    confirmModal.type === 'warning' ? 'bg-yellow-600 hover:bg-yellow-500 shadow-yellow-900/20' :
+                    'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-900/20'
+                  }`}
+                >
+                  {confirmModal.confirmText}
                 </button>
               </div>
             </div>

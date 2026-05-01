@@ -123,6 +123,16 @@ export default function Users() {
   const [editTarget, setEditTarget] = useState<any>(null)
   const [editData, setEditData] = useState({ username: '', email: '', subscription: 'default', expiryDate: '' })
 
+  // Custom Confirm Modal
+  const [confirmModal, setConfirmModal] = useState({
+    show: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    type: 'danger' as 'danger' | 'warning' | 'info',
+    confirmText: 'Confirm'
+  })
+
   useEffect(() => {
     if (applications.length > 0 && !selectedAppId) {
       // Use the globally selected app if available, otherwise fall back to first
@@ -185,17 +195,26 @@ export default function Users() {
 
   // Soft ban — just sets banned=true, HWID NOT blacklisted → PC reset = access again
   const softBan = async (user: any) => {
-    if (!confirm(`Ban "${user.username}"? They can regain access by resetting their PC/HWID.`)) return
-    try {
-      await api.post(`/users/${user._id}/ban`, {
-        reason: 'Soft ban',
-        banMessage: null,
-        banIp: false,
-        softBan: true   // backend flag to skip license blacklisting
-      })
-      toast.success('User banned (soft)')
-      loadUsers()
-    } catch (e: any) { toast.error(e.response?.data?.error || 'Failed to ban user') }
+    setConfirmModal({
+      show: true,
+      title: 'Ban User?',
+      message: `Are you sure you want to ban "${user.username}"? They can regain access by resetting their PC/HWID.`,
+      type: 'warning',
+      confirmText: 'Ban User',
+      onConfirm: async () => {
+        try {
+          await api.post(`/users/${user._id}/ban`, {
+            reason: 'Soft ban',
+            banMessage: null,
+            banIp: false,
+            softBan: true
+          })
+          toast.success('User banned (soft)')
+          loadUsers()
+        } catch (e: any) { toast.error(e.response?.data?.error || 'Failed to ban user') }
+        setConfirmModal(prev => ({ ...prev, show: false }))
+      }
+    })
   }
 
   // Pause user — sets expiryDate to now (blocks login without banning)
@@ -267,15 +286,33 @@ export default function Users() {
   }
 
   const resetHwid = async (id: string) => {
-    if (!confirm('Reset HWID for this user?')) return
-    try { await api.post(`/users/${id}/reset-hwid`); toast.success('HWID reset'); loadUsers() }
-    catch (e: any) { toast.error(e.response?.data?.error || 'Failed to reset HWID') }
+    setConfirmModal({
+      show: true,
+      title: 'Reset HWID?',
+      message: 'Are you sure you want to reset the Hardware ID for this user?',
+      type: 'info',
+      confirmText: 'Reset Now',
+      onConfirm: async () => {
+        try { await api.post(`/users/${id}/reset-hwid`); toast.success('HWID reset'); loadUsers() }
+        catch (e: any) { toast.error(e.response?.data?.error || 'Failed to reset HWID') }
+        setConfirmModal(prev => ({ ...prev, show: false }))
+      }
+    })
   }
 
   const deleteUser = async (id: string) => {
-    if (!confirm('Delete this user permanently?')) return
-    try { await api.delete(`/users/${id}`); toast.success('User deleted'); loadUsers() }
-    catch (e: any) { toast.error(e.response?.data?.error || 'Failed to delete') }
+    setConfirmModal({
+      show: true,
+      title: 'Delete User?',
+      message: 'Are you sure you want to permanently delete this user? This action cannot be undone.',
+      type: 'danger',
+      confirmText: 'Delete Permanently',
+      onConfirm: async () => {
+        try { await api.delete(`/users/${id}`); toast.success('User deleted'); loadUsers() }
+        catch (e: any) { toast.error(e.response?.data?.error || 'Failed to delete') }
+        setConfirmModal(prev => ({ ...prev, show: false }))
+      }
+    })
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -572,6 +609,47 @@ export default function Users() {
                       Permanently Ban
                     </>
                   )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ── Custom Confirmation Modal ────────────────────────────────────── */}
+      {confirmModal.show && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-200">
+          <div className="w-full max-w-sm bg-[#13131a] border border-white/5 rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex flex-col items-center text-center">
+              {/* Icon Based on Type */}
+              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 ${
+                confirmModal.type === 'danger' ? 'bg-red-500/20 text-red-400' :
+                confirmModal.type === 'warning' ? 'bg-yellow-500/20 text-yellow-400' :
+                'bg-blue-500/20 text-blue-400'
+              }`}>
+                {confirmModal.type === 'danger' ? '🗑️' : confirmModal.type === 'warning' ? '⚠️' : '🔄'}
+              </div>
+              
+              <h3 className="text-xl font-bold text-white mb-2">{confirmModal.title}</h3>
+              <p className="text-sm text-gray-400 mb-8 leading-relaxed">
+                {confirmModal.message}
+              </p>
+
+              <div className="flex gap-3 w-full">
+                <button
+                  onClick={() => setConfirmModal(prev => ({ ...prev, show: false }))}
+                  className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-gray-300 rounded-2xl text-sm font-bold transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmModal.onConfirm}
+                  className={`flex-1 px-4 py-3 rounded-2xl text-sm font-bold text-white transition-all shadow-lg ${
+                    confirmModal.type === 'danger' ? 'bg-red-600 hover:bg-red-500 shadow-red-900/20' :
+                    confirmModal.type === 'warning' ? 'bg-yellow-600 hover:bg-yellow-500 shadow-yellow-900/20' :
+                    'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-900/20'
+                  }`}
+                >
+                  {confirmModal.confirmText}
                 </button>
               </div>
             </div>
