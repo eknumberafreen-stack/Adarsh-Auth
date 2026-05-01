@@ -27,7 +27,7 @@ const applicationSchema = new mongoose.Schema({
   },
   version: {
     type: String,
-    default: '1.0.0',
+    default: '1.0',
     trim: true
   },
   status: {
