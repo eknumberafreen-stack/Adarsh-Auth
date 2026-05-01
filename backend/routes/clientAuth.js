@@ -221,7 +221,7 @@ router.post('/login',
     const ip = req.clientIp;
 
     if (!username || !password || !hwid) {
-      return fail(req, res, 401, 'invalidUsername', 'Invalid username');
+      return fail(req, res, 400, 'invalidCreds', 'Missing required fields');
     }
 
     const user = await AppUser.findOne({ username, applicationId: req.application._id });
@@ -300,7 +300,7 @@ router.post('/login',
       // Discord webhook — failed login
       sendDiscordWebhook(req.application.discordWebhook,
         loginFailedEmbed(username, ip, req.application.name, 'Wrong password'));
-      return fail(req, res, 401, 'invalidUsername', 'Invalid username');
+      return fail(req, res, 401, 'invalidCreds', 'Invalid credentials');
     }
 
     // HWID check (strict)
@@ -371,7 +371,7 @@ router.post('/license',
     const ip = req.clientIp;
 
     if (!key || !hwid) {
-      return fail(res, 400, 'Missing required fields');
+      return fail(req, res, 400, 'invalidCreds', 'Missing required fields');
     }
 
     // Find license
@@ -428,7 +428,7 @@ router.post('/license',
         success: true,
         message: 'Login successful',
         sessionToken,
-        expiryDate: user.expiryDate,
+        expiryDate: user.expiryDate ? Math.floor(new Date(user.expiryDate).getTime() / 1000).toString() : "0",
         username: user.username,
         ip,
         hwid: user.hwid,
