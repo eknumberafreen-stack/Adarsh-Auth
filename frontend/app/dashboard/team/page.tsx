@@ -18,6 +18,7 @@ export default function TeamPage() {
   const [email, setEmail] = useState('')
   const [role, setRole] = useState('reseller')
   const [permissions, setPermissions] = useState<string[]>(['manage_licenses'])
+  const [inviteAppIds, setInviteAppIds] = useState<string[]>([])
 
   // Edit modal
   const [showEditModal, setShowEditModal] = useState(false)
@@ -39,6 +40,14 @@ export default function TeamPage() {
     if (selectedAppId) loadApplication()
   }, [selectedAppId])
 
+  const openAddModal = () => {
+    setInviteAppIds([selectedAppId])
+    setEmail('')
+    setRole('reseller')
+    setPermissions(['manage_licenses'])
+    setShowAddModal(true)
+  }
+
   const loadApplication = async () => {
     setLoading(true)
     try {
@@ -54,16 +63,21 @@ export default function TeamPage() {
   // ── Add Member ──────────────────────────────────────────────────────────────
   const handleAddMember = async () => {
     if (!email) return toast.error('Enter an email')
+    if (inviteAppIds.length === 0) return toast.error('Select at least one application')
+    setSaving(true)
     try {
-      await api.post(`/applications/${selectedAppId}/team`, { email, role, permissions })
-      toast.success('Team member added!')
+      const promises = inviteAppIds.map(appId => 
+        api.post(`/applications/${appId}/team`, { email, role, permissions })
+      )
+      await Promise.all(promises)
+      
+      toast.success(`Team member invited to ${inviteAppIds.length} application(s)!`)
       setShowAddModal(false)
-      setEmail('')
-      setRole('reseller')
-      setPermissions(['manage_licenses'])
       loadApplication()
     } catch (e: any) {
       toast.error(e.response?.data?.error || 'Failed to add team member')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -190,7 +204,7 @@ export default function TeamPage() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Team Management</h1>
         <button
-          onClick={() => setShowAddModal(true)}
+          onClick={openAddModal}
           className="btn btn-primary flex items-center gap-2"
           disabled={!selectedAppId || !isOwner}
         >
@@ -333,6 +347,26 @@ export default function TeamPage() {
               <div>
                 <label className="block text-sm font-medium mb-3 text-gray-300">Permissions</label>
                 <PermissionCheckboxes perms={permissions} toggle={togglePermission} currentRole={role} />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-3 text-gray-300">Assign to Applications</label>
+                <div className="space-y-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
+                  {applications.map((app: any) => (
+                    <label key={app._id} className="flex items-center gap-3 p-2.5 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] transition-all cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        checked={inviteAppIds.includes(app._id)}
+                        onChange={(e) => {
+                          if (e.target.checked) setInviteAppIds([...inviteAppIds, app._id])
+                          else setInviteAppIds(inviteAppIds.filter(id => id !== app._id))
+                        }}
+                        className="w-4 h-4 rounded border-white/10 bg-black/20 text-indigo-500 focus:ring-offset-0 focus:ring-0"
+                      />
+                      <span className="text-sm text-gray-300 group-hover:text-white transition-colors">{app.name}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
               
               <div className="flex gap-3 pt-2">
