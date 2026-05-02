@@ -176,7 +176,7 @@ export default function Users() {
         password: newUser.password,
         email: newUser.email || null,
         subscription: newUser.subscription || 'default',
-        expiryDate: newUser.expiryDate || null,
+        expiryDate: newUser.expiryDate ? new Date(newUser.expiryDate).toISOString() : null,
         hwidAffected: newUser.hwidAffected
       })
       toast.success('User created!')
@@ -261,7 +261,10 @@ export default function Users() {
     }
 
     try {
-      await api.patch(`/users/${editTarget._id}/edit`, editData)
+      await api.patch(`/users/${editTarget._id}/edit`, {
+        ...editData,
+        expiryDate: editData.expiryDate ? new Date(editData.expiryDate).toISOString() : null
+      })
       toast.success('User updated!')
       setShowEditModal(false)
       loadUsers()

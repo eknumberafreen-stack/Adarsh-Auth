@@ -258,6 +258,11 @@ router.post('/login',
       });
     }
 
+    // Check pause
+    if (user.paused) {
+      return fail(req, res, 403, 'accountPaused', 'Your account is currently paused.');
+    }
+
     // Check expiry
     if (user.expiryDate && user.expiryDate < Date.now()) {
       return fail(req, res, 403, 'expiredLicense', 'Account has expired');

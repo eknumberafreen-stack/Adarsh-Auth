@@ -671,6 +671,7 @@ export default function Settings() {
                 { id: 'noSubscription', label: 'No Active Subscription', desc: 'Shown when user has no valid plan' },
                 { id: 'subPaused', label: 'Subscription Paused', desc: 'Shown when user plan is temporarily disabled' },
                 { id: 'expiredLicense', label: 'Expired License', desc: 'Shown when user subscription has ended' },
+                { id: 'accountPaused', label: 'Account is Paused', desc: 'Shown when a specific user is paused by staff' },
                 { id: 'versionMismatch', label: 'Version Mismatch', desc: 'Shown when the loader version is outdated' },
               ].map((field) => (
                 <div key={field.id} className="p-4 bg-dark-bg rounded-xl border border-dark-border space-y-2">
