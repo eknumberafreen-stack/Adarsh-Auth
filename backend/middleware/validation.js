@@ -50,6 +50,7 @@ const schemas = {
     name: Joi.string().trim().min(1).max(100),
     version: Joi.string().trim().max(20),
     status: Joi.string().valid('active', 'paused'),
+    hwidLock: Joi.boolean().optional(),
     downloadUrl: Joi.string().allow('', null).optional(),
     discordWebhook: Joi.string().allow('', null).optional(),
     customMessages: Joi.object({

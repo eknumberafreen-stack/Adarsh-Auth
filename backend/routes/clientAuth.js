@@ -308,8 +308,8 @@ router.post('/login',
       return fail(req, res, 401, 'invalidPassword', 'Password does not match.');
     }
 
-    // HWID check (strict)
-    if (user.hwid && user.hwid !== hwid) {
+    // HWID check (strict) - Only check if Global App Lock AND User Affected are both enabled
+    if (req.application.hwidLock && user.hwidAffected && user.hwid && user.hwid !== hwid) {
       await AuditLog.create({
         applicationId: req.application._id,
         userId: user._id,
@@ -408,10 +408,11 @@ router.post('/license',
       }
 
       if (user.expiryDate && user.expiryDate < Date.now()) {
-        return fail(req, res, 403, 'expiredLicense', 'License has expired');
+        return fail(req, res, 403, 'noSubscription', 'License has expired');
       }
 
-      if (user.hwid && user.hwid !== hwid) {
+      // HWID check (strict) - Only check if Global App Lock AND User Affected are both enabled
+      if (req.application.hwidLock && user.hwidAffected && user.hwid && user.hwid !== hwid) {
         sendDiscordWebhook(req.application.discordWebhook,
           hwidMismatchEmbed(user.username, ip, req.application.name));
         return fail(req, res, 403, 'hwidMismatch', 'Hardware ID mismatch');

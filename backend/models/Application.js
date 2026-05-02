@@ -35,6 +35,10 @@ const applicationSchema = new mongoose.Schema({
     enum: ['active', 'paused'],
     default: 'active'
   },
+  hwidLock: {
+    type: Boolean,
+    default: true
+  },
   downloadUrl: {
     type: String,
     default: '',
