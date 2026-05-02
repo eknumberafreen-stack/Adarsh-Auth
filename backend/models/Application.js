@@ -17,7 +17,6 @@ const applicationSchema = new mongoose.Schema({
   },
   ownerId: {
     type: String,
-    required: true,
     index: true
   },
   appSecret: {

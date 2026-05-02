@@ -18,6 +18,14 @@ const connectDB = async () => {
       console.warn('MongoDB disconnected');
     });
 
+    // Drop legacy unique index on applications for shared ownerId sync
+    try {
+      await mongoose.connection.collection('applications').dropIndex('ownerId_1');
+      console.log('🗑️ Legacy unique index on applications.ownerId dropped');
+    } catch (e) {
+      // Index likely doesn't exist or was already dropped
+    }
+
   } catch (error) {
     console.error('MongoDB connection failed:', error.message);
     process.exit(1);
