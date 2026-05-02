@@ -668,9 +668,7 @@ export default function Settings() {
                 { id: 'userBanned', label: 'User is Blacklisted', desc: 'Shown when a banned user attempts login' },
                 { id: 'invalidCreds', label: 'Invalid Credentials', desc: 'Shown for generic login failures' },
                 { id: 'invalidPassword', label: 'Password Mismatch', desc: 'Shown when the password provided is incorrect' },
-                { id: 'noSubscription', label: 'No Active Subscription', desc: 'Shown when user has no valid plan' },
-                { id: 'subPaused', label: 'Subscription Paused', desc: 'Shown when user plan is temporarily disabled' },
-                { id: 'expiredLicense', label: 'Expired License', desc: 'Shown when user subscription has ended' },
+                { id: 'noSubscription', label: 'No Active Subscription', desc: 'Shown when user subscription has ended or no plan is found' },
                 { id: 'accountPaused', label: 'Account is Paused', desc: 'Shown when a specific user is paused by staff' },
                 { id: 'versionMismatch', label: 'Version Mismatch', desc: 'Shown when the loader version is outdated' },
               ].map((field) => (

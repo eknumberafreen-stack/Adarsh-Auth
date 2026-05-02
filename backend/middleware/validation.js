@@ -64,8 +64,6 @@ const schemas = {
       invalidCreds: Joi.string().allow('').optional(),
       invalidPassword: Joi.string().allow('').optional(),
       noSubscription: Joi.string().allow('').optional(),
-      subPaused: Joi.string().allow('').optional(),
-      expiredLicense: Joi.string().allow('').optional(),
       accountPaused: Joi.string().allow('').optional(),
       versionMismatch: Joi.string().allow('').optional()
     }).optional()

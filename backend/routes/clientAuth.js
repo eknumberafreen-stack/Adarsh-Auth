@@ -265,7 +265,7 @@ router.post('/login',
 
     // Check expiry
     if (user.expiryDate && user.expiryDate < Date.now()) {
-      return fail(req, res, 403, 'expiredLicense', 'Account has expired');
+      return fail(req, res, 403, 'noSubscription', 'Account has expired');
     }
 
     // Check if user's license is blacklisted
