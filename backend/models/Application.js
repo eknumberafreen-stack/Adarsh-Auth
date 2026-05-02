@@ -72,6 +72,7 @@ const applicationSchema = new mongoose.Schema({
     invalidCreds: { type: String, default: 'Invalid username or password.' },
     invalidPassword: { type: String, default: 'Password does not match.' },
     noSubscription: { type: String, default: 'No active subscription found.' },
+    accountPaused: { type: String, default: 'Your subscription is paused.' },
     subPaused: { type: String, default: 'Your subscription is paused.' },
     expiredLicense: { type: String, default: 'Your license has expired.' },
     versionMismatch: { type: String, default: 'Application version mismatch. Update your loader!' }

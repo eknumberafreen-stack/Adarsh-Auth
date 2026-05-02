@@ -59,6 +59,7 @@ export default function Settings() {
     invalidCreds: '',
     invalidPassword: '',
     noSubscription: '',
+    accountPaused: '',
     subPaused: '',
     expiredLicense: ''
   })
