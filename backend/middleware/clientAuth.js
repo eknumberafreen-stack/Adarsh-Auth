@@ -28,10 +28,16 @@ const randomDelay = () =>
     setTimeout(r, Math.floor(Math.random() * (DELAY_MAX_MS - DELAY_MIN_MS + 1)) + DELAY_MIN_MS)
   );
 
-/** Generic failure response — never leaks internal reason to client */
-const fail = async (res, statusCode = 401) => {
+/** Generic failure response — uses custom message if available */
+const fail = async (req, res, statusCode = 401, messageKey = null, defaultMessage = 'Application not found') => {
   await randomDelay();
-  return res.status(statusCode).json({ success: false, message: 'Application not found' });
+  
+  let message = defaultMessage;
+  if (messageKey && req.application?.customMessages?.[messageKey]) {
+    message = req.application.customMessages[messageKey];
+  }
+
+  return res.status(statusCode).json({ success: false, message });
 };
 
 /** Write audit log without throwing */

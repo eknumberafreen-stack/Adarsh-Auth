@@ -120,13 +120,13 @@ router.post('/register',
     const ip = req.clientIp;
 
     if (!username || !password || !license_key || !hwid) {
-      return fail(res, 400, 'Missing required fields');
+      return fail(req, res, 400, 'invalidCreds', 'Missing required fields');
     }
     if (typeof username !== 'string' || username.length > 50 || username.length < 3) {
-      return fail(res, 400, 'Invalid username');
+      return fail(req, res, 400, 'invalidUsername', 'Invalid username');
     }
     if (typeof password !== 'string' || password.length < 6) {
-      return fail(res, 400, 'Password too short');
+      return fail(req, res, 400, 'invalidPassword', 'Password too short');
     }
 
     // Atomic license validation — prevents double-use race condition
@@ -454,7 +454,7 @@ router.post('/license',
 
     const existing = await AppUser.findOne({ username: autoUsername, applicationId: req.application._id });
     if (existing) {
-      return fail(req, res, 400, 'licenseUsed', 'License already in use');
+      return fail(req, res, 400, 'usernameTaken', 'License already in use');
     }
 
     // Mark license used atomically

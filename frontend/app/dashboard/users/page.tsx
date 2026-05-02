@@ -381,9 +381,20 @@ export default function Users() {
                           <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full font-medium">Active</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-gray-400 font-mono text-xs truncate max-w-[120px]">
-                        {user.hwid ? user.hwid.slice(0, 16) + '...' : 'Not set'}
-                      </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400 font-mono">
+                          <button
+                            onClick={() => {
+                              if (user.hwid) {
+                                navigator.clipboard.writeText(user.hwid);
+                                toast.success('HWID copied to clipboard!');
+                              }
+                            }}
+                            className="hover:text-primary-400 transition-colors cursor-pointer text-left"
+                            title="Click to copy full HWID"
+                          >
+                            {user.hwid ? `${user.hwid.substring(0, 12)}...` : 'Not set'}
+                          </button>
+                        </td>
                       <td className="px-4 py-3 text-gray-400 text-xs">
                         {user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Never'}
                       </td>
