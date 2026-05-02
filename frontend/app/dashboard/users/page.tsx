@@ -98,6 +98,24 @@ export default function Users() {
     return d.getFullYear() === y && (d.getMonth() + 1) === m && d.getDate() === day;
   }
 
+  const formatToDDMMYYYY = (dateStr: string | null | undefined, fallback = 'Lifetime', includeTime = false) => {
+    if (!dateStr) return fallback;
+    const d = new Date(dateStr);
+    const day = d.getDate().toString().padStart(2, '0');
+    const month = (d.getMonth() + 1).toString().padStart(2, '0');
+    const year = d.getFullYear();
+    if (includeTime) {
+      let hours = d.getHours();
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours ? hours : 12;
+      const minutes = d.getMinutes().toString().padStart(2, '0');
+      const seconds = d.getSeconds().toString().padStart(2, '0');
+      return `${day}-${month}-${year} ${hours}:${minutes}:${seconds} ${ampm}`;
+    }
+    return `${day}-${month}-${year}`;
+  }
+
   // Ban modal
   const [showBanModal, setShowBanModal] = useState(false)
   const [banTarget, setBanTarget] = useState<any>(null)
@@ -392,13 +410,13 @@ export default function Users() {
                           </button>
                         </td>
                       <td className="px-4 py-3 text-gray-400 text-xs">
-                        {user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Never'}
+                        {formatToDDMMYYYY(user.lastLogin, 'Never', true)}
                       </td>
                       <td className="px-4 py-3 text-gray-400 text-xs">{user.lastIp || 'N/A'}</td>
                       <td className="px-4 py-3 text-gray-400 text-xs">
                         {user.paused 
-                          ? (user.pausedExpiry ? new Date(user.pausedExpiry).toLocaleDateString() : 'Lifetime') 
-                          : (user.expiryDate ? new Date(user.expiryDate).toLocaleDateString() : 'Lifetime')}
+                          ? formatToDDMMYYYY(user.pausedExpiry, 'Lifetime', false)
+                          : formatToDDMMYYYY(user.expiryDate, 'Lifetime', false)}
                       </td>
                       <td className="px-4 py-3 text-gray-400 text-xs">
                         {user.hwidAffected ? (
