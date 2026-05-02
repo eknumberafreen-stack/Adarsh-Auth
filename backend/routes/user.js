@@ -1,12 +1,12 @@
-const express  = require('express');
-const AppUser  = require('../models/AppUser');
-const License  = require('../models/License');
-const Session  = require('../models/Session');
-const IPBan    = require('../models/IPBan');
+const express = require('express');
+const AppUser = require('../models/AppUser');
+const License = require('../models/License');
+const Session = require('../models/Session');
+const IPBan = require('../models/IPBan');
 const AuditLog = require('../models/AuditLog');
 const Application = require('../models/Application');
 const { verifyToken, verifyAppAccess } = require('../middleware/auth');
-const { asyncHandler }   = require('../middleware/errorHandler');
+const { asyncHandler } = require('../middleware/errorHandler');
 const { getRedisClient } = require('../config/redis');
 const { checkPlanLimit } = require('../middleware/planLimit');
 
@@ -56,51 +56,51 @@ router.post('/create',
   (req, res, next) => { req.params.id = req.body.applicationId; next(); },
   checkPlanLimit('usersPerApp'),
   asyncHandler(async (req, res) => {
-  const { username, password, email, subscription, expiryDate, hwidAffected, applicationId } = req.body;
+    const { username, password, email, subscription, expiryDate, hwidAffected, applicationId } = req.body;
 
-  if (!username || !password || !applicationId) {
-    return res.status(400).json({ error: 'username, password and applicationId are required' });
-  }
-
-  if (expiryDate) {
-    const d = new Date(expiryDate);
-    if (isNaN(d.getTime())) return res.status(400).json({ error: 'Invalid expiration date' });
-    
-    // Strict date check: Prevent rollover (e.g. April 31 -> May 1)
-    const digits = expiryDate.match(/\d+/g);
-    if (digits && digits.length >= 3) {
-      let y = parseInt(digits[0]), m = parseInt(digits[1]), day = parseInt(digits[2]);
-      if (y < 1000 && parseInt(digits[2]) > 1000) { // DD-MM-YYYY
-        day = parseInt(digits[0]); m = parseInt(digits[1]); y = parseInt(digits[2]);
-      }
-      if (d.getFullYear() !== y || (d.getMonth() + 1) !== m || d.getDate() !== day) {
-        return res.status(400).json({ error: 'The selected date does not exist (e.g. April 31st)' });
-      }
+    if (!username || !password || !applicationId) {
+      return res.status(400).json({ error: 'username, password and applicationId are required' });
     }
 
-    if (d <= new Date()) return res.status(400).json({ error: 'Expiration date must be in the future' });
-  }
+    if (expiryDate) {
+      const d = new Date(expiryDate);
+      if (isNaN(d.getTime())) return res.status(400).json({ error: 'Invalid expiration date' });
 
-  const application = req.application; // from verifyAppAccess
+      // Strict date check: Prevent rollover (e.g. April 31 -> May 1)
+      const digits = expiryDate.match(/\d+/g);
+      if (digits && digits.length >= 3) {
+        let y = parseInt(digits[0]), m = parseInt(digits[1]), day = parseInt(digits[2]);
+        if (y < 1000 && parseInt(digits[2]) > 1000) { // DD-MM-YYYY
+          day = parseInt(digits[0]); m = parseInt(digits[1]); y = parseInt(digits[2]);
+        }
+        if (d.getFullYear() !== y || (d.getMonth() + 1) !== m || d.getDate() !== day) {
+          return res.status(400).json({ error: 'The selected date does not exist (e.g. April 31st)' });
+        }
+      }
 
-  const existing = await AppUser.findOne({ username, applicationId });
-  if (existing) return res.status(400).json({ error: 'Username already exists' });
+      if (d <= new Date()) return res.status(400).json({ error: 'Expiration date must be in the future' });
+    }
 
-  const user = await AppUser.create({
-    username,
-    password,
-    email: email || null,
-    subscription: subscription || 'default',
-    applicationId,
-    expiryDate: expiryDate ? new Date(expiryDate) : null,
-    hwidAffected: hwidAffected !== false
-  });
+    const application = req.application; // from verifyAppAccess
 
-  application.userCount = await AppUser.countDocuments({ applicationId });
-  await application.save();
+    const existing = await AppUser.findOne({ username, applicationId });
+    if (existing) return res.status(400).json({ error: 'Username already exists' });
 
-  res.status(201).json({ message: 'User created successfully', user });
-}));
+    const user = await AppUser.create({
+      username,
+      password,
+      email: email || null,
+      subscription: subscription || 'default',
+      applicationId,
+      expiryDate: expiryDate ? new Date(expiryDate) : null,
+      hwidAffected: hwidAffected !== false
+    });
+
+    application.userCount = await AppUser.countDocuments({ applicationId });
+    await application.save();
+
+    res.status(201).json({ message: 'User created successfully', user });
+  }));
 
 // ─── BAN (soft or permanent) ──────────────────────────────────────────────────
 router.post('/:id/ban', asyncHandler(async (req, res) => {
@@ -113,9 +113,9 @@ router.post('/:id/ban', asyncHandler(async (req, res) => {
   if (!hasAccess) return res.status(403).json({ error: 'Access denied: You need manage_users permission.' });
 
   // 1. Ban user
-  user.banned     = true;
-  user.bannedAt   = new Date();
-  user.banReason  = reason;
+  user.banned = true;
+  user.bannedAt = new Date();
+  user.banReason = reason;
   user.banMessage = banMessage || null;
   await user.save();
 
@@ -174,7 +174,7 @@ router.patch('/:id/edit', asyncHandler(async (req, res) => {
   const { username, email, subscription, expiryDate, hwidAffected } = req.body;
   const user = await AppUser.findById(req.params.id).populate('applicationId');
   if (!user) return res.status(404).json({ error: 'User not found' });
-  
+
   const hasAccess = await verifyUserActionAccess(req, res, user, 'manage_users');
   if (!hasAccess) return res.status(403).json({ error: 'Access denied: You need manage_users permission.' });
 
@@ -201,7 +201,6 @@ router.patch('/:id/edit', asyncHandler(async (req, res) => {
   if (email !== undefined) user.email = email || null;
   if (subscription) user.subscription = subscription;
   if (expiryDate !== undefined) user.expiryDate = expiryDate ? new Date(expiryDate) : null;
-  if (hwidAffected !== undefined) user.hwidAffected = hwidAffected;
   await user.save();
   res.json({ message: 'User updated', user });
 }));
@@ -210,7 +209,7 @@ router.patch('/:id/edit', asyncHandler(async (req, res) => {
 router.patch('/:id/pause', asyncHandler(async (req, res) => {
   const user = await AppUser.findById(req.params.id).populate('applicationId');
   if (!user) return res.status(404).json({ error: 'User not found' });
-  
+
   const hasAccess = await verifyUserActionAccess(req, res, user, 'manage_users');
   if (!hasAccess) return res.status(403).json({ error: 'Access denied: You need manage_users permission.' });
 
@@ -226,7 +225,7 @@ router.patch('/:id/pause', asyncHandler(async (req, res) => {
 router.patch('/:id/unpause', asyncHandler(async (req, res) => {
   const user = await AppUser.findById(req.params.id).populate('applicationId');
   if (!user) return res.status(404).json({ error: 'User not found' });
-  
+
   const hasAccess = await verifyUserActionAccess(req, res, user, 'manage_users');
   if (!hasAccess) return res.status(403).json({ error: 'Access denied: You need manage_users permission.' });
 
@@ -245,8 +244,8 @@ router.post('/:id/unban', asyncHandler(async (req, res) => {
   const hasAccess = await verifyUserActionAccess(req, res, user, 'manage_users');
   if (!hasAccess) return res.status(403).json({ error: 'Access denied: You need manage_users permission.' });
 
-  user.banned    = false;
-  user.bannedAt  = null;
+  user.banned = false;
+  user.bannedAt = null;
   user.banReason = null;
   await user.save();
 

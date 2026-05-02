@@ -205,8 +205,8 @@ router.post('/register',
       username: user.username,
       ip,
       hwid: user.hwid,
-      createdate: Math.floor(new Date(user.createdAt).getTime() / 1000).toString(),
-      lastlogin: Math.floor(new Date(user.lastLogin || user.createdAt).getTime() / 1000).toString(),
+      createdate: user.createdAt,
+      lastlogin: user.lastLogin || user.createdAt,
       subscription: user.subscription || 'default'
     });
   })
@@ -356,12 +356,12 @@ router.post('/login',
       success: true,
       message: 'Login successful',
       sessionToken,
-      expiryDate: user.expiryDate ? Math.floor(new Date(user.expiryDate).getTime() / 1000).toString() : "0",
+      expiryDate: user.expiryDate,
       username: user.username,
       ip,
       hwid: user.hwid,
-      createdate: Math.floor(new Date(user.createdAt).getTime() / 1000).toString(),
-      lastlogin: Math.floor(new Date(user.lastLogin).getTime() / 1000).toString(),
+      createdate: user.createdAt,
+      lastlogin: user.lastLogin,
       subscription: user.subscription || 'default'
     });
   })
@@ -434,12 +434,12 @@ router.post('/license',
         success: true,
         message: 'Login successful',
         sessionToken,
-        expiryDate: user.expiryDate ? Math.floor(new Date(user.expiryDate).getTime() / 1000).toString() : "0",
+        expiryDate: user.expiryDate,
         username: user.username,
         ip,
         hwid: user.hwid,
-        createdate: Math.floor(new Date(user.createdAt).getTime() / 1000).toString(),
-        lastlogin: Math.floor(new Date(user.lastLogin).getTime() / 1000).toString(),
+        createdate: user.createdAt,
+        lastlogin: user.lastLogin,
         subscription: user.subscription || 'default'
       });
     }
@@ -492,8 +492,8 @@ router.post('/license',
       username: user.username,
       ip,
       hwid: user.hwid,
-      createdate: Math.floor(new Date(user.createdAt).getTime() / 1000).toString(),
-      lastlogin: Math.floor(new Date(user.lastLogin).getTime() / 1000).toString(),
+      createdate: user.createdAt,
+      lastlogin: user.lastLogin,
       subscription: user.subscription || 'default'
     });
   })
@@ -524,8 +524,8 @@ router.post('/validate',
       username: req.sessionUser.username,
       ip: req.session.ip,
       hwid: req.sessionUser.hwid,
-      createdate: Math.floor(new Date(req.sessionUser.createdAt).getTime() / 1000).toString(),
-      lastlogin: Math.floor(new Date(req.sessionUser.lastLogin || req.sessionUser.createdAt).getTime() / 1000).toString(),
+      createdate: req.sessionUser.createdAt,
+      lastlogin: req.sessionUser.lastLogin || req.sessionUser.createdAt,
       subscription: req.sessionUser.subscription || 'default'
     });
   })

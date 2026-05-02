@@ -66,7 +66,7 @@ const verifyClientRequest = async (req, res, next) => {
 
     if (!app_name || !owner_id || !timestamp || !nonce || !signature || !version) {
       await audit('suspicious_activity', 'warning', ip, null, { reason: 'missing_fields' });
-      return fail(res, 400);
+      return fail(req, res, 400);
     }
 
     // ── Step 2: Timestamp validation (anti-replay layer 1) ───────────────────
@@ -78,20 +78,20 @@ const verifyClientRequest = async (req, res, next) => {
         reason: 'timestamp_out_of_range',
         delta: now - reqTime
       });
-      return fail(res);
+      return fail(req, res);
     }
 
     // ── Step 3: Lookup application ───────────────────────────────────────────
     // Sanitize owner_id — only allow hex chars to prevent NoSQL injection
     if (!/^[a-zA-Z0-9]{10}$/.test(owner_id)) {
-      return fail(res, 400);
+      return fail(req, res, 400);
     }
 
     const application = await Application.findOne({ ownerId: owner_id, name: app_name }).lean();
 
     if (!application) {
       await audit('suspicious_activity', 'warning', ip, null, { reason: 'unknown_owner_id' });
-      return fail(res);
+      return fail(req, res);
     }
 
     // ── Step 4: App status enforcement ───────────────────────────────────────
@@ -126,7 +126,7 @@ const verifyClientRequest = async (req, res, next) => {
 
     if (exists) {
       await audit('replay_attack', 'critical', ip, application._id, { nonce, timestamp });
-      return fail(res);
+      return fail(req, res);
     }
 
     // Store nonce — TTL slightly longer than tolerance to cover edge cases
@@ -153,7 +153,7 @@ const verifyClientRequest = async (req, res, next) => {
 
     if (!sigValid) {
       await audit('invalid_signature', 'warning', ip, application._id, { app_name });
-      return fail(res);
+      return fail(req, res);
     }
 
     // ── All checks passed — attach context ───────────────────────────────────
@@ -165,7 +165,7 @@ const verifyClientRequest = async (req, res, next) => {
 
   } catch (err) {
     console.error('[clientAuth] Unexpected error:', err.message);
-    return fail(res, 500);
+    return fail(req, res, 500);
   }
 };
 
