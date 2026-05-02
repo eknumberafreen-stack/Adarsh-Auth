@@ -453,8 +453,8 @@ export default function Applications() {
       </section>
 
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm">
-          <div className="card w-full max-w-md">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
+          <div className="modal-card w-full max-w-md">
             <div className="flex items-center justify-between">
               <div>
                 <p className="page-eyebrow">Create</p>
@@ -488,8 +488,8 @@ export default function Applications() {
       )}
 
       {showRenameModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm">
-          <div className="card w-full max-w-md">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
+          <div className="modal-card w-full max-w-md">
             <div className="flex items-center justify-between">
               <div>
                 <p className="page-eyebrow">Rename</p>

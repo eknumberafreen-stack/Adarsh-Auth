@@ -448,8 +448,8 @@ export default function Users() {
 
       {/* ── Create User Modal ─────────────────────────────────────────── */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
-          <div className="card max-w-md w-full">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
+          <div className="modal-card max-w-md w-full">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">Create User</h2>
               <button onClick={() => setShowCreateModal(false)} className="text-gray-400 hover:text-white">
@@ -505,8 +505,8 @@ export default function Users() {
 
       {/* ── Edit User Modal ───────────────────────────────────────────── */}
       {showEditModal && editTarget && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
-          <div className="card max-w-md w-full">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
+          <div className="modal-card max-w-md w-full">
             <div className="flex justify-between items-center mb-4">
               <div>
                 <h2 className="text-xl font-bold">Edit User</h2>
@@ -556,8 +556,8 @@ export default function Users() {
 
       {/* ── Full Ban Modal ───────────────────────────────────────── */}
       {showBanModal && banTarget && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
-          <div className="w-full max-w-md bg-[#13131a] border border-dark-border rounded-2xl p-6 shadow-2xl">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
+          <div className="modal-card w-full max-w-md">
 
             {/* Header */}
             <div className="flex justify-between items-start mb-5">
@@ -665,8 +665,8 @@ export default function Users() {
       )}
       {/* ── Custom Confirmation Modal ────────────────────────────────────── */}
       {confirmModal.show && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-200">
-          <div className="w-full max-w-sm bg-[#13131a] border border-white/5 rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-200">
+          <div className="modal-card w-full max-w-sm animate-in zoom-in-95 duration-200">
             <div className="flex flex-col items-center text-center">
               {/* Icon Based on Type */}
               <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 ${

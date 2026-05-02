@@ -315,8 +315,8 @@ export default function Licenses() {
 
       {/* ── Generate Modal ────────────────────────────────────────────── */}
       {showGenerateModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
-          <div className="card max-w-md w-full">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
+          <div className="modal-card max-w-md w-full">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">Generate Licenses</h2>
               <button onClick={() => setShowGenerateModal(false)} className="text-gray-400 hover:text-white"><XMarkIcon className="w-5 h-5" /></button>
@@ -378,8 +378,8 @@ export default function Licenses() {
 
       {/* ── Edit Modal ────────────────────────────────────────────────── */}
       {showEditModal && editTarget && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
-          <div className="card max-w-md w-full">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
+          <div className="modal-card max-w-md w-full">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">Edit License</h2>
               <button onClick={() => setShowEditModal(false)} className="text-gray-400 hover:text-white"><XMarkIcon className="w-5 h-5" /></button>

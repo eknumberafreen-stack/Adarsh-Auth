@@ -103,6 +103,10 @@
     @apply card transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-400/20 hover:bg-white/[0.06];
   }
 
+  .modal-card {
+    @apply rounded-3xl border border-white/20 bg-[#111118]/95 p-8 backdrop-blur-2xl shadow-[0_0_80px_-20px_rgba(99,102,241,0.3)];
+  }
+
   .surface-panel {
     @apply rounded-3xl border border-white/10 bg-black/35 backdrop-blur-xl shadow-[0_30px_100px_-45px_rgba(0,0,0,1)];
   }
