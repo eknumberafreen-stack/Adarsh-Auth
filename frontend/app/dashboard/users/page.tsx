@@ -81,7 +81,7 @@ export default function Users() {
   }
   const [newUser, setNewUser] = useState({
     username: '', password: '', email: '',
-    subscription: 'default', expiryDate: getDefaultExpiry(), hwidAffected: true
+    subscription: 'default', expiryDate: getDefaultExpiry(), hwidAffected: true, isLifetime: false
   })
   const [creating, setCreating] = useState(false)
 
@@ -109,7 +109,7 @@ export default function Users() {
   // Edit modal
   const [showEditModal, setShowEditModal] = useState(false)
   const [editTarget, setEditTarget] = useState<any>(null)
-  const [editData, setEditData] = useState({ username: '', email: '', subscription: 'default', expiryDate: '', hwidAffected: true })
+  const [editData, setEditData] = useState({ username: '', email: '', subscription: 'default', expiryDate: '', hwidAffected: true, isLifetime: false })
 
   // Custom Confirm Modal
   const [confirmModal, setConfirmModal] = useState({
@@ -148,7 +148,10 @@ export default function Users() {
   const createUser = async () => {
     if (!newUser.username || !newUser.password) return toast.error('Username and password required')
     
-    if (newUser.expiryDate) {
+    if (!newUser.isLifetime) {
+      if (!newUser.expiryDate) {
+        return toast.error('Please enter a valid expiration date or check Lifetime')
+      }
       if (!isStrictValidDate(newUser.expiryDate)) {
         return toast.error('The selected date does not exist (e.g. April 31st)')
       }
@@ -165,12 +168,12 @@ export default function Users() {
         password: newUser.password,
         email: newUser.email || null,
         subscription: newUser.subscription || 'default',
-        expiryDate: newUser.expiryDate ? new Date(newUser.expiryDate).toISOString() : null,
+        expiryDate: newUser.isLifetime ? null : new Date(newUser.expiryDate).toISOString(),
         hwidAffected: newUser.hwidAffected
       })
       toast.success('User created!')
       setShowCreateModal(false)
-      setNewUser({ username: '', password: '', email: '', subscription: 'default', expiryDate: getDefaultExpiry(), hwidAffected: true })
+      setNewUser({ username: '', password: '', email: '', subscription: 'default', expiryDate: getDefaultExpiry(), hwidAffected: true, isLifetime: false })
       loadUsers()
     } catch (e: any) {
       toast.error(e.response?.data?.error || 'Failed to create user')
@@ -232,7 +235,8 @@ export default function Users() {
       email: user.email || '',
       subscription: user.subscription || 'default',
       expiryDate: user.expiryDate ? new Date(user.expiryDate).toISOString().slice(0, 16) : '',
-      hwidAffected: user.hwidAffected !== false
+      hwidAffected: user.hwidAffected !== false,
+      isLifetime: !user.expiryDate
     })
     setShowEditModal(true)
   }
@@ -240,7 +244,10 @@ export default function Users() {
   const saveEdit = async () => {
     if (!editTarget) return
 
-    if (editData.expiryDate) {
+    if (!editData.isLifetime) {
+      if (!editData.expiryDate) {
+        return toast.error('Please enter a valid expiration date or check Lifetime')
+      }
       if (!isStrictValidDate(editData.expiryDate)) {
         return toast.error('The selected date does not exist (e.g. April 31st)')
       }
@@ -252,7 +259,7 @@ export default function Users() {
     try {
       await api.patch(`/users/${editTarget._id}/edit`, {
         ...editData,
-        expiryDate: editData.expiryDate ? new Date(editData.expiryDate).toISOString() : null
+        expiryDate: editData.isLifetime ? null : new Date(editData.expiryDate).toISOString()
       })
       toast.success('User updated!')
       setShowEditModal(false)
@@ -454,8 +461,16 @@ export default function Users() {
                 <input type="text" value={newUser.subscription} onChange={(e) => setNewUser({ ...newUser, subscription: e.target.value })} className="input" placeholder="default" />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">Expiration</label>
-                <input type="datetime-local" value={newUser.expiryDate} onChange={(e) => setNewUser({ ...newUser, expiryDate: e.target.value })} className="input" />
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium">Expiration</label>
+                  <div className="flex items-center gap-2">
+                    <input type="checkbox" id="createLifetime" checked={newUser.isLifetime} onChange={(e) => setNewUser({ ...newUser, isLifetime: e.target.checked })} className="w-3.5 h-3.5 accent-primary-600" />
+                    <label htmlFor="createLifetime" className="text-xs text-gray-400 cursor-pointer">Lifetime Access</label>
+                  </div>
+                </div>
+                {!newUser.isLifetime && (
+                  <input type="datetime-local" value={newUser.expiryDate} onChange={(e) => setNewUser({ ...newUser, expiryDate: e.target.value })} className="input" />
+                )}
               </div>
               <div className="flex items-center gap-3">
                 <input type="checkbox" id="hwidAffected" checked={newUser.hwidAffected} onChange={(e) => setNewUser({ ...newUser, hwidAffected: e.target.checked })} className="w-4 h-4 accent-primary-600" />
@@ -497,8 +512,16 @@ export default function Users() {
                 <input type="text" value={editData.subscription} onChange={(e) => setEditData({ ...editData, subscription: e.target.value })} className="input" />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">Expiry Date</label>
-                <input type="datetime-local" value={editData.expiryDate} onChange={(e) => setEditData({ ...editData, expiryDate: e.target.value })} className="input" />
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium">Expiration</label>
+                  <div className="flex items-center gap-2">
+                    <input type="checkbox" id="editLifetime" checked={editData.isLifetime} onChange={(e) => setEditData({ ...editData, isLifetime: e.target.checked })} className="w-3.5 h-3.5 accent-primary-600" />
+                    <label htmlFor="editLifetime" className="text-xs text-gray-400 cursor-pointer">Lifetime Access</label>
+                  </div>
+                </div>
+                {!editData.isLifetime && (
+                  <input type="datetime-local" value={editData.expiryDate} onChange={(e) => setEditData({ ...editData, expiryDate: e.target.value })} className="input" />
+                )}
               </div>
               <div className="flex items-center gap-3">
                 <input type="checkbox" id="editHwidAffected" checked={editData.hwidAffected} onChange={(e) => setEditData({ ...editData, hwidAffected: e.target.checked })} className="w-4 h-4 accent-primary-600" />
