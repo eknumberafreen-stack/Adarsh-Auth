@@ -58,7 +58,6 @@ const userSchema = new mongoose.Schema({
   },
   ownerId: {
     type: String,
-    required: true,
     index: true
   }
 }, {
