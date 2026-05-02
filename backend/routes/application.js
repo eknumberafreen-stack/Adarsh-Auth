@@ -64,7 +64,7 @@ router.post('/', validate(schemas.createApplication), checkPlanLimit('applicatio
   const application = await Application.create({
     name,
     version: version || '1.0',
-    ownerId: credentials.ownerId,
+    ownerId: req.user.ownerId,
     appSecret: credentials.appSecret,
     userId: req.userId,
     team: [] // starts empty

@@ -18,7 +18,6 @@ const applicationSchema = new mongoose.Schema({
   ownerId: {
     type: String,
     required: true,
-    unique: true,
     index: true
   },
   appSecret: {
@@ -87,13 +86,7 @@ const applicationSchema = new mongoose.Schema({
 
 // Generate secure credentials
 applicationSchema.statics.generateCredentials = function() {
-  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let ownerId = '';
-  for (let i = 0; i < 10; i++) {
-    ownerId += characters.charAt(Math.floor(Math.random() * characters.length));
-  }
   return {
-    ownerId: ownerId,
     appSecret: crypto.randomBytes(32).toString('hex')
   };
 };

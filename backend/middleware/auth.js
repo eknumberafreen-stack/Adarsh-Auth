@@ -21,6 +21,18 @@ const verifyToken = async (req, res, next) => {
 
     req.user = user;
     req.userId = decoded.userId;
+
+    // Ensure user has an ownerId (for existing users)
+    if (!user.ownerId) {
+      const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      let result = '';
+      for (let i = 0; i < 10; i++) {
+        result += characters.charAt(Math.floor(Math.random() * characters.length));
+      }
+      user.ownerId = result;
+      await user.save();
+    }
+
     next();
   } catch (error) {
     if (error.name === 'TokenExpiredError') {

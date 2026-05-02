@@ -55,6 +55,11 @@ const userSchema = new mongoose.Schema({
     minlength: [3, 'Username must be at least 3 characters'],
     maxlength: [30, 'Username must be at most 30 characters'],
     match: [/^[a-z0-9_-]+$/, 'Username may only contain lowercase letters, numbers, underscores, and hyphens']
+  },
+  ownerId: {
+    type: String,
+    required: true,
+    index: true
   }
 }, {
   timestamps: true
@@ -80,6 +85,19 @@ userSchema.pre('save', async function(next) {
 userSchema.pre('save', function(next) {
   if (this.isModified('username') && this.username) {
     this.username = this.username.toLowerCase();
+  }
+  next();
+});
+
+// Generate Owner ID before saving if not present
+userSchema.pre('save', function(next) {
+  if (!this.ownerId) {
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    for (let i = 0; i < 10; i++) {
+      result += characters.charAt(Math.floor(Math.random() * characters.length));
+    }
+    this.ownerId = result;
   }
   next();
 });
