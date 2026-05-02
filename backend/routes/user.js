@@ -201,6 +201,7 @@ router.patch('/:id/edit', asyncHandler(async (req, res) => {
   if (email !== undefined) user.email = email || null;
   if (subscription) user.subscription = subscription;
   if (expiryDate !== undefined) user.expiryDate = expiryDate ? new Date(expiryDate) : null;
+  if (hwidAffected !== undefined) user.hwidAffected = hwidAffected;
   await user.save();
   res.json({ message: 'User updated', user });
 }));
