@@ -49,7 +49,26 @@ const schemas = {
   updateApplication: Joi.object({
     name: Joi.string().trim().min(1).max(100),
     version: Joi.string().trim().max(20),
-    status: Joi.string().valid('active', 'paused')
+    status: Joi.string().valid('active', 'paused'),
+    downloadUrl: Joi.string().allow('', null).optional(),
+    discordWebhook: Joi.string().allow('', null).optional(),
+    customMessages: Joi.object({
+      appDisabled: Joi.string().allow('').optional(),
+      appPaused: Joi.string().allow('').optional(),
+      invalidLicense: Joi.string().allow('').optional(),
+      licenseUsed: Joi.string().allow('').optional(),
+      invalidUsername: Joi.string().allow('').optional(),
+      usernameTaken: Joi.string().allow('').optional(),
+      hwidMismatch: Joi.string().allow('').optional(),
+      userBanned: Joi.string().allow('').optional(),
+      invalidCreds: Joi.string().allow('').optional(),
+      invalidPassword: Joi.string().allow('').optional(),
+      noSubscription: Joi.string().allow('').optional(),
+      subPaused: Joi.string().allow('').optional(),
+      expiredLicense: Joi.string().allow('').optional(),
+      accountPaused: Joi.string().allow('').optional(),
+      versionMismatch: Joi.string().allow('').optional()
+    }).optional()
   }).min(1),
 
   generateLicense: Joi.object({
