@@ -260,7 +260,7 @@ router.post('/login',
 
     // Check pause
     if (user.paused) {
-      return fail(req, res, 403, 'accountPaused', 'Your account is currently paused.');
+      return fail(req, res, 403, 'accountPaused', 'Your subscription is currently paused.');
     }
 
     // Check expiry
