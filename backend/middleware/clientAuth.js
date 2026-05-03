@@ -15,7 +15,7 @@ const AuditLog = require('../models/AuditLog');
 const { getRedisClient } = require('../config/redis');
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const TIMESTAMP_TOLERANCE_MS = 30_000;   // ±30 seconds
+const TIMESTAMP_TOLERANCE_MS = 600_000;  // ±10 minutes (prevents false-positives for unsynced clocks)
 const NONCE_TTL_SECONDS      = 60;       // nonce lives 60s in Redis
 const DELAY_MIN_MS           = 100;
 const DELAY_MAX_MS           = 300;
@@ -78,7 +78,7 @@ const verifyClientRequest = async (req, res, next) => {
         reason: 'timestamp_out_of_range',
         delta: now - reqTime
       });
-      return fail(req, res);
+      return fail(req, res, 401, 'invalidTimestamp', 'Invalid request time. Ensure your PC clock is synchronized.');
     }
 
     // ── Step 3: Lookup application ───────────────────────────────────────────
