@@ -43,6 +43,7 @@ passport.use(new GoogleStrategy({
         });
         user = await User.findById(result.insertedId);
       } catch (createErr) {
+        console.error('User Creation Error (Google):', createErr);
         if (createErr.code === 11000) {
           user = await User.findOne({ email });
           if (!user) return done(createErr, null);
@@ -70,6 +71,7 @@ passport.use(new GoogleStrategy({
 
     return done(null, user);
   } catch (err) {
+    console.error('Google Strategy Error:', err);
     return done(err, null);
   }
 }));
@@ -107,6 +109,7 @@ router.get('/callback',
         `${FRONTEND_URL}/auth/google/success?accessToken=${accessToken}&refreshToken=${refreshToken}&userId=${user._id}&email=${encodeURIComponent(user.email)}`
       );
     } catch (err) {
+      console.error('Google Callback Error:', err);
       res.redirect(`${FRONTEND_URL}/login?error=google_failed`);
     }
   }
