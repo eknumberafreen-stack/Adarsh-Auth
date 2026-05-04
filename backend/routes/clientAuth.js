@@ -60,7 +60,7 @@ const createSession = async (userId, appId, hwid, ip) => {
 
   // Store in Redis with 24h expiry
   const key = `sess:${token}`;
-  await redis.hset(key, sessionData);
+  await redis.hSet(key, sessionData);
   await redis.expire(key, 24 * 60 * 60);
 
   // Optional: Track user's active session to allow only one session at a time
@@ -69,7 +69,7 @@ const createSession = async (userId, appId, hwid, ip) => {
   if (oldSess) {
     await redis.del(`sess:${oldSess}`);
   }
-  await redis.set(userKey, token, 'EX', 24 * 60 * 60);
+  await redis.set(userKey, token, { EX: 24 * 60 * 60 });
 
   return token;
 };
@@ -549,7 +549,7 @@ router.post('/heartbeat',
   asyncHandler(async (req, res) => {
     const redis = getRedisClient();
     const key = `sess:${req.sessionToken}`;
-    await redis.hset(key, 'lastHeartbeat', Date.now().toString());
+    await redis.hSet(key, 'lastHeartbeat', Date.now().toString());
     res.json({ success: true, message: 'OK' });
   })
 );

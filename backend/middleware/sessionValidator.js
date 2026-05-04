@@ -31,7 +31,7 @@ const requireSession = async (req, res, next) => {
     // ── Load session from Redis ──────────────────────────────────────────────
     const redis = getRedisClient();
     const key = `sess:${session_token}`;
-    const session = await redis.hgetall(key);
+    const session = await redis.hGetAll(key);
     
     if (!session || Object.keys(session).length === 0) {
       await randomDelay();
