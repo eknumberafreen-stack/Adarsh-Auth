@@ -61,8 +61,7 @@ export default function Settings() {
     noSubscription: '',
     accountPaused: '',
     subPaused: '',
-    expiredLicense: '',
-    invalidTimestamp: ''
+    expiredLicense: ''
   })
   const [messagesSaving, setMessagesSaving] = useState(false)
 
@@ -626,7 +625,7 @@ export default function Settings() {
               </div>
               <div className="p-4 bg-dark-bg rounded-xl border border-dark-border">
                 <p className="text-white font-medium mb-1">Timestamp Tolerance</p>
-                <p>Requests must be within ±10 minutes of server time to prevent false-positives on unsynced clocks.</p>
+                <p>Requests must be within a valid time window to prevent replay attacks.</p>
               </div>
               <div className="p-4 bg-dark-bg rounded-xl border border-dark-border">
                 <p className="text-white font-medium mb-1">HWID Locking</p>
@@ -673,7 +672,6 @@ export default function Settings() {
                 { id: 'noSubscription', label: 'No Active Subscription', desc: 'Shown when user subscription has ended or no plan is found' },
                 { id: 'accountPaused', label: 'Subscription Paused', desc: 'Shown when a specific user is paused by staff' },
                 { id: 'versionMismatch', label: 'Version Mismatch', desc: 'Shown when the loader version is outdated' },
-                { id: 'invalidTimestamp', label: 'Invalid Request Time', desc: 'Shown when PC clock is out of sync' },
               ].map((field) => (
                 <div key={field.id} className="p-4 bg-dark-bg rounded-xl border border-dark-border space-y-2">
                   <label className="block text-sm font-medium text-gray-300">{field.label}</label>

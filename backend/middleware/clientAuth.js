@@ -15,7 +15,7 @@ const AuditLog = require('../models/AuditLog');
 const { getRedisClient } = require('../config/redis');
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const TIMESTAMP_TOLERANCE_MS = 600_000;  // ±10 minutes (prevents false-positives for unsynced clocks)
+// Timestamp tolerance check disabled to support highly desynced PC clocks.
 const NONCE_TTL_SECONDS      = 60;       // nonce lives 60s in Redis
 const DELAY_MIN_MS           = 100;
 const DELAY_MAX_MS           = 300;
@@ -73,13 +73,13 @@ const verifyClientRequest = async (req, res, next) => {
     const now        = Date.now();
     const reqTime    = parseInt(timestamp, 10);
 
-    if (isNaN(reqTime) || Math.abs(now - reqTime) > TIMESTAMP_TOLERANCE_MS) {
-      await audit('suspicious_activity', 'warning', ip, null, {
-        reason: 'timestamp_out_of_range',
-        delta: now - reqTime
-      });
-      return fail(req, res, 401, 'invalidTimestamp', 'Invalid request time. Ensure your PC clock is synchronized.');
+    if (isNaN(reqTime)) {
+      await audit('suspicious_activity', 'warning', ip, null, { reason: 'invalid_timestamp_format' });
+      return fail(req, res, 400);
     }
+    
+    // Note: Strict time delta checks (Math.abs(now - reqTime)) are disabled 
+    // to allow highly desynced PC clocks to connect without issues.
 
     // ── Step 3: Lookup application ───────────────────────────────────────────
     // Sanitize owner_id — only allow hex chars to prevent NoSQL injection

@@ -73,8 +73,7 @@ const applicationSchema = new mongoose.Schema({
     accountPaused: { type: String, default: 'Your subscription is paused.' },
     subPaused: { type: String, default: 'Your subscription is paused.' },
     expiredLicense: { type: String, default: 'Your license has expired.' },
-    versionMismatch: { type: String, default: 'Application version mismatch. Update your loader!' },
-    invalidTimestamp: { type: String, default: 'Invalid request time. Ensure your PC clock is synchronized.' }
+    versionMismatch: { type: String, default: 'Application version mismatch. Update your loader!' }
   },
   createdAt: {
     type: Date,
