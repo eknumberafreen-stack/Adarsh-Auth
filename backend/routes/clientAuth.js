@@ -416,6 +416,10 @@ router.post('/license',
         });
       }
 
+      if (user.paused) {
+        return fail(req, res, 403, 'accountPaused', 'Your subscription is currently paused.');
+      }
+
       if (user.expiryDate && user.expiryDate < Date.now()) {
         return fail(req, res, 403, 'noSubscription', 'License has expired');
       }

@@ -79,6 +79,8 @@ router.post('/', validate(schemas.createApplication), checkPlanLimit('applicatio
 // Update application
 router.patch('/:id', validate(schemas.updateApplication), verifyAppAccess('manage_settings'), asyncHandler(async (req, res) => {
   const application = req.application;
+  const oldName = application.name;
+  const ownerId = application.ownerId;
 
   // Update allowed fields
   if (req.body.name) application.name = req.body.name;
@@ -94,6 +96,22 @@ router.patch('/:id', validate(schemas.updateApplication), verifyAppAccess('manag
   }
 
   await application.save();
+
+  // Invalidate Redis cache for client authentication
+  try {
+    const { getRedisClient } = require('../config/redis');
+    const redis = getRedisClient();
+    
+    // Invalidate old name cache
+    await redis.del(`app:${ownerId}:${oldName}`);
+    
+    // Invalidate new name cache (if changed)
+    if (req.body.name && req.body.name !== oldName) {
+      await redis.del(`app:${ownerId}:${req.body.name}`);
+    }
+  } catch (err) {
+    console.error('[application] Cache invalidation failed:', err.message);
+  }
 
   res.json({
     message: 'Application updated successfully',
