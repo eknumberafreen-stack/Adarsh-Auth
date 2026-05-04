@@ -37,6 +37,8 @@ const fail = async (req, res, statusCode = 401, messageKey = null, defaultMessag
     message = req.application.customMessages[messageKey];
   }
 
+  console.error(`[AUTH BLOCK] IP: ${req.ip || req.connection?.remoteAddress} | Reason: ${messageKey || defaultMessage} | Status: ${statusCode}`);
+
   return res.status(statusCode).json({ success: false, message });
 };
 
