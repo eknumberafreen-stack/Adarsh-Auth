@@ -66,7 +66,7 @@ const verifyClientRequest = async (req, res, next) => {
       ...bodyData
     } = req.body;
 
-    if (!app_name || !owner_id || !timestamp || !nonce || !signature || !version) {
+    if (!app_name || !owner_id || !timestamp || !nonce || !signature) {
       await audit('suspicious_activity', 'warning', ip, null, { reason: 'missing_fields' });
       return fail(req, res, 400);
     }

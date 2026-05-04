@@ -514,8 +514,7 @@ namespace Keyauth
                     ["owner_id"]  = ownerid,
                     ["timestamp"] = timestamp,
                     ["nonce"]     = nonce,
-                    ["signature"] = signature,
-                    ["version"]   = version
+                    ["signature"] = signature
                 };
 
                 string requestJson = JsonSerializer.Serialize(fullPayload);
