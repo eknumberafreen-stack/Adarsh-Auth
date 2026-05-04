@@ -40,14 +40,32 @@ const verifyUserActionAccess = async (req, res, appUser, requiredPermission) => 
   return false; // Not owner, not team member
 };
 
-// ─── Get all users for application ───────────────────────────────────────────
+// ─── Get all users for application (with pagination) ──────────────────────────
 router.get('/application/:applicationId', verifyAppAccess(), asyncHandler(async (req, res) => {
-  // verifyAppAccess automatically checks ownership/team and attaches req.application
-  const users = await AppUser.find({ applicationId: req.params.applicationId })
-    .select('-password')
-    .sort({ createdAt: -1 });
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 20;
+  const skip = (page - 1) * limit;
 
-  res.json({ users });
+  const filter = { applicationId: req.params.applicationId };
+  
+  const [users, total] = await Promise.all([
+    AppUser.find(filter)
+      .select('-password')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit),
+    AppUser.countDocuments(filter)
+  ]);
+
+  res.json({ 
+    users,
+    pagination: {
+      total,
+      page,
+      limit,
+      pages: Math.ceil(total / limit)
+    }
+  });
 }));
 
 // ─── Create user directly from dashboard ─────────────────────────────────────

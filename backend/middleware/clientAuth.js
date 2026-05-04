@@ -15,10 +15,11 @@ const AuditLog = require('../models/AuditLog');
 const { getRedisClient } = require('../config/redis');
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-// Timestamp tolerance check disabled to support highly desynced PC clocks.
+const TIMESTAMP_TOLERANCE_MS = 30_000;   // ±30 seconds
 const NONCE_TTL_SECONDS      = 60;       // nonce lives 60s in Redis
 const DELAY_MIN_MS           = 100;
 const DELAY_MAX_MS           = 300;
+const APP_CACHE_TTL          = 60;       // cache app data for 60s
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -33,11 +34,10 @@ const fail = async (req, res, statusCode = 401, messageKey = null, defaultMessag
   await randomDelay();
   
   let message = defaultMessage;
-  if (messageKey && req.application?.customMessages?.[messageKey]) {
-    message = req.application.customMessages[messageKey];
+  const customMsg = req.application?.customMessages?.[messageKey];
+  if (messageKey && customMsg) {
+    message = customMsg;
   }
-
-  console.error(`[AUTH BLOCK] IP: ${req.ip || req.connection?.remoteAddress} | Reason: ${messageKey || defaultMessage} | Status: ${statusCode}`);
 
   return res.status(statusCode).json({ success: false, message });
 };
@@ -75,21 +75,35 @@ const verifyClientRequest = async (req, res, next) => {
     const now        = Date.now();
     const reqTime    = parseInt(timestamp, 10);
 
-    if (isNaN(reqTime)) {
-      await audit('suspicious_activity', 'warning', ip, null, { reason: 'invalid_timestamp_format' });
-      return fail(req, res, 400);
+    if (isNaN(reqTime) || Math.abs(now - reqTime) > TIMESTAMP_TOLERANCE_MS) {
+      await audit('suspicious_activity', 'warning', ip, null, {
+        reason: 'timestamp_out_of_range',
+        delta: now - reqTime
+      });
+      return fail(req, res);
     }
-    
-    // Note: Strict time delta checks (Math.abs(now - reqTime)) are disabled 
-    // to allow highly desynced PC clocks to connect without issues.
 
-    // ── Step 3: Lookup application ───────────────────────────────────────────
+    // ── Step 3: Lookup application (with Redis caching) ─────────────────────
     // Sanitize owner_id — only allow hex chars to prevent NoSQL injection
     if (!/^[a-zA-Z0-9]{10}$/.test(owner_id)) {
       return fail(req, res, 400);
     }
 
-    const application = await Application.findOne({ ownerId: owner_id, name: app_name }).lean();
+    const redis = getRedisClient();
+    const appCacheKey = `app:${owner_id}:${app_name}`;
+    let application = null;
+
+    // Try cache first
+    const cached = await redis.get(appCacheKey);
+    if (cached) {
+      application = JSON.parse(cached);
+    } else {
+      application = await Application.findOne({ ownerId: owner_id, name: app_name }).lean();
+      if (application) {
+        // Cache it for 60s
+        await redis.setEx(appCacheKey, APP_CACHE_TTL, JSON.stringify(application));
+      }
+    }
 
     if (!application) {
       await audit('suspicious_activity', 'warning', ip, null, { reason: 'unknown_owner_id' });
@@ -122,11 +136,6 @@ const verifyClientRequest = async (req, res, next) => {
     }
 
     // ── Step 6: Nonce check (anti-replay layer 2) ────────────────────────────
-    // The nonce check is disabled because some C++ clients on Windows generate 
-    // the exact same nonce on startup due to a known bug in std::random_device.
-    // This causes legitimate users to collide and get blocked as replay attacks.
-    /*
-    const redis    = getRedisClient();
     const nonceKey = `nonce:${owner_id}:${nonce}`;
     const exists   = await redis.exists(nonceKey);
 
@@ -137,7 +146,6 @@ const verifyClientRequest = async (req, res, next) => {
 
     // Store nonce — TTL slightly longer than tolerance to cover edge cases
     await redis.setEx(nonceKey, NONCE_TTL_SECONDS, '1');
-    */
 
     // ── Step 6: HMAC SHA256 signature verification ───────────────────────────
     // Signature = HMAC_SHA256(app_secret, app_name + owner_id + timestamp + nonce + JSON(bodyData))

@@ -26,7 +26,7 @@ namespace Keyauth
         public static long responseTime;
 
         // ── Server URL ───────────────────────────────────────────────────────
-        private const string API_BASE = "https://adarsh-auth-backend-production.up.railway.app/api/client";
+        private const string API_BASE = "https://api.adarshauth.online/api/client";
 
         // ── Session state ────────────────────────────────────────────────────
         private string _sessionToken;
@@ -514,7 +514,8 @@ namespace Keyauth
                     ["owner_id"]  = ownerid,
                     ["timestamp"] = timestamp,
                     ["nonce"]     = nonce,
-                    ["signature"] = signature
+                    ["signature"] = signature,
+                    ["version"]   = version
                 };
 
                 string requestJson = JsonSerializer.Serialize(fullPayload);
@@ -523,7 +524,6 @@ namespace Keyauth
                 using var client = new WebClient();
                 client.Proxy = null;
                 client.Headers[HttpRequestHeader.ContentType] = "application/json";
-                client.Headers[HttpRequestHeader.UserAgent] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36";
 
                 string rawResponse = client.UploadString(API_BASE + endpoint, "POST", requestJson);
                 sw.Stop();

@@ -49,21 +49,36 @@ router.post('/generate',
   })
 }))
 
-// Get all licenses for application
+// Get all licenses for application (with pagination)
 router.get('/application/:applicationId', verifyAppAccess('manage_licenses'), asyncHandler(async (req, res) => {
   const { applicationId } = req.params;
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 20;
+  const skip = (page - 1) * limit;
 
   let filter = { applicationId };
-  // If they are a reseller, they ONLY see licenses they generated
   if (!req.isOwner && req.teamRole === 'reseller') {
     filter.createdBy = req.userId;
   }
 
-  const licenses = await License.find(filter)
-    .populate('usedBy', 'username')
-    .sort({ createdAt: -1 });
+  const [licenses, total] = await Promise.all([
+    License.find(filter)
+      .populate('usedBy', 'username')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit),
+    License.countDocuments(filter)
+  ]);
 
-  res.json({ licenses });
+  res.json({ 
+    licenses,
+    pagination: {
+      total,
+      page,
+      limit,
+      pages: Math.ceil(total / limit)
+    }
+  });
 }));
 
 // --- Helper for License ID routes ---

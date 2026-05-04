@@ -43,6 +43,8 @@ const appUserSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 appUserSchema.index({ username: 1, applicationId: 1 }, { unique: true });
+appUserSchema.index({ hwid: 1, applicationId: 1 });
+appUserSchema.index({ applicationId: 1, banned: 1 });
 
 appUserSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();

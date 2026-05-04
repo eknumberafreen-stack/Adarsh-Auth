@@ -67,9 +67,13 @@ function UserMenu({ user, onEdit, onBan, onPermanentBan, onUnban, onPause, onRes
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function Users() {
-  const { applications, selectedApp, loadingApplications, usersCache, setUsersCache } = useAppStore()
+  const { applications, selectedApp, loadingApplications } = useAppStore()
   const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalUsers, setTotalUsers] = useState(0)
+  const limit = 20
 
   // Create user modal
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -141,25 +145,27 @@ export default function Users() {
 
   useEffect(() => { 
     if (selectedApp?._id) {
-      // If we have cached users, show them instantly
-      if (usersCache[selectedApp._id]) {
-        setUsers(usersCache[selectedApp._id])
-        setLoading(false)
-      } else {
-        setLoading(true)
-      }
-      loadUsers() 
+      setCurrentPage(1)
+      loadUsers(1) 
     } 
   }, [selectedApp?._id])
 
-  const loadUsers = async () => {
+  const loadUsers = async (page = currentPage) => {
     if (!selectedApp?._id) return
+    setLoading(true)
     try {
-      const res = await api.get(`/users/application/${selectedApp._id}`)
+      const res = await api.get(`/users/application/${selectedApp._id}?page=${page}&limit=${limit}`)
       setUsers(res.data.users)
-      setUsersCache(selectedApp._id, res.data.users)
+      setTotalPages(res.data.pagination.pages)
+      setTotalUsers(res.data.pagination.total)
     } catch { toast.error('Failed to load users') }
     finally { setLoading(false) }
+  }
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > totalPages) return
+    setCurrentPage(newPage)
+    loadUsers(newPage)
   }
 
   // ── Actions ────────────────────────────────────────────────────────────────
@@ -206,7 +212,6 @@ export default function Users() {
     setShowBanModal(true)
   }
 
-  // Soft ban — just sets banned=true, HWID NOT blacklisted → PC reset = access again
   const softBan = async (user: any) => {
     setConfirmModal({
       show: true,
@@ -230,11 +235,9 @@ export default function Users() {
     })
   }
 
-  // Pause user — sets expiryDate to now (blocks login without banning)
   const pauseUser = async (user: any) => {
     try {
       if (user.paused) {
-        // Unpause — restore expiry
         await api.patch(`/users/${user._id}/unpause`)
         toast.success('User unpaused')
       } else {
@@ -245,7 +248,6 @@ export default function Users() {
     } catch (e: any) { toast.error(e.response?.data?.error || 'Failed to update user') }
   }
 
-  // Open edit modal
   const openEditModal = (user: any) => {
     setEditTarget(user)
     setEditData({
@@ -357,7 +359,6 @@ export default function Users() {
         <div className="text-center py-12 text-gray-400">Create an application first</div>
       ) : (
         <>
-
           {/* Users table */}
           {loading ? (
             <div className="flex justify-center py-12">
@@ -441,6 +442,54 @@ export default function Users() {
                   ))}
                 </tbody>
               </table>
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between px-4 py-3 border-t border-dark-border">
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs text-gray-400">
+                      Showing <span className="text-white">{(currentPage - 1) * limit + 1}</span> to <span className="text-white">{Math.min(currentPage * limit, totalUsers)}</span> of <span className="text-white">{totalUsers}</span> users
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className="px-3 py-1.5 rounded-lg bg-dark-bg border border-dark-border text-xs font-medium hover:bg-dark-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Previous
+                    </button>
+                    {[...Array(totalPages)].map((_, i) => {
+                      const page = i + 1;
+                      if (page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)) {
+                        return (
+                          <button
+                            key={page}
+                            onClick={() => handlePageChange(page)}
+                            className={`w-8 h-8 rounded-lg text-xs font-medium transition-colors ${
+                              currentPage === page
+                                ? 'bg-primary-600 text-white shadow-lg shadow-primary-900/20'
+                                : 'bg-dark-bg border border-dark-border text-gray-400 hover:bg-dark-hover'
+                            }`}
+                          >
+                            {page}
+                          </button>
+                        );
+                      } else if (page === currentPage - 2 || page === currentPage + 2) {
+                        return <span key={page} className="px-1 text-gray-600">...</span>;
+                      }
+                      return null;
+                    })}
+                    <button
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                      className="px-3 py-1.5 rounded-lg bg-dark-bg border border-dark-border text-xs font-medium hover:bg-dark-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </>
@@ -558,8 +607,6 @@ export default function Users() {
       {showBanModal && banTarget && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
           <div className="modal-card w-full max-w-md">
-
-            {/* Header */}
             <div className="flex justify-between items-start mb-5">
               <div>
                 <div className="flex items-center gap-2 mb-1">
@@ -578,11 +625,9 @@ export default function Users() {
             </div>
 
             <div className="space-y-4">
-              {/* Ban Reason */}
               <div>
                 <label className="block text-sm font-semibold mb-2">
-                  Ban Reason{' '}
-                  <span className="text-gray-500 font-normal">(internal — not shown to user)</span>
+                  Ban Reason <span className="text-gray-500 font-normal">(internal)</span>
                 </label>
                 <input
                   type="text"
@@ -593,25 +638,19 @@ export default function Users() {
                 />
               </div>
 
-              {/* Message to User */}
               <div>
                 <label className="block text-sm font-semibold mb-2">
-                  Message to User <span className="text-red-400">*</span>{' '}
-                  <span className="text-gray-500 font-normal">(shown when they try to login)</span>
+                  Message to User <span className="text-red-400">*</span>
                 </label>
                 <textarea
                   value={banMessage}
                   onChange={(e) => setBanMessage(e.target.value)}
                   rows={4}
                   className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-xl text-white placeholder-gray-600 text-sm focus:outline-none focus:border-red-500/50 transition-all resize-none"
-                  placeholder="e.g. You have been banned for cheating. This decision is final."
+                  placeholder="Message shown to user..."
                 />
-                <p className="text-xs text-gray-500 mt-1.5 flex items-center gap-1">
-                  <span>💡</span> This exact message will appear on the user's screen when they try to login.
-                </p>
               </div>
 
-              {/* Ban IP checkbox */}
               <div className="flex items-center gap-3 px-4 py-3 bg-dark-bg border border-dark-border rounded-xl">
                 <input
                   type="checkbox"
@@ -621,25 +660,19 @@ export default function Users() {
                   className="w-4 h-4 accent-red-600 flex-shrink-0"
                 />
                 <label htmlFor="banIpCheck" className="text-sm cursor-pointer">
-                  Also ban user's IP address{' '}
-                  <span className="text-gray-500">({banTarget.lastIp || 'unknown'})</span>
+                  Also ban user's IP address ({banTarget.lastIp || 'unknown'})
                 </label>
               </div>
 
-              {/* Warning box */}
               <div className="flex items-start gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
                 <span className="text-yellow-400 text-sm flex-shrink-0">⚠️</span>
                 <p className="text-xs text-red-300 leading-relaxed">
-                  This will ban the user, blacklist all their licenses, and kill all sessions. This action cannot be undone.
+                  Bans the user and blacklists their licenses permanently.
                 </p>
               </div>
 
-              {/* Buttons */}
               <div className="flex gap-3 pt-1">
-                <button
-                  onClick={() => setShowBanModal(false)}
-                  className="flex-1 py-3 px-4 bg-dark-bg hover:bg-dark-hover border border-dark-border rounded-xl text-sm font-semibold text-gray-300 transition-all"
-                >
+                <button onClick={() => setShowBanModal(false)} className="flex-1 py-3 px-4 bg-dark-bg hover:bg-dark-hover border border-dark-border rounded-xl text-sm font-semibold text-gray-300 transition-all">
                   Cancel
                 </button>
                 <button
@@ -647,28 +680,19 @@ export default function Users() {
                   disabled={banning}
                   className="flex-1 py-3 px-4 bg-red-600 hover:bg-red-500 disabled:opacity-50 rounded-xl text-sm font-semibold text-white transition-all flex items-center justify-center gap-2"
                 >
-                  {banning ? (
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    <>
-                      <div className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center">
-                        <span className="text-xs font-bold">—</span>
-                      </div>
-                      Full Ban
-                    </>
-                  )}
+                  {banning ? 'Banning...' : 'Full Ban'}
                 </button>
               </div>
             </div>
           </div>
         </div>
       )}
+
       {/* ── Custom Confirmation Modal ────────────────────────────────────── */}
       {confirmModal.show && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-200">
           <div className="modal-card w-full max-w-sm animate-in zoom-in-95 duration-200">
             <div className="flex flex-col items-center text-center">
-              {/* Icon Based on Type */}
               <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 ${
                 confirmModal.type === 'danger' ? 'bg-red-500/20 text-red-400' :
                 confirmModal.type === 'warning' ? 'bg-yellow-500/20 text-yellow-400' :

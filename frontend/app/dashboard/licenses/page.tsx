@@ -71,6 +71,10 @@ export default function Licenses() {
   const { applications, selectedApp } = useAppStore()
   const [licenses, setLicenses] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalLicenses, setTotalLicenses] = useState(0)
+  const limit = 20
 
   // Generate modal
   const [showGenerateModal, setShowGenerateModal] = useState(false)
@@ -100,16 +104,29 @@ export default function Licenses() {
     confirmText: 'Confirm'
   })
 
-  useEffect(() => { if (selectedApp?._id) loadLicenses() }, [selectedApp?._id])
+  useEffect(() => { 
+    if (selectedApp?._id) {
+      setCurrentPage(1)
+      loadLicenses(1) 
+    } 
+  }, [selectedApp?._id])
 
-  const loadLicenses = async () => {
+  const loadLicenses = async (page = currentPage) => {
     if (!selectedApp?._id) return
     setLoading(true)
     try {
-      const res = await api.get(`/licenses/application/${selectedApp._id}`)
+      const res = await api.get(`/licenses/application/${selectedApp._id}?page=${page}&limit=${limit}`)
       setLicenses(res.data.licenses)
+      setTotalPages(res.data.pagination.pages)
+      setTotalLicenses(res.data.pagination.total)
     } catch { toast.error('Failed to load licenses') }
     finally { setLoading(false) }
+  }
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > totalPages) return
+    setCurrentPage(newPage)
+    loadLicenses(newPage)
   }
 
   // ── Actions ────────────────────────────────────────────────────────────────
@@ -169,7 +186,6 @@ export default function Licenses() {
 
   const revokeLicense = async (id: string, unrevoke = false) => {
     if (unrevoke) {
-      // Direct action for unrevoke
       try {
         await api.post(`/licenses/${id}/unrevoke`)
         toast.success('License unrevoked')
@@ -250,7 +266,6 @@ export default function Licenses() {
         <div className="text-center py-12 text-gray-400">Create an application first</div>
       ) : (
         <>
-
           {loading ? (
             <div className="flex justify-center py-12">
               <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary-500" />
@@ -308,6 +323,54 @@ export default function Licenses() {
                   ))}
                 </tbody>
               </table>
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between px-4 py-3 border-t border-dark-border">
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs text-gray-400">
+                      Showing <span className="text-white">{(currentPage - 1) * limit + 1}</span> to <span className="text-white">{Math.min(currentPage * limit, totalLicenses)}</span> of <span className="text-white">{totalLicenses}</span> keys
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className="px-3 py-1.5 rounded-lg bg-dark-bg border border-dark-border text-xs font-medium hover:bg-dark-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Previous
+                    </button>
+                    {[...Array(totalPages)].map((_, i) => {
+                      const page = i + 1;
+                      if (page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)) {
+                        return (
+                          <button
+                            key={page}
+                            onClick={() => handlePageChange(page)}
+                            className={`w-8 h-8 rounded-lg text-xs font-medium transition-colors ${
+                              currentPage === page
+                                ? 'bg-primary-600 text-white shadow-lg shadow-primary-900/20'
+                                : 'bg-dark-bg border border-dark-border text-gray-400 hover:bg-dark-hover'
+                            }`}
+                          >
+                            {page}
+                          </button>
+                        );
+                      } else if (page === currentPage - 2 || page === currentPage + 2) {
+                        return <span key={page} className="px-1 text-gray-600">...</span>;
+                      }
+                      return null;
+                    })}
+                    <button
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                      className="px-3 py-1.5 rounded-lg bg-dark-bg border border-dark-border text-xs font-medium hover:bg-dark-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </>

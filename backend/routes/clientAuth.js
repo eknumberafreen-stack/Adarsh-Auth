@@ -7,8 +7,8 @@ const express  = require('express');
 const crypto   = require('crypto');
 const AppUser  = require('../models/AppUser');
 const License  = require('../models/License');
-const Session  = require('../models/Session');
 const AuditLog = require('../models/AuditLog');
+const { getRedisClient } = require('../config/redis');
 const { verifyClientRequest }  = require('../middleware/clientAuth');
 const { requireSession }       = require('../middleware/sessionValidator');
 const { checkIPBan }           = require('../middleware/ipBan');
@@ -45,22 +45,31 @@ const fail = async (req, res, code = 401, msgKey = 'invalidCreds', defaultMsg = 
   return res.status(code).json({ success: false, message: message });
 };
 
-/** Create session — invalidates any existing session for user+app */
+/** Create session — invalidates any existing session for user+app in Redis */
 const createSession = async (userId, appId, hwid, ip) => {
-  await Session.deleteMany({ userId, applicationId: appId });
-
-  const token     = crypto.randomBytes(32).toString('hex');
-  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-
-  await Session.create({
-    userId,
-    applicationId: appId,
-    sessionToken: token,
+  const redis = getRedisClient();
+  const token = crypto.randomBytes(32).toString('hex');
+  
+  const sessionData = {
+    userId: userId.toString(),
+    applicationId: appId.toString(),
     hwid,
     ip,
-    lastHeartbeat: new Date(),
-    expiresAt
-  });
+    lastHeartbeat: Date.now().toString()
+  };
+
+  // Store in Redis with 24h expiry
+  const key = `sess:${token}`;
+  await redis.hset(key, sessionData);
+  await redis.expire(key, 24 * 60 * 60);
+
+  // Optional: Track user's active session to allow only one session at a time
+  const userKey = `user_sess:${userId}:${appId}`;
+  const oldSess = await redis.get(userKey);
+  if (oldSess) {
+    await redis.del(`sess:${oldSess}`);
+  }
+  await redis.set(userKey, token, 'EX', 24 * 60 * 60);
 
   return token;
 };
@@ -513,7 +522,8 @@ router.post('/validate',
     });
 
     if (blacklisted) {
-      await Session.deleteOne({ _id: req.session._id });
+      const redis = getRedisClient();
+      await redis.del(`sess:${req.sessionToken}`);
       return fail(req, res, 403, 'userBanned', 'Account is permanently banned');
     }
 
@@ -537,8 +547,9 @@ router.post('/heartbeat',
   verifyClientRequest,
   requireSession,
   asyncHandler(async (req, res) => {
-    req.session.lastHeartbeat = new Date();
-    await req.session.save();
+    const redis = getRedisClient();
+    const key = `sess:${req.sessionToken}`;
+    await redis.hset(key, 'lastHeartbeat', Date.now().toString());
     res.json({ success: true, message: 'OK' });
   })
 );

@@ -625,7 +625,7 @@ export default function Settings() {
               </div>
               <div className="p-4 bg-dark-bg rounded-xl border border-dark-border">
                 <p className="text-white font-medium mb-1">Timestamp Tolerance</p>
-                <p>Requests must be within a valid time window to prevent replay attacks.</p>
+                <p>Requests must be within ±30 seconds of server time to prevent replay attacks.</p>
               </div>
               <div className="p-4 bg-dark-bg rounded-xl border border-dark-border">
                 <p className="text-white font-medium mb-1">HWID Locking</p>

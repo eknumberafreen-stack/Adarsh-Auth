@@ -9,9 +9,9 @@
  * - Heartbeat is recent (within HEARTBEAT_TIMEOUT_MS)
  */
 
-const Session   = require('../models/Session');
 const AppUser   = require('../models/AppUser');
 const AuditLog  = require('../models/AuditLog');
+const { getRedisClient } = require('../config/redis');
 
 const HEARTBEAT_TIMEOUT_MS = 60_000; // 60 seconds — client must heartbeat every ~20s
 
@@ -28,27 +28,25 @@ const requireSession = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Request failed' });
     }
 
-    // ── Load session ─────────────────────────────────────────────────────────
-    const session = await Session.findOne({
-      sessionToken: session_token,
-      applicationId: req.application._id
-    });
-
-    if (!session) {
+    // ── Load session from Redis ──────────────────────────────────────────────
+    const redis = getRedisClient();
+    const key = `sess:${session_token}`;
+    const session = await redis.hgetall(key);
+    
+    if (!session || Object.keys(session).length === 0) {
       await randomDelay();
       return res.status(401).json({ success: false, message: 'Request failed' });
     }
 
-    // ── Expiry check ─────────────────────────────────────────────────────────
-    if (session.expiresAt < Date.now()) {
-      await Session.deleteOne({ _id: session._id });
-      return res.status(401).json({ success: false, message: 'Session expired' });
+    // Check application binding
+    if (!req.application || session.applicationId !== req.application._id.toString()) {
+       return res.status(401).json({ success: false, message: 'Request failed' });
     }
 
     // ── Heartbeat timeout check ───────────────────────────────────────────────
-    const timeSinceHeartbeat = Date.now() - new Date(session.lastHeartbeat).getTime();
+    const timeSinceHeartbeat = Date.now() - parseInt(session.lastHeartbeat);
     if (timeSinceHeartbeat > HEARTBEAT_TIMEOUT_MS) {
-      await Session.deleteOne({ _id: session._id });
+      await redis.del(key);
       await AuditLog.create({
         applicationId: req.application._id,
         userId: session.userId,
@@ -89,12 +87,13 @@ const requireSession = async (req, res, next) => {
     // ── Load user and check active ────────────────────────────────────────────
     const user = await AppUser.findById(session.userId);
     if (!user || !user.isActive()) {
-      await Session.deleteOne({ _id: session._id });
+      await redis.del(key);
       return res.status(403).json({ success: false, message: 'Account is not active' });
     }
 
-    req.session     = session;
-    req.sessionUser = user;
+    req.sessionToken = session_token;
+    req.session      = session;
+    req.sessionUser  = user;
     next();
 
   } catch (err) {

@@ -104,13 +104,23 @@ router.patch('/:id', validate(schemas.updateApplication), verifyAppAccess('manag
 // Regenerate app secret — invalidates ALL sessions
 router.post('/:id/regenerate-secret', verifyAppAccess('manage_settings'), asyncHandler(async (req, res) => {
   const application = req.application;
+  const { getRedisClient } = require('../config/redis');
+  const redis = getRedisClient();
 
   // Regenerate secret
   const newSecret = application.regenerateSecret();
   await application.save();
 
-  // Invalidate ALL active sessions for this application
-  const deleted = await Session.deleteMany({ applicationId: application._id });
+  // Invalidate ALL active sessions for this application in Redis
+  const sessionKeys = await redis.keys('sess:*');
+  let deletedCount = 0;
+  for (const key of sessionKeys) {
+    const sess = await redis.hgetall(key);
+    if (sess.applicationId === application._id.toString()) {
+      await redis.del(key);
+      deletedCount++;
+    }
+  }
 
   // Log the rotation
   await AuditLog.create({
@@ -120,12 +130,12 @@ router.post('/:id/regenerate-secret', verifyAppAccess('manage_settings'), asyncH
     severity: 'info',
     details: {
       event: 'secret_rotated',
-      sessionsInvalidated: deleted.deletedCount
+      sessionsInvalidated: deletedCount
     }
   });
 
   res.json({
-    message: `Secret regenerated. ${deleted.deletedCount} session(s) invalidated.`,
+    message: `Secret regenerated. ${deletedCount} session(s) invalidated.`,
     appSecret: newSecret
   });
 }));
@@ -162,11 +172,21 @@ router.delete('/:id', verifyAppAccess(), asyncHandler(async (req, res) => {
 
   const application = req.application;
 
+  const { getRedisClient } = require('../config/redis');
+  const redis = getRedisClient();
+
   // Delete all related data
   await Promise.all([
     AppUser.deleteMany({ applicationId: application._id }),
     License.deleteMany({ applicationId: application._id }),
-    Session.deleteMany({ applicationId: application._id }),
+    // Delete Redis sessions
+    (async () => {
+      const keys = await redis.keys('sess:*');
+      for (const key of keys) {
+        const sess = await redis.hgetall(key);
+        if (sess.applicationId === application._id.toString()) await redis.del(key);
+      }
+    })(),
     Application.deleteOne({ _id: application._id })
   ]);
 
@@ -176,13 +196,20 @@ router.delete('/:id', verifyAppAccess(), asyncHandler(async (req, res) => {
 // Get application statistics
 router.get('/:id/stats', verifyAppAccess(), asyncHandler(async (req, res) => {
   const application = req.application;
+  const { getRedisClient } = require('../config/redis');
+  const redis = getRedisClient();
 
-  // For resellers, they might only want to see stats for their own licenses
-  // But for simplicity, we'll just show overall stats for now.
-  const [userCount, licenseCount, activeSessionCount, usedLicenseCount] = await Promise.all([
+  // Count Redis sessions for this app
+  let activeSessionCount = 0;
+  const sessionKeys = await redis.keys('sess:*');
+  for (const key of sessionKeys) {
+    const sess = await redis.hgetall(key);
+    if (sess.applicationId === application._id.toString()) activeSessionCount++;
+  }
+
+  const [userCount, licenseCount, usedLicenseCount] = await Promise.all([
     AppUser.countDocuments({ applicationId: application._id }),
     License.countDocuments({ applicationId: application._id }),
-    Session.countDocuments({ applicationId: application._id }),
     License.countDocuments({ applicationId: application._id, used: true })
   ]);
 

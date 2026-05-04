@@ -174,7 +174,7 @@ export default function Login() {
               <div className="p-8">
                 <button
                   type="button"
-                  onClick={() => (window.location.href = `${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://adarsh-auth.up.railway.app'}/api/auth/google`)}
+                  onClick={() => (window.location.href = `${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://api.adarshauth.online'}/api/auth/google`)}
                   className="btn btn-secondary w-full justify-center py-3"
                 >
                   <svg className="h-4 w-4 flex-shrink-0" viewBox="0 0 24 24">

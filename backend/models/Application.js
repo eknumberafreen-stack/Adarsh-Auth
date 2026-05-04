@@ -83,6 +83,9 @@ const applicationSchema = new mongoose.Schema({
   timestamps: true
 });
 
+applicationSchema.index({ userId: 1, name: 1 });
+applicationSchema.index({ ownerId: 1, name: 1 });
+
 // Generate secure credentials
 applicationSchema.statics.generateCredentials = function() {
   return {
