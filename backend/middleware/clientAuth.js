@@ -15,8 +15,8 @@ const AuditLog = require('../models/AuditLog');
 const { getRedisClient } = require('../config/redis');
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const TIMESTAMP_TOLERANCE_MS = 30_000;   // ±30 seconds
-const NONCE_TTL_SECONDS      = 60;       // nonce lives 60s in Redis
+const TIMESTAMP_TOLERANCE_MS = 60_000;    // ±60 seconds (Client now syncs with Google)
+const NONCE_TTL_SECONDS      = 86400;   // Keep 24h nonce for extra safety
 const DELAY_MIN_MS           = 100;
 const DELAY_MAX_MS           = 300;
 const APP_CACHE_TTL          = 60;       // cache app data for 60s

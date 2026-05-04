@@ -9,8 +9,8 @@
  * - Heartbeat is recent (within HEARTBEAT_TIMEOUT_MS)
  */
 
-const AppUser   = require('../models/AppUser');
-const AuditLog  = require('../models/AuditLog');
+const AppUser = require('../models/AppUser');
+const AuditLog = require('../models/AuditLog');
 const { getRedisClient } = require('../config/redis');
 
 const HEARTBEAT_TIMEOUT_MS = 60_000; // 60 seconds — client must heartbeat every ~20s
@@ -32,7 +32,7 @@ const requireSession = async (req, res, next) => {
     const redis = getRedisClient();
     const key = `sess:${session_token}`;
     const session = await redis.hGetAll(key);
-    
+
     if (!session || Object.keys(session).length === 0) {
       await randomDelay();
       return res.status(401).json({ success: false, message: 'Request failed' });
@@ -40,7 +40,7 @@ const requireSession = async (req, res, next) => {
 
     // Check application binding
     if (!req.application || session.applicationId !== req.application._id.toString()) {
-       return res.status(401).json({ success: false, message: 'Request failed' });
+      return res.status(401).json({ success: false, message: 'Request failed' });
     }
 
     // ── Heartbeat timeout check ───────────────────────────────────────────────
@@ -92,8 +92,8 @@ const requireSession = async (req, res, next) => {
     }
 
     req.sessionToken = session_token;
-    req.session      = session;
-    req.sessionUser  = user;
+    req.session = session;
+    req.sessionUser = user;
     next();
 
   } catch (err) {
