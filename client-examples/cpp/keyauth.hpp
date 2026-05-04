@@ -132,7 +132,8 @@ public:
       return;
     auto result = post_signed("/init", {});
     if (!result.success) {
-      error("Application not found or is paused. Check your credentials.");
+      std::string msg = result.message.empty() ? "Application not found or is paused. Check your credentials." : result.message;
+      error(msg);
       exit(0);
     }
     _initialized = true;
