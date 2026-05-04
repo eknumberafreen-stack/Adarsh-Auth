@@ -73,7 +73,8 @@ export default function Users() {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalUsers, setTotalUsers] = useState(0)
-  const limit = 20
+  const [searchTerm, setSearchTerm] = useState('')
+  const limit = 10
 
   // Create user modal
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -146,15 +147,15 @@ export default function Users() {
   useEffect(() => { 
     if (selectedApp?._id) {
       setCurrentPage(1)
-      loadUsers(1) 
+      loadUsers(1, searchTerm) 
     } 
-  }, [selectedApp?._id])
+  }, [selectedApp?._id, searchTerm])
 
-  const loadUsers = async (page = currentPage) => {
+  const loadUsers = async (page = currentPage, search = searchTerm) => {
     if (!selectedApp?._id) return
     setLoading(true)
     try {
-      const res = await api.get(`/users/application/${selectedApp._id}?page=${page}&limit=${limit}`)
+      const res = await api.get(`/users/application/${selectedApp._id}?page=${page}&limit=${limit}&search=${search}`)
       setUsers(res.data.users)
       setTotalPages(res.data.pagination.pages)
       setTotalUsers(res.data.pagination.total)
@@ -345,9 +346,25 @@ export default function Users() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Users</h1>
         {selectedApp?._id && (
-          <button onClick={() => setShowCreateModal(true)} className="btn btn-primary flex items-center gap-2">
-            <PlusIcon className="w-4 h-4" /> Create User
-          </button>
+          <div className="flex items-center gap-3">
+            <div className="relative group">
+              <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-gray-500 group-focus-within:text-primary-400 transition-colors">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search users..."
+                className="w-64 pl-10 pr-4 py-2.5 bg-dark-bg border border-dark-border rounded-xl text-sm focus:outline-none focus:border-primary-500/50 transition-all placeholder-gray-500"
+              />
+            </div>
+            <button onClick={() => setShowCreateModal(true)} className="btn btn-primary flex items-center gap-2 py-2.5">
+              <PlusIcon className="w-4 h-4" /> Create User
+            </button>
+          </div>
         )}
       </div>
 
@@ -443,53 +460,28 @@ export default function Users() {
                 </tbody>
               </table>
 
-              {/* Pagination Controls */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between px-4 py-3 border-t border-dark-border">
-                  <div className="flex items-center gap-2">
-                    <p className="text-xs text-gray-400">
-                      Showing <span className="text-white">{(currentPage - 1) * limit + 1}</span> to <span className="text-white">{Math.min(currentPage * limit, totalUsers)}</span> of <span className="text-white">{totalUsers}</span> users
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => handlePageChange(currentPage - 1)}
-                      disabled={currentPage === 1}
-                      className="px-3 py-1.5 rounded-lg bg-dark-bg border border-dark-border text-xs font-medium hover:bg-dark-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      Previous
-                    </button>
-                    {[...Array(totalPages)].map((_, i) => {
-                      const page = i + 1;
-                      if (page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)) {
-                        return (
-                          <button
-                            key={page}
-                            onClick={() => handlePageChange(page)}
-                            className={`w-8 h-8 rounded-lg text-xs font-medium transition-colors ${
-                              currentPage === page
-                                ? 'bg-primary-600 text-white shadow-lg shadow-primary-900/20'
-                                : 'bg-dark-bg border border-dark-border text-gray-400 hover:bg-dark-hover'
-                            }`}
-                          >
-                            {page}
-                          </button>
-                        );
-                      } else if (page === currentPage - 2 || page === currentPage + 2) {
-                        return <span key={page} className="px-1 text-gray-600">...</span>;
-                      }
-                      return null;
-                    })}
-                    <button
-                      onClick={() => handlePageChange(currentPage + 1)}
-                      disabled={currentPage === totalPages}
-                      className="px-3 py-1.5 rounded-lg bg-dark-bg border border-dark-border text-xs font-medium hover:bg-dark-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      Next
-                    </button>
-                  </div>
+              {/* Pagination Controls — KeyAuth Style */}
+              <div className="flex items-center justify-between px-6 py-4 bg-black/20 border-t border-white/5">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="px-5 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-gray-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                >
+                  Previous
+                </button>
+                
+                <div className="text-xs font-medium text-gray-500">
+                  Showing page <span className="text-gray-200">{currentPage}</span> of <span className="text-gray-200">{totalPages}</span>
                 </div>
-              )}
+
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages || totalPages === 0}
+                  className="px-5 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-gray-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                >
+                  Next
+                </button>
+              </div>
             </div>
           )}
         </>

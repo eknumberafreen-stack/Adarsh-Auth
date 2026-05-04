@@ -43,11 +43,16 @@ const verifyUserActionAccess = async (req, res, appUser, requiredPermission) => 
 // ─── Get all users for application (with pagination) ──────────────────────────
 router.get('/application/:applicationId', verifyAppAccess(), asyncHandler(async (req, res) => {
   const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 20;
+  const limit = parseInt(req.query.limit) || 10;
+  const search = req.query.search || '';
   const skip = (page - 1) * limit;
 
   const filter = { applicationId: req.params.applicationId };
   
+  if (search) {
+    filter.username = { $regex: search, $options: 'i' };
+  }
+
   const [users, total] = await Promise.all([
     AppUser.find(filter)
       .select('-password')

@@ -35,6 +35,10 @@ export default function Applications() {
   const [credentials, setCredentials] = useState<any>(null)
   const [showSecret, setShowSecret] = useState(false)
   const [showSnippet, setShowSnippet] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalApps, setTotalApps] = useState(0)
+  const limit = 10
   const [selectedLang, setSelectedLang] = useState('C++')
 
   // Custom Confirm Modal
@@ -48,38 +52,33 @@ export default function Applications() {
   })
 
   useEffect(() => {
-    loadApplications()
-  }, [])
+    loadApplications(1, search)
+  }, [search])
 
-  const loadApplications = async () => {
+  const loadApplications = async (page = currentPage, searchTerm = search) => {
+    setLoading(true)
     try {
-      const response = await api.get('/applications')
+      const response = await api.get(`/applications?page=${page}&limit=${limit}&search=${searchTerm}`)
       const apps = response.data.applications
       setApplications(apps)
+      setTotalPages(response.data.pagination.pages)
+      setTotalApps(response.data.pagination.total)
 
-      // Parallel fetch session counts for all apps
-      const sessionCounts = await Promise.all(
-        apps.map(async (app: any) => {
-          try {
-            const res = await api.get(`/sessions/application/${app._id}`)
-            return res.data.sessions.length
-          } catch { return 0 }
-        })
-      )
-      
-      const totalSessions = sessionCounts.reduce((a, b) => a + b, 0)
+      // Update local stats from pagination data for "Total Apps"
+      setStats(prev => ({ ...prev, total: response.data.pagination.total }))
 
-      setStats({
-        total: apps.length,
-        active: apps.filter((app: any) => app.status === 'active').length,
-        paused: apps.filter((app: any) => app.status === 'paused').length,
-        sessions: totalSessions,
-      })
+      // Note: Full stats like "Active Sessions" would still need a separate call or be returned by backend
     } catch {
-      toast.error('Failed to load stats')
+      toast.error('Failed to load applications')
     } finally {
       setLoading(false)
     }
+  }
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > totalPages) return
+    setCurrentPage(newPage)
+    loadApplications(newPage)
   }
 
   useEffect(() => {
@@ -376,77 +375,102 @@ export default function Applications() {
               <div className="flex justify-center py-24">
                 <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-400 border-t-transparent" />
               </div>
-            ) : filtered.length === 0 ? (
+            ) : applications.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-white/10 px-5 py-14 text-center text-sm text-slate-400">
-                No applications found for the current search.
+                No applications found.
               </div>
             ) : (
-              filtered.map((app: any) => {
-                const isSelected = selectedApp?._id === app._id
-                return (
-                  <div
-                    key={app._id}
-                    className={`rounded-2xl border p-5 transition-all ${
-                      isSelected
-                        ? 'border-indigo-400/25 bg-indigo-400/10 shadow-lg shadow-indigo-950/30'
-                        : 'border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.05]'
-                    }`}
-                  >
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                      <div>
-                        <div className="flex flex-wrap items-center gap-3">
-                          <h3 className="text-xl font-bold text-white">{app.name}</h3>
-                          <span
-                            className={`badge ${
-                              app.status === 'active'
-                                ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-200'
-                                : 'border-zinc-400/20 bg-zinc-400/10 text-zinc-200'
-                            }`}
-                          >
-                            {app.status}
-                          </span>
+              <>
+                {applications.map((app: any) => {
+                  const isSelected = selectedApp?._id === app._id
+                  return (
+                    <div
+                      key={app._id}
+                      className={`rounded-2xl border p-5 transition-all ${
+                        isSelected
+                          ? 'border-indigo-400/25 bg-indigo-400/10 shadow-lg shadow-indigo-950/30'
+                          : 'border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.05]'
+                      }`}
+                    >
+                      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div>
+                          <div className="flex flex-wrap items-center gap-3">
+                            <h3 className="text-xl font-bold text-white">{app.name}</h3>
+                            <span
+                              className={`badge ${
+                                app.status === 'active'
+                                  ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-200'
+                                  : 'border-zinc-400/20 bg-zinc-400/10 text-zinc-200'
+                              }`}
+                            >
+                              {app.status}
+                            </span>
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-4 text-sm text-slate-400">
+                            <span className="inline-flex items-center gap-2">
+                              <CubeIcon className="h-4 w-4" />
+                              Version {app.version}
+                            </span>
+                            <span className="inline-flex items-center gap-2">
+                              <UserGroupIcon className="h-4 w-4" />
+                              {app.userCount || 0} linked users
+                            </span>
+                          </div>
                         </div>
-                        <div className="mt-3 flex flex-wrap gap-4 text-sm text-slate-400">
-                          <span className="inline-flex items-center gap-2">
-                            <CubeIcon className="h-4 w-4" />
-                            Version {app.version}
-                          </span>
-                          <span className="inline-flex items-center gap-2">
-                            <UserGroupIcon className="h-4 w-4" />
-                            {app.userCount || 0} linked users
-                          </span>
-                        </div>
-                      </div>
 
-                      <div className="flex flex-wrap gap-2">
-                        <button onClick={() => selectApp(app)} className={`btn px-3 py-2 text-xs ${isSelected ? 'btn-secondary' : 'btn-primary'}`}>
-                          <CheckIcon className="h-4 w-4" />
-                          {isSelected ? 'Selected' : 'Select'}
-                        </button>
-                        <button
-                          onClick={() => {
-                            setRenameApp(app)
-                            setNewName(app.name)
-                            setShowRenameModal(true)
-                          }}
-                          className="btn btn-secondary px-3 py-2 text-xs"
-                        >
-                          <PencilIcon className="h-4 w-4" />
-                          Rename
-                        </button>
-                        <button onClick={() => toggleStatus(app)} className="btn btn-secondary px-3 py-2 text-xs">
-                          {app.status === 'active' ? <PauseIcon className="h-4 w-4" /> : <PlayIcon className="h-4 w-4" />}
-                          {app.status === 'active' ? 'Pause' : 'Resume'}
-                        </button>
-                        <button onClick={() => deleteApplication(app._id)} className="btn btn-danger px-3 py-2 text-xs">
-                          <TrashIcon className="h-4 w-4" />
-                          Delete
-                        </button>
+                        <div className="flex flex-wrap gap-2">
+                          <button onClick={() => selectApp(app)} className={`btn px-3 py-2 text-xs ${isSelected ? 'btn-secondary' : 'btn-primary'}`}>
+                            <CheckIcon className="h-4 w-4" />
+                            {isSelected ? 'Selected' : 'Select'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setRenameApp(app)
+                              setNewName(app.name)
+                              setShowRenameModal(true)
+                            }}
+                            className="btn btn-secondary px-3 py-2 text-xs"
+                          >
+                            <PencilIcon className="h-4 w-4" />
+                            Rename
+                          </button>
+                          <button onClick={() => toggleStatus(app)} className="btn btn-secondary px-3 py-2 text-xs">
+                            {app.status === 'active' ? <PauseIcon className="h-4 w-4" /> : <PlayIcon className="h-4 w-4" />}
+                            {app.status === 'active' ? 'Pause' : 'Resume'}
+                          </button>
+                          <button onClick={() => deleteApplication(app._id)} className="btn btn-danger px-3 py-2 text-xs">
+                            <TrashIcon className="h-4 w-4" />
+                            Delete
+                          </button>
+                        </div>
                       </div>
                     </div>
+                  )
+                })}
+
+                {/* Pagination Controls — KeyAuth Style */}
+                <div className="flex items-center justify-between px-2 py-4 bg-transparent border-t border-white/5">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="px-5 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-gray-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                  >
+                    Previous
+                  </button>
+                  
+                  <div className="text-xs font-medium text-gray-500">
+                    Showing page <span className="text-gray-200">{currentPage}</span> of <span className="text-gray-200">{totalPages || 1}</span>
                   </div>
-                )
-              })
+
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages || totalPages === 0}
+                    className="px-5 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-gray-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                  >
+                    Next
+                  </button>
+                </div>
+              </>
             )}
           </div>
         </div>

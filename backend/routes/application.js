@@ -16,18 +16,46 @@ const router = express.Router();
 // All routes require authentication
 router.use(verifyToken);
 
-// Get all applications for user (Owner or Team Member)
+// Get all applications for user (Owner or Team Member) with pagination and search
 router.get('/', asyncHandler(async (req, res) => {
-  const applications = await Application.find({
-    $or: [
-      { userId: req.userId },
-      { 'team.userId': req.userId }
-    ]
-  })
-    .select('-appSecret')
-    .sort({ createdAt: -1 });
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const search = req.query.search || '';
+  const skip = (page - 1) * limit;
 
-  res.json({ applications });
+  const filter = {
+    $and: [
+      {
+        $or: [
+          { userId: req.userId },
+          { 'team.userId': req.userId }
+        ]
+      }
+    ]
+  };
+
+  if (search) {
+    filter.$and.push({ name: { $regex: search, $options: 'i' } });
+  }
+
+  const [applications, total] = await Promise.all([
+    Application.find(filter)
+      .select('-appSecret')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit),
+    Application.countDocuments(filter)
+  ]);
+
+  res.json({ 
+    applications,
+    pagination: {
+      total,
+      page,
+      limit,
+      pages: Math.ceil(total / limit)
+    }
+  });
 }));
 
 // Get single application with credentials

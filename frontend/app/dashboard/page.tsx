@@ -26,26 +26,43 @@ export default function Dashboard() {
     bannedUsers: 0,
   })
   const [recentApps, setRecentApps] = useState<any[]>(statsCache?.recentApps || [])
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
   const [loading, setLoading] = useState(!statsCache)
+  const limit = 4
 
   useEffect(() => {
-    if (applications.length > 0) {
-      loadStats()
-    } else {
-      // If store is empty (first load), wait for layout to fill it or do a one-time fetch
-      api.get('/applications').then(res => {
-        setRecentApps(res.data.applications.slice(0, 4))
-        loadStats(res.data.applications)
-      })
+    loadRecentApps(currentPage)
+  }, [currentPage])
+
+  const loadRecentApps = async (page = 1) => {
+    setLoading(true)
+    try {
+      const res = await api.get(`/applications?page=${page}&limit=${limit}`)
+      setRecentApps(res.data.applications)
+      setTotalPages(res.data.pagination.pages)
+      
+      // Update stats based on full application count if needed, 
+      // but here we just update the total from pagination metadata
+      setStats(prev => ({ ...prev, applications: res.data.pagination.total }))
+    } catch (err) {
+      console.error('Failed to load recent apps:', err)
+    } finally {
+      setLoading(false)
     }
-  }, [applications])
+  }
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > totalPages) return
+    setCurrentPage(newPage)
+  }
 
   const loadStats = async (appsToUse = applications) => {
     if (appsToUse.length === 0) {
       setLoading(false)
       return
     }
-    setRecentApps(appsToUse.slice(0, 4))
+    setRecentApps(appsToUse.slice(0, limit))
 
     try {
 
@@ -86,7 +103,7 @@ export default function Dashboard() {
         sessions: totalSessions,
         usedLicenses,
         bannedUsers,
-        recentApps: appsToUse.slice(0, 4)
+        recentApps: appsToUse.slice(0, limit)
       }
 
       setStats(finalStats)
@@ -218,6 +235,31 @@ export default function Dashboard() {
                   ))
                 )}
               </div>
+
+              {/* Pagination Controls — KeyAuth Style */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between mt-6 pt-6 border-t border-white/5">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="px-5 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-gray-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                  >
+                    Previous
+                  </button>
+                  
+                  <div className="text-xs font-medium text-gray-500">
+                    Showing page <span className="text-gray-200">{currentPage}</span> of <span className="text-gray-200">{totalPages}</span>
+                  </div>
+
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="px-5 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-gray-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="space-y-6">
