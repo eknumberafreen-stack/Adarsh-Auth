@@ -523,6 +523,7 @@ namespace Keyauth
                 using var client = new WebClient();
                 client.Proxy = null;
                 client.Headers[HttpRequestHeader.ContentType] = "application/json";
+                client.Headers[HttpRequestHeader.UserAgent] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36";
 
                 string rawResponse = client.UploadString(API_BASE + endpoint, "POST", requestJson);
                 sw.Stop();

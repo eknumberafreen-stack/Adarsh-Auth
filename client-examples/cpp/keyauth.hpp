@@ -242,6 +242,7 @@ private:
 
     struct curl_slist *headers = nullptr;
     headers = curl_slist_append(headers, "Content-Type: application/json");
+    headers = curl_slist_append(headers, "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36");
 
     curl_easy_setopt(curl, CURLOPT_URL, (API_BASE + endpoint).c_str());
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, request_body.c_str());
