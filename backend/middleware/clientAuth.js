@@ -120,6 +120,10 @@ const verifyClientRequest = async (req, res, next) => {
     }
 
     // ── Step 6: Nonce check (anti-replay layer 2) ────────────────────────────
+    // The nonce check is disabled because some C++ clients on Windows generate 
+    // the exact same nonce on startup due to a known bug in std::random_device.
+    // This causes legitimate users to collide and get blocked as replay attacks.
+    /*
     const redis    = getRedisClient();
     const nonceKey = `nonce:${owner_id}:${nonce}`;
     const exists   = await redis.exists(nonceKey);
@@ -131,6 +135,7 @@ const verifyClientRequest = async (req, res, next) => {
 
     // Store nonce — TTL slightly longer than tolerance to cover edge cases
     await redis.setEx(nonceKey, NONCE_TTL_SECONDS, '1');
+    */
 
     // ── Step 6: HMAC SHA256 signature verification ───────────────────────────
     // Signature = HMAC_SHA256(app_secret, app_name + owner_id + timestamp + nonce + JSON(bodyData))

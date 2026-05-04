@@ -65,13 +65,7 @@ const clientIpLimiter = redisRateLimiter(
   req => req.ip
 );
 
-// ─── Per-App client API limiter ───────────────────────────────────────────────
-const clientAppLimiter = redisRateLimiter(
-  'client:app',
-  100,
-  60_000,
-  req => req.body?.owner_id || 'unknown'
-);
+
 
 // ─── Per-endpoint limiter factory ─────────────────────────────────────────────
 const endpointLimiter = (endpoint, maxReqs = 30, windowMs = 60_000) =>
@@ -83,7 +77,7 @@ const endpointLimiter = (endpoint, maxReqs = 30, windowMs = 60_000) =>
   );
 
 // ─── Combined client API limiter ──────────────────────────────────────────────
-const clientApiRateLimiter = [clientIpLimiter, clientAppLimiter];
+const clientApiRateLimiter = [clientIpLimiter];
 
 module.exports = {
   globalRateLimiter,
