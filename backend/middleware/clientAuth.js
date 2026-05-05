@@ -84,8 +84,8 @@ const verifyClientRequest = async (req, res, next) => {
     }
 
     // ── Step 3: Lookup application (with Redis caching) ─────────────────────
-    // Sanitize owner_id — only allow hex chars to prevent NoSQL injection
-    if (!/^[a-zA-Z0-9]{10}$/.test(owner_id)) {
+    // Sanitize owner_id — support 10 to 64 chars
+    if (!/^[a-zA-Z0-9]{10,64}$/.test(owner_id)) {
       return fail(req, res, 400);
     }
 
@@ -124,9 +124,11 @@ const verifyClientRequest = async (req, res, next) => {
       return res.status(403).json({ success: false, message: msg });
     }
 
-    // ── Step 5: Version check ────────────────────────────────────────────────
-    const clientVersion = String(version || '');
-    if (clientVersion && clientVersion !== String(application.version)) {
+    // ── Step 5: Version check (Mandatory) ────────────────────────────────────
+    const clientVersion = String(version || '0.0.0'); 
+    const serverVersion = String(application.version || '1.0');
+
+    if (clientVersion !== serverVersion) {
       const msg = application.customMessages?.versionMismatch || 'Application version mismatch.';
       return res.status(403).json({ 
         success: false, 

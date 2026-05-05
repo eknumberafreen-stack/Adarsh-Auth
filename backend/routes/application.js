@@ -130,13 +130,14 @@ router.patch('/:id', validate(schemas.updateApplication), verifyAppAccess('manag
     const { getRedisClient } = require('../config/redis');
     const redis = getRedisClient();
     
-    // Invalidate old name cache
+    // Invalidate cache for BOTH old and new app names to be safe
     await redis.del(`app:${ownerId}:${oldName}`);
-    
-    // Invalidate new name cache (if changed)
-    if (req.body.name && req.body.name !== oldName) {
+    if (req.body.name) {
       await redis.del(`app:${ownerId}:${req.body.name}`);
     }
+    
+    // Add a small delay to ensure DB consistency before next request
+    await new Promise(r => setTimeout(r, 100));
   } catch (err) {
     console.error('[application] Cache invalidation failed:', err.message);
   }
