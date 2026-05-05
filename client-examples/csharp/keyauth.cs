@@ -76,6 +76,10 @@ namespace Keyauth
 
             if (!result.success)
             {
+                if (!string.IsNullOrEmpty(result.downloadUrl))
+                {
+                    Process.Start(new ProcessStartInfo(result.downloadUrl) { UseShellExecute = true });
+                }
                 error(string.IsNullOrEmpty(result.message) ? "Application not found or is paused. Check your credentials." : result.message);
                 Environment.Exit(0);
             }
@@ -398,6 +402,28 @@ namespace Keyauth
             response.message = "Use the dashboard to change usernames.";
         }
 
+        // ── Time Synchronization ──────────────────────────────────────────────
+        private long GetNetworkTime()
+        {
+            try
+            {
+                var request = (HttpWebRequest)WebRequest.Create("http://www.google.com");
+                request.Method = "HEAD";
+                request.Timeout = 3000;
+                request.Proxy = null;
+                using (var response = (HttpWebResponse)request.GetResponse())
+                {
+                    string dateStr = response.Headers["Date"];
+                    return DateTimeOffset.Parse(dateStr).ToUnixTimeMilliseconds();
+                }
+            }
+            catch
+            {
+                // Fallback to system time if network is down
+                return DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            }
+        }
+
         // ── Heartbeat ─────────────────────────────────────────────────────────
         private void StartHeartbeat()
         {
@@ -500,9 +526,11 @@ namespace Keyauth
         {
             try
             {
-                long   timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                long   timestamp = GetNetworkTime();
                 string nonce     = GenerateNonce();
-                string bodyJson  = JsonSerializer.Serialize(payload);
+                // Sort keys alphabetically for signature consistency
+                var sortedPayload = new SortedDictionary<string, object>(payload);
+                string bodyJson  = JsonSerializer.Serialize(sortedPayload);
 
                 // Signature = HMAC-SHA256(secret, appName + ownerId + timestamp + nonce + bodyJson)
                 string dataToSign = $"{name}{ownerid}{timestamp}{nonce}{bodyJson}";
@@ -573,6 +601,7 @@ namespace Keyauth
                     createdate   = root.TryGetProperty("createdate",   out var cd) ? cd.GetString() : null,
                     lastlogin    = root.TryGetProperty("lastlogin",    out var ll) ? ll.GetString() : null,
                     subscription = root.TryGetProperty("subscription", out var sub)? sub.GetString(): null,
+                    downloadUrl  = root.TryGetProperty("downloadUrl",  out var d)  ? d.GetString()  : null
                 };
 
                 if (root.TryGetProperty("expiryDate", out var exp) && exp.ValueKind != JsonValueKind.Null)
@@ -644,6 +673,7 @@ namespace Keyauth
             public string    createdate   { get; set; }
             public string    lastlogin    { get; set; }
             public string    subscription { get; set; }
+            public string    downloadUrl  { get; set; }
         }
 
         // ── Public data classes (identical to original KeyAuth) ───────────────

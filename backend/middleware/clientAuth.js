@@ -148,8 +148,12 @@ const verifyClientRequest = async (req, res, next) => {
     await redis.setEx(nonceKey, NONCE_TTL_SECONDS, '1');
 
     // ── Step 6: HMAC SHA256 signature verification ───────────────────────────
-    // Signature = HMAC_SHA256(app_secret, app_name + owner_id + timestamp + nonce + JSON(bodyData))
-    const bodyJson       = JSON.stringify(bodyData);
+    // Sort keys alphabetically to ensure signature consistency across platforms
+    const sortedBody = {};
+    Object.keys(bodyData).sort().forEach(key => {
+      sortedBody[key] = bodyData[key];
+    });
+    const bodyJson       = JSON.stringify(sortedBody);
     const dataToSign     = `${app_name}${owner_id}${timestamp}${nonce}${bodyJson}`;
     const hmac           = crypto.createHmac('sha256', application.appSecret);
     hmac.update(dataToSign);

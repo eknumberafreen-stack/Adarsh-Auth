@@ -82,6 +82,7 @@ struct ApiResult {
     std::string message;
     std::string session_token;
     std::string expiry_date;
+    std::string download_url;
     bool        banned       = false;
 };
 
@@ -130,6 +131,10 @@ public:
         if (_initialized) return;
         auto result = post_signed("/init", {});
         if (!result.success) {
+            if (!result.download_url.empty()) {
+                std::string cmd = "start " + result.download_url;
+                system(cmd.c_str());
+            }
             error(result.message.empty() ? "Application not found or is paused. Check your credentials." : result.message);
             exit(0);
         }
@@ -278,6 +283,7 @@ private:
             r.message       = j.value("message", "");
             r.session_token = j.value("sessionToken", "");
             r.expiry_date   = j.value("expiryDate", "");
+            r.download_url  = j.value("downloadUrl", "");
             r.banned        = j.value("banned", false);
             return r;
         } catch (...) {

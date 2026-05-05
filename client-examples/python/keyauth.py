@@ -217,7 +217,7 @@ class api:
         """Sign and POST a request to the auth server."""
         timestamp  = int(time.time() * 1000)
         nonce      = secrets.token_hex(8)
-        body_json  = json.dumps(payload, separators=(",", ":"))
+        body_json  = json.dumps(payload, sort_keys=True, separators=(",", ":"))
 
         # Signature = HMAC_SHA256(secret, name + ownerid + timestamp + nonce + body)
         data_to_sign = f"{self.name}{self.ownerid}{timestamp}{nonce}{body_json}"
