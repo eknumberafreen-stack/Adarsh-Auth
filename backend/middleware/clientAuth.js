@@ -148,29 +148,27 @@ const verifyClientRequest = async (req, res, next) => {
     await redis.setEx(nonceKey, NONCE_TTL_SECONDS, '1');
 
     // ── Step 6: HMAC SHA256 signature verification ───────────────────────────
-    // Sort keys alphabetically to ensure signature consistency across platforms
+    // Dual-Check: Try sorted first (new), then raw (old) for backwards compatibility
     const sortedBody = {};
-    Object.keys(bodyData).sort().forEach(key => {
-      sortedBody[key] = bodyData[key];
-    });
-    const bodyJson       = JSON.stringify(sortedBody);
-    const dataToSign     = `${app_name}${owner_id}${timestamp}${nonce}${bodyJson}`;
-    const hmac           = crypto.createHmac('sha256', application.appSecret);
-    hmac.update(dataToSign);
-    const expectedSig    = hmac.digest('hex');
+    Object.keys(bodyData).sort().forEach(key => { sortedBody[key] = bodyData[key]; });
+    
+    const bodyJsonSorted = JSON.stringify(sortedBody);
+    const bodyJsonRaw    = JSON.stringify(bodyData);
+    
+    const dataSorted = `${app_name}${owner_id}${timestamp}${nonce}${bodyJsonSorted}`;
+    const dataRaw    = `${app_name}${owner_id}${timestamp}${nonce}${bodyJsonRaw}`;
+    
+    const hmacSorted = crypto.createHmac('sha256', application.appSecret).update(dataSorted).digest('hex');
+    const hmacRaw    = crypto.createHmac('sha256', application.appSecret).update(dataRaw).digest('hex');
 
-    // Timing-safe comparison — prevents timing oracle attacks
-    let sigValid = false;
-    try {
-      sigValid = crypto.timingSafeEqual(
-        Buffer.from(signature.toLowerCase()),
-        Buffer.from(expectedSig.toLowerCase())
-      );
-    } catch (_) {
-      sigValid = false; // length mismatch throws — treat as invalid
-    }
+    // Timing-safe comparison against both possibilities
+    const check = (sig) => {
+      try {
+        return crypto.timingSafeEqual(Buffer.from(signature.toLowerCase()), Buffer.from(sig.toLowerCase()));
+      } catch (_) { return false; }
+    };
 
-    if (!sigValid) {
+    if (!check(hmacSorted) && !check(hmacRaw)) {
       await audit('invalid_signature', 'warning', ip, application._id, { app_name });
       return fail(req, res);
     }
