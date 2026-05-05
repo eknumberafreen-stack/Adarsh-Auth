@@ -76,7 +76,7 @@ namespace Keyauth
 
             if (!result.success)
             {
-                error("Application not found or is paused. Check your credentials.");
+                error(string.IsNullOrEmpty(result.message) ? "Application not found or is paused. Check your credentials." : result.message);
                 Environment.Exit(0);
             }
 
@@ -514,7 +514,8 @@ namespace Keyauth
                     ["owner_id"]  = ownerid,
                     ["timestamp"] = timestamp,
                     ["nonce"]     = nonce,
-                    ["signature"] = signature
+                    ["signature"] = signature,
+                    ["version"]   = version
                 };
 
                 string requestJson = JsonSerializer.Serialize(fullPayload);

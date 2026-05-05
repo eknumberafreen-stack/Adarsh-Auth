@@ -130,7 +130,7 @@ public:
         if (_initialized) return;
         auto result = post_signed("/init", {});
         if (!result.success) {
-            error("Application not found or is paused. Check your credentials.");
+            error(result.message.empty() ? "Application not found or is paused. Check your credentials." : result.message);
             exit(0);
         }
         _initialized = true;

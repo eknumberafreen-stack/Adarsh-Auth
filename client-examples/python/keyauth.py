@@ -111,7 +111,7 @@ class api:
         result = self._post_signed("/init", {})
 
         if not result.get("success"):
-            self._error("Application not found or is paused. Check your credentials.")
+            self._error(result.get("message") or "Application not found or is paused. Check your credentials.")
             raise SystemExit(0)
 
         self.app_data.version = result.get("version", "")
@@ -230,6 +230,7 @@ class api:
             "timestamp": timestamp,
             "nonce":     nonce,
             "signature": signature,
+            "version":   self.version,
         }
 
         try:
