@@ -223,16 +223,26 @@ router.delete('/:id', verifyAppAccess(), asyncHandler(async (req, res) => {
   const { getRedisClient } = require('../config/redis');
   const redis = getRedisClient();
 
-  // Delete all related data
+  // Delete all related data in parallel
   await Promise.all([
     AppUser.deleteMany({ applicationId: application._id }),
     License.deleteMany({ applicationId: application._id }),
-    // Delete Redis sessions
+    AuditLog.deleteMany({ applicationId: application._id }),
+    Session.deleteMany({ applicationId: application._id }),
+    // Optimized Redis session cleanup
     (async () => {
-      const keys = await redis.keys('sess:*');
-      for (const key of keys) {
-        const sess = await redis.hgetall(key);
-        if (sess.applicationId === application._id.toString()) await redis.del(key);
+      try {
+        const keys = await redis.keys('sess:*');
+        if (keys.length > 0) {
+          for (const key of keys) {
+            const sess = await redis.hgetall(key);
+            if (sess && sess.applicationId === application._id.toString()) {
+              await redis.del(key);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('[delete] Redis cleanup failed:', err.message);
       }
     })(),
     Application.deleteOne({ _id: application._id })
