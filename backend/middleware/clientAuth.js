@@ -15,6 +15,7 @@ const AuditLog = require('../models/AuditLog');
 const { getRedisClient } = require('../config/redis');
 const Config = require('../models/Config');
 
+const {
   sendDiscordWebhook,
   loginEmbed,
   registerEmbed,
