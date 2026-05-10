@@ -116,7 +116,6 @@ const verifyClientRequest = async (req, res, next) => {
       return fail(req, res, 400);
     }
 
-    const redis = getRedisClient();
     const appCacheKey = `app:${owner_id}:${app_name}`;
     let application = null;
 
