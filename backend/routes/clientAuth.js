@@ -112,7 +112,7 @@ router.post('/init',
   endpointLimiter('init', 30, 60_000),
   verifyClientRequest,
   asyncHandler(async (req, res) => {
-    res.json({
+    res.sendSigned({
       success: true,
       message: 'Application is active',
       version: req.application.version
@@ -206,7 +206,7 @@ router.post('/register',
     sendDiscordWebhook(req.application.discordWebhook,
       registerEmbed(username, ip, hwid, req.application.name, license_key));
 
-    res.status(201).json({
+    res.status(201).sendSigned({
       success: true,
       message: 'Registration successful',
       sessionToken,
@@ -361,7 +361,7 @@ router.post('/login',
     sendDiscordWebhook(req.application.discordWebhook,
       loginEmbed(username, ip, hwid, req.application.name, user.expiryDate));
 
-    res.json({
+    res.sendSigned({
       success: true,
       message: 'Login successful',
       sessionToken,
@@ -443,7 +443,7 @@ router.post('/license',
       sendDiscordWebhook(req.application.discordWebhook,
         loginEmbed(user.username, ip, hwid, req.application.name, user.expiryDate));
 
-      return res.json({
+      return res.sendSigned({
         success: true,
         message: 'Login successful',
         sessionToken,
@@ -497,7 +497,7 @@ router.post('/license',
     sendDiscordWebhook(req.application.discordWebhook,
       registerEmbed(autoUsername, ip, hwid, req.application.name, key));
 
-    return res.status(201).json({
+    return res.status(201).sendSigned({
       success: true,
       message: 'License activated',
       sessionToken,
@@ -531,7 +531,7 @@ router.post('/validate',
       return fail(req, res, 403, 'userBanned', 'Account is permanently banned');
     }
 
-    res.json({
+    res.sendSigned({
       success: true,
       message: 'Session valid',
       expiryDate: req.sessionUser.expiryDate,
@@ -554,7 +554,7 @@ router.post('/heartbeat',
     const redis = getRedisClient();
     const key = `sess:${req.sessionToken}`;
     await redis.hSet(key, 'lastHeartbeat', Date.now().toString());
-    res.json({ success: true, message: 'OK' });
+    res.sendSigned({ success: true, message: 'OK' });
   })
 );
 

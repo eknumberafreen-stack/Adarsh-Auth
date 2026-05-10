@@ -30,8 +30,12 @@ const checkMaintenance = async (req, res, next) => {
 
     next();
   } catch (err) {
-    console.error('[maintenanceMode] Error:', err.message);
-    next(); // Fail open
+    console.error('[maintenanceMode] Critical Error:', err.message);
+    // FAIL CLOSED: If we can't verify maintenance status, assume it's ON for safety
+    return res.status(503).json({
+      success: false,
+      message: 'System is temporarily unavailable. Please try again later.'
+    });
   }
 };
 

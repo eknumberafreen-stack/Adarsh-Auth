@@ -75,6 +75,15 @@ const applicationSchema = new mongoose.Schema({
     expiredLicense: { type: String, default: 'Your license has expired.' },
     versionMismatch: { type: String, default: 'Application version mismatch. Update your loader!' }
   },
+  integrityCheck: {
+    type: Boolean,
+    default: false
+  },
+  clientHash: {
+    type: String,
+    default: '',
+    trim: true
+  },
   createdAt: {
     type: Date,
     default: Date.now

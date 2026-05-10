@@ -106,6 +106,21 @@ const hwidMismatchEmbed = (username, ip, appName) => ({
   footer: { text: 'AdarshAuth • HWID Mismatch' },
 });
 
+const integrityFailureEmbed = (username, ip, appName, expected, received) => ({
+  title: '🚨 CRITICAL: Client Integrity Failure',
+  description: 'A modified or unauthorized EXE was detected attempting to connect.',
+  color: 0xED4245, // red
+  fields: [
+    { name: '👤 Username',  value: `\`${username || 'Unknown'}\``, inline: true },
+    { name: '🏠 App',       value: `\`${appName}\``,  inline: true },
+    { name: '🌐 IP',        value: `\`${ip}\``,       inline: true },
+    { name: '📥 Received Hash', value: `\`${received}\``, inline: false },
+    { name: '✅ Expected Hash', value: `\`${expected}\``, inline: false },
+  ],
+  timestamp: new Date().toISOString(),
+  footer: { text: 'AdarshAuth • Anti-Tamper System' },
+});
+
 module.exports = {
   sendDiscordWebhook,
   loginEmbed,
@@ -113,4 +128,5 @@ module.exports = {
   loginFailedEmbed,
   bannedEmbed,
   hwidMismatchEmbed,
+  integrityFailureEmbed,
 };

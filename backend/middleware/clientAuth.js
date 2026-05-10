@@ -13,6 +13,16 @@ const crypto = require('crypto');
 const Application = require('../models/Application');
 const AuditLog = require('../models/AuditLog');
 const { getRedisClient } = require('../config/redis');
+const Config = require('../models/Config');
+
+  sendDiscordWebhook,
+  loginEmbed,
+  registerEmbed,
+  loginFailedEmbed,
+  bannedEmbed,
+  hwidMismatchEmbed,
+  integrityFailureEmbed,
+} = require('../utils/discord');
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const TIMESTAMP_TOLERANCE_MS = 60_000;    // ±60 seconds (Client now syncs with Google)
@@ -42,6 +52,14 @@ const fail = async (req, res, statusCode = 401, messageKey = null, defaultMessag
   return res.status(statusCode).json({ success: false, message });
 };
 
+/** Sign the response for the client to verify */
+const signResponse = (res, data, secret, nonce) => {
+  if (!secret || !nonce) return res.json(data);
+  const bodyStr = JSON.stringify(data);
+  const signature = crypto.createHmac('sha256', secret).update(bodyStr + nonce).digest('hex');
+  return res.json({ ...data, signature });
+};
+
 /** Write audit log without throwing */
 const audit = async (action, severity, ip, appId, details = {}) => {
   try {
@@ -63,6 +81,7 @@ const verifyClientRequest = async (req, res, next) => {
       nonce,
       signature,
       version,
+      client_hash,
       ...bodyData
     } = req.body;
 
@@ -81,6 +100,13 @@ const verifyClientRequest = async (req, res, next) => {
         delta: now - reqTime
       });
       return fail(req, res);
+    }
+
+    // ── Step 2.5: Maintenance Mode Double-Check (Layer 2) ────────────────────
+    const redis = getRedisClient();
+    const maintCached = await redis.get('config:maintenance_mode');
+    if (maintCached === 'true') {
+      return res.status(503).json({ success: false, message: 'System under maintenance.' });
     }
 
     // ── Step 3: Lookup application (with Redis caching) ─────────────────────
@@ -136,6 +162,25 @@ const verifyClientRequest = async (req, res, next) => {
         downloadUrl: application.downloadUrl || ''
       });
     }
+    
+    // ── Step 5.5: Integrity Check (Optional) ─────────────────────────────────
+    if (application.integrityCheck && application.clientHash) {
+      if (client_hash !== application.clientHash) {
+        await audit('integrity_failure', 'critical', ip, application._id, { 
+          expected: application.clientHash, 
+          received: client_hash 
+        });
+        
+        // Discord Webhook — Integrity Failure
+        sendDiscordWebhook(application.discordWebhook,
+          integrityFailureEmbed(req.body.username, ip, application.name, application.clientHash, client_hash));
+
+        return res.status(403).json({ 
+          success: false, 
+          message: application.customMessages?.integrityFailure || 'Client integrity check failed. Modified EXE detected.' 
+        });
+      }
+    }
 
     // ── Step 6: Nonce check (anti-replay layer 2) ────────────────────────────
     const nonceKey = `nonce:${owner_id}:${nonce}`;
@@ -179,6 +224,10 @@ const verifyClientRequest = async (req, res, next) => {
     req.application = application;
     req.clientBody  = bodyData;
     req.clientIp    = ip;
+    req.nonce       = nonce;
+
+    // Attach response signer to res
+    res.sendSigned = (data) => signResponse(res, data, application.appSecret, nonce);
 
     next();
 
