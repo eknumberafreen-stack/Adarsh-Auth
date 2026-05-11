@@ -10,10 +10,21 @@
  */
 
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 const Application = require('../models/Application');
 const AuditLog = require('../models/AuditLog');
 const { getRedisClient } = require('../config/redis');
 const Config = require('../models/Config');
+
+// Load RSA Private Key for Response Signing
+const privateKeyPath = path.join(__dirname, '..', 'config', 'keys', 'private.pem');
+let privateKey = null;
+try {
+    privateKey = fs.readFileSync(privateKeyPath, 'utf8');
+} catch (err) {
+    console.error('❌ CRITICAL: Private Key not found! RSA signing will fail.');
+}
 
 const {
   sendDiscordWebhook,
@@ -53,12 +64,29 @@ const fail = async (req, res, statusCode = 401, messageKey = null, defaultMessag
   return res.status(statusCode).json({ success: false, message });
 };
 
-/** Sign the response for the client to verify */
+/** Sign the response for the client to verify (RSA Asymmetric) */
 const signResponse = (res, data, secret, nonce) => {
   if (!secret || !nonce) return res.json(data);
+  
   const bodyStr = JSON.stringify(data);
-  const signature = crypto.createHmac('sha256', secret).update(bodyStr + nonce).digest('hex');
-  return res.json({ ...data, signature });
+  const payload = bodyStr + nonce;
+
+  // HMAC (Symmetric) - Keeping for legacy support or double-layer
+  const hmacSignature = crypto.createHmac('sha256', secret).update(payload).digest('hex');
+
+  // RSA (Asymmetric) - The new "Elite" protection
+  let rsaSignature = null;
+  if (privateKey) {
+      const signer = crypto.createSign('SHA256');
+      signer.update(payload);
+      rsaSignature = signer.sign(privateKey, 'base64');
+  }
+
+  return res.json({ 
+      ...data, 
+      signature: hmacSignature, // Old client expects this
+      rsa_sig: rsaSignature      // New client will use this
+  });
 };
 
 /** Write audit log without throwing */

@@ -64,6 +64,7 @@ app.use('/api/auth/google', googleAuthRoutes);
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/plans', plansRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/log', require('./routes/log'));
 
 // Error handling
 app.use(errorHandler);
