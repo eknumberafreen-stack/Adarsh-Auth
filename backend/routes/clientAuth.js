@@ -565,13 +565,11 @@ router.post('/values',
   verifyClientRequest,
   requireSession,
   asyncHandler(async (req, res) => {
-    // ─── Subscription Gate ───────────────────────────────────────────────────
-    // If you want to block other names, add them to the array below
-    const freeTiers = ['Free', 'default']; 
-    if (freeTiers.includes(req.user.subscription)) {
+    // ── Gating: Only allow Paid users ────────────────────────────────────────
+    if (!req.sessionUser || req.sessionUser.subscription === 'default') {
       return res.sendSigned({
         success: false,
-        message: 'Premium subscription required for runtime features.',
+        message: 'Premium subscription required for these features.',
         values: {}
       });
     }
