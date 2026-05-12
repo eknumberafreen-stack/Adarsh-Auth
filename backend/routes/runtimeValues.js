@@ -9,11 +9,10 @@ router.use(verifyToken);
 
 /**
  * GET all values for an app
- * Only allows users who have access to the app
  */
-router.get('/:appId', verifyAppAccess('view_dashboard'), asyncHandler(async (req, res) => {
-  const { appId } = req.params;
-  const doc = await RuntimeValues.findOne({ applicationId: appId });
+router.get('/:applicationId', verifyAppAccess('view_dashboard'), asyncHandler(async (req, res) => {
+  const { applicationId } = req.params;
+  const doc = await RuntimeValues.findOne({ applicationId });
   
   if (!doc) {
     return res.json({ 
@@ -33,11 +32,11 @@ router.get('/:appId', verifyAppAccess('view_dashboard'), asyncHandler(async (req
 /**
  * PATCH InitBase
  */
-router.patch('/:appId/initbase', verifyAppAccess('manage_settings'), asyncHandler(async (req, res) => {
-  const { appId } = req.params;
+router.patch('/:applicationId/initbase', verifyAppAccess('manage_settings'), asyncHandler(async (req, res) => {
+  const { applicationId } = req.params;
   const { value } = req.body;
   const doc = await RuntimeValues.findOneAndUpdate(
-    { applicationId: appId },
+    { applicationId },
     { $set: { initBase: value, updatedAt: Date.now() } },
     { upsert: true, new: true }
   );
@@ -47,12 +46,12 @@ router.patch('/:appId/initbase', verifyAppAccess('manage_settings'), asyncHandle
 /**
  * PATCH Offset (Dynamic Category)
  */
-router.patch('/:appId/offsets/:category', verifyAppAccess('manage_settings'), asyncHandler(async (req, res) => {
-  const { appId, category } = req.params;
+router.patch('/:applicationId/offsets/:category', verifyAppAccess('manage_settings'), asyncHandler(async (req, res) => {
+  const { applicationId, category } = req.params;
   const { offsetId, name, value, description } = req.body;
 
-  let doc = await RuntimeValues.findOne({ applicationId: appId });
-  if (!doc) doc = new RuntimeValues({ applicationId: appId });
+  let doc = await RuntimeValues.findOne({ applicationId });
+  if (!doc) doc = new RuntimeValues({ applicationId });
 
   if (doc[category] === undefined) return res.status(400).json({ error: 'Invalid category' });
 
@@ -75,12 +74,12 @@ router.patch('/:appId/offsets/:category', verifyAppAccess('manage_settings'), as
 /**
  * PATCH Bone
  */
-router.patch('/:appId/bones', verifyAppAccess('manage_settings'), asyncHandler(async (req, res) => {
-  const { appId } = req.params;
+router.patch('/:applicationId/bones', verifyAppAccess('manage_settings'), asyncHandler(async (req, res) => {
+  const { applicationId } = req.params;
   const { boneId, name, value } = req.body;
 
-  let doc = await RuntimeValues.findOne({ applicationId: appId });
-  if (!doc) doc = new RuntimeValues({ applicationId: appId });
+  let doc = await RuntimeValues.findOne({ applicationId });
+  if (!doc) doc = new RuntimeValues({ applicationId });
 
   if (boneId) {
     const item = doc.bones.id(boneId);
@@ -100,9 +99,9 @@ router.patch('/:appId/bones', verifyAppAccess('manage_settings'), asyncHandler(a
 /**
  * DELETE Offset
  */
-router.delete('/:appId/offsets/:category/:offsetId', verifyAppAccess('manage_settings'), asyncHandler(async (req, res) => {
-  const { appId, category, offsetId } = req.params;
-  const doc = await RuntimeValues.findOne({ applicationId: appId });
+router.delete('/:applicationId/offsets/:category/:offsetId', verifyAppAccess('manage_settings'), asyncHandler(async (req, res) => {
+  const { applicationId, category, offsetId } = req.params;
+  const doc = await RuntimeValues.findOne({ applicationId });
   if (doc && doc[category]) {
     doc[category].pull({ _id: offsetId });
     await doc.save();
@@ -113,9 +112,9 @@ router.delete('/:appId/offsets/:category/:offsetId', verifyAppAccess('manage_set
 /**
  * DELETE Bone
  */
-router.delete('/:appId/bones/:boneId', verifyAppAccess('manage_settings'), asyncHandler(async (req, res) => {
-  const { appId, boneId } = req.params;
-  const doc = await RuntimeValues.findOne({ applicationId: appId });
+router.delete('/:applicationId/bones/:boneId', verifyAppAccess('manage_settings'), asyncHandler(async (req, res) => {
+  const { applicationId, boneId } = req.params;
+  const doc = await RuntimeValues.findOne({ applicationId });
   if (doc) {
     doc.bones.pull({ _id: boneId });
     await doc.save();
@@ -126,9 +125,9 @@ router.delete('/:appId/bones/:boneId', verifyAppAccess('manage_settings'), async
 /**
  * DELETE Reset
  */
-router.delete('/:appId/reset', verifyAppAccess('manage_settings'), asyncHandler(async (req, res) => {
-  const { appId } = req.params;
-  await RuntimeValues.deleteOne({ applicationId: appId });
+router.delete('/:applicationId/reset', verifyAppAccess('manage_settings'), asyncHandler(async (req, res) => {
+  const { applicationId } = req.params;
+  await RuntimeValues.deleteOne({ applicationId });
   res.json({ success: true });
 }));
 
