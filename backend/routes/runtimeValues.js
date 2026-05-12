@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const RuntimeValues = require('../models/RuntimeValues');
-const { protect } = require('../middleware/auth');
+const { verifyToken, verifyAppAccess } = require('../middleware/auth');
 const { asyncHandler } = require('../middleware/errorHandler');
 
 // All routes here require login
-router.use(protect);
+router.use(verifyToken);
 
 /**
  * Get all values for an app (for the dashboard table)
