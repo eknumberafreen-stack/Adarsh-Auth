@@ -115,10 +115,15 @@ router.patch('/:id', validate(schemas.updateApplication), verifyAppAccess('manag
   if (req.body.version) application.version = req.body.version;
   if (req.body.status) application.status = req.body.status;
   if (req.body.discordWebhook !== undefined) application.discordWebhook = req.body.discordWebhook;
+  if (req.body.baseOffset !== undefined) {
+    const raw = parseInt(req.body.baseOffset.toString().replace('0x', ''), 16) || parseInt(req.body.baseOffset);
+    if (!isNaN(raw)) {
+      application.baseOffset = (raw ^ 0xABC123).toString();
+    }
+  }
   if (req.body.downloadUrl !== undefined) application.downloadUrl = req.body.downloadUrl;
   if (req.body.integrityCheck !== undefined) application.integrityCheck = req.body.integrityCheck;
   if (req.body.clientHash !== undefined) application.clientHash = req.body.clientHash;
-  if (req.body.baseOffset !== undefined) application.baseOffset = req.body.baseOffset;
   
   if (req.body.customMessages) {
     application.customMessages = {
