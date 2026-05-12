@@ -3,19 +3,18 @@
  * All advanced security features implemented
  */
 
-const express        = require('express');
-const crypto         = require('crypto');
-const AppUser        = require('../models/AppUser');
-const License        = require('../models/License');
-const AuditLog       = require('../models/AuditLog');
-const RuntimeValues  = require('../models/RuntimeValues');
+const express = require('express');
+const crypto = require('crypto');
+const AppUser = require('../models/AppUser');
+const License = require('../models/License');
+const AuditLog = require('../models/AuditLog');
 const { getRedisClient } = require('../config/redis');
-const { verifyClientRequest }  = require('../middleware/clientAuth');
-const { requireSession }       = require('../middleware/sessionValidator');
-const { checkIPBan }           = require('../middleware/ipBan');
-const { checkMaintenance }     = require('../middleware/maintenanceMode');
+const { verifyClientRequest } = require('../middleware/clientAuth');
+const { requireSession } = require('../middleware/sessionValidator');
+const { checkIPBan } = require('../middleware/ipBan');
+const { checkMaintenance } = require('../middleware/maintenanceMode');
 const { clientApiRateLimiter, endpointLimiter } = require('../middleware/rateLimiter');
-const { asyncHandler }         = require('../middleware/errorHandler');
+const { asyncHandler } = require('../middleware/errorHandler');
 const {
   sendDiscordWebhook,
   loginEmbed,
@@ -50,7 +49,7 @@ const fail = async (req, res, code = 401, msgKey = 'invalidCreds', defaultMsg = 
 const createSession = async (userId, appId, hwid, ip) => {
   const redis = getRedisClient();
   const token = crypto.randomBytes(32).toString('hex');
-  
+
   const sessionData = {
     userId: userId.toString(),
     applicationId: appId.toString(),
@@ -77,9 +76,9 @@ const createSession = async (userId, appId, hwid, ip) => {
 
 /** Anomaly detection — auto-ban if too many HWID resets or failed logins */
 const checkAnomaly = async (user, appId, ip) => {
-  const HWID_RESET_THRESHOLD    = 5;
-  const FAILED_LOGIN_THRESHOLD  = 10;
-  const IP_CHANGE_THRESHOLD     = 10;
+  const HWID_RESET_THRESHOLD = 5;
+  const FAILED_LOGIN_THRESHOLD = 10;
+  const IP_CHANGE_THRESHOLD = 10;
 
   const reasons = [];
 
@@ -556,50 +555,6 @@ router.post('/heartbeat',
     const key = `sess:${req.sessionToken}`;
     await redis.hSet(key, 'lastHeartbeat', Date.now().toString());
     res.sendSigned({ success: true, message: 'OK' });
-  })
-);
-
-// ─── POST /api/client/values ──────────────────────────────────────────────────
-// Returns the latest InitBase, offsets, and bones for the authenticated session.
-// Requires a valid session (heartbeat-checked, HWID-bound).
-// Values are Redis-cached per application (60s TTL) for performance.
-router.post('/values',
-  endpointLimiter('values', 60, 60_000),
-  verifyClientRequest,
-  requireSession,
-  asyncHandler(async (req, res) => {
-    const appId = req.application._id.toString();
-    const redis = getRedisClient();
-    const cacheKey = `rv:${appId}`;
-
-    let payload = null;
-    try {
-      const cached = await redis.get(cacheKey);
-      if (cached) {
-        payload = JSON.parse(cached);
-      }
-    } catch (_) { }
-
-    if (!payload) {
-      const doc = await RuntimeValues.findOne({ applicationId: appId });
-      if (!doc) {
-        return res.sendSigned({
-          success: true,
-          message: 'No runtime values configured',
-          values: {}
-        });
-      }
-      payload = doc.toClientPayload();
-      try {
-        await redis.setEx(cacheKey, 60, JSON.stringify(payload));
-      } catch (_) { }
-    }
-
-    res.sendSigned({
-      success: true,
-      message: 'Values retrieved',
-      values: payload
-    });
   })
 );
 
