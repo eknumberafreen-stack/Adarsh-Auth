@@ -112,6 +112,9 @@ export default function OffsetsPage() {
   const [addBoneValue, setAddBoneValue] = useState('')
   const [showReset, setShowReset] = useState(false)
   const [showJson, setShowJson] = useState(false)
+  const [showImport, setShowImport] = useState(false)
+  const [importText, setImportText] = useState('')
+  const [isImporting, setIsImporting] = useState(false)
 
   const appId = selectedApp?._id
 
@@ -178,6 +181,45 @@ export default function OffsetsPage() {
     catch { toast.error('Failed to reset') }
   }
 
+  const handleImport = async () => {
+    if (!appId || !importText.trim()) return toast.error('Paste code first')
+    setIsImporting(true)
+    try {
+      // 1. Parse InitBase
+      const ibMatch = importText.match(/InitBase\s*=\s*(0x[0-9A-Fa-f]+|[0-9]+)/)
+      if (ibMatch) {
+        await api.patch('/runtime/' + appId + '/initbase', { value: ibMatch[1] })
+      }
+
+      // 2. Parse Offsets (internal static uint Name = Value;)
+      const offsetRegex = /uint\s+([A-Za-z0-9_]+)\s*=\s*(0x[0-9A-Fa-f]+|[0-9]+)/g
+      let match
+      while ((match = offsetRegex.exec(importText)) !== null) {
+        const name = match[1]
+        const value = match[2]
+        if (name === 'InitBase') continue
+        await api.patch('/runtime/' + appId + '/offsets/offsets', { name, value })
+      }
+
+      // 3. Parse Bones (Name = Value,)
+      const boneRegex = /([A-Za-z0-9_]+)\s*=\s*(0x[0-9A-Fa-f]+|[0-9]+)\s*,/g
+      while ((match = boneRegex.exec(importText)) !== null) {
+        const name = match[1]
+        const value = match[2]
+        await api.patch('/runtime/' + appId + '/bones', { name, value })
+      }
+
+      toast.success('Import completed')
+      setShowImport(false)
+      setImportText('')
+      load()
+    } catch (e: any) {
+      toast.error('Import failed: ' + (e.response?.data?.error || e.message))
+    } finally {
+      setIsImporting(false)
+    }
+  }
+
   const buildJson = () => {
     if (!rv) return {}
     const p: Record<string, any> = {}
@@ -217,6 +259,9 @@ export default function OffsetsPage() {
           </p>
         </div>
         <div className="flex gap-3">
+          <button onClick={() => setShowImport(true)} className="btn btn-secondary">
+            <DocumentDuplicateIcon className="h-4 w-4" /> Import Source
+          </button>
           <button onClick={() => setShowJson(!showJson)} className="btn btn-secondary">
             {showJson ? 'Hide' : 'Preview'} JSON
           </button>
@@ -228,6 +273,35 @@ export default function OffsetsPage() {
           </button>
         </div>
       </section>
+
+      {showImport && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-md">
+          <div className="modal-card w-full max-w-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-white">Import C# Source</h3>
+              <button onClick={() => setShowImport(false)} className="text-slate-400 hover:text-white">
+                <XMarkIcon className="h-6 w-6" />
+              </button>
+            </div>
+            <p className="text-sm text-slate-400 mb-4">
+              Paste your <code className="text-indigo-300">Offsets.cs</code> or <code className="text-indigo-300">Bones.cs</code> code below. 
+              We'll automatically extract names and hex values.
+            </p>
+            <textarea 
+              className="input w-full h-64 font-mono text-xs mb-6 resize-none"
+              placeholder="internal static uint LocalPlayer = 0x94; ..."
+              value={importText}
+              onChange={e => setImportText(e.target.value)}
+            />
+            <div className="flex gap-3">
+              <button onClick={() => setShowImport(false)} className="btn btn-secondary flex-1">Cancel</button>
+              <button onClick={handleImport} disabled={isImporting} className="btn btn-primary flex-1">
+                {isImporting ? 'Importing...' : 'Start Import'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showJson && rv && (
         <div className="card">
