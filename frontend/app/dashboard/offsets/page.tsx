@@ -123,8 +123,8 @@ export default function OffsetsPage() {
     setLoading(true)
     try {
       const res = await api.get('/runtime/' + appId)
-      setRv(res.data.runtimeValues)
-      setInitBase(res.data.runtimeValues.initBase || '')
+      setRv(res.data.data)
+      setInitBase(res.data.data.initBase || '')
     } catch { toast.error('Failed to load runtime values') }
     finally { setLoading(false) }
   }, [appId])
