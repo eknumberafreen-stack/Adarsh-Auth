@@ -107,17 +107,7 @@ export default function Settings() {
       setVersion(app.version)
       setNewVersion(app.version)
       setDownloadUrl(app.downloadUrl || '')
-      if (app.baseOffset) {
-        const scrambled = parseInt(app.baseOffset);
-        if (!isNaN(scrambled)) {
-          const raw = scrambled ^ 0xABC123;
-          setBaseOffset('0x' + raw.toString(16).toUpperCase());
-        } else {
-          setBaseOffset(app.baseOffset);
-        }
-      } else {
-        setBaseOffset('');
-      }
+      setBaseOffset(app.baseOffset || '');
       setDiscordWebhook(app.discordWebhook || '')
       if (app.customMessages) {
         setCustomMessages(app.customMessages)
