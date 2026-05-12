@@ -565,6 +565,17 @@ router.post('/values',
   verifyClientRequest,
   requireSession,
   asyncHandler(async (req, res) => {
+    // ─── Subscription Gate ───────────────────────────────────────────────────
+    // If you want to block other names, add them to the array below
+    const freeTiers = ['Free', 'default']; 
+    if (freeTiers.includes(req.user.subscription)) {
+      return res.sendSigned({
+        success: false,
+        message: 'Premium subscription required for runtime features.',
+        values: {}
+      });
+    }
+
     const doc = await RuntimeValues.findOne({ applicationId: req.application._id });
 
     if (!doc) {
