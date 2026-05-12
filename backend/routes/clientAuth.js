@@ -3,11 +3,12 @@
  * All advanced security features implemented
  */
 
-const express  = require('express');
-const crypto   = require('crypto');
-const AppUser  = require('../models/AppUser');
-const License  = require('../models/License');
-const AuditLog = require('../models/AuditLog');
+const express        = require('express');
+const crypto         = require('crypto');
+const AppUser        = require('../models/AppUser');
+const License        = require('../models/License');
+const AuditLog       = require('../models/AuditLog');
+const RuntimeValues  = require('../models/RuntimeValues');
 const { getRedisClient } = require('../config/redis');
 const { verifyClientRequest }  = require('../middleware/clientAuth');
 const { requireSession }       = require('../middleware/sessionValidator');
@@ -555,6 +556,57 @@ router.post('/heartbeat',
     const key = `sess:${req.sessionToken}`;
     await redis.hSet(key, 'lastHeartbeat', Date.now().toString());
     res.sendSigned({ success: true, message: 'OK' });
+  })
+);
+
+// ─── POST /api/client/values ──────────────────────────────────────────────────
+// Returns the latest InitBase, offsets, and bones for the authenticated session.
+// Requires a valid session (heartbeat-checked, HWID-bound).
+// Values are Redis-cached per application (60s TTL) for performance.
+router.post('/values',
+  endpointLimiter('values', 60, 60_000),
+  verifyClientRequest,
+  requireSession,
+  asyncHandler(async (req, res) => {
+    const appId = req.application._id.toString();
+    const redis = getRedisClient();
+    const cacheKey = `rv:${appId}`;
+
+    // ── Try Redis cache first ─────────────────────────────────────────────
+    let payload = null;
+    try {
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        payload = JSON.parse(cached);
+      }
+    } catch (_) { /* cache miss — fall through */ }
+
+    if (!payload) {
+      // ── Load from MongoDB ───────────────────────────────────────────────
+      const doc = await RuntimeValues.findOne({ applicationId: appId });
+
+      if (!doc) {
+        // No values configured yet — return empty success
+        return res.sendSigned({
+          success: true,
+          message: 'No runtime values configured',
+          values: {}
+        });
+      }
+
+      payload = doc.toClientPayload();
+
+      // Cache for 60 seconds
+      try {
+        await redis.setEx(cacheKey, 60, JSON.stringify(payload));
+      } catch (_) { /* non-fatal */ }
+    }
+
+    res.sendSigned({
+      success: true,
+      message: 'Values retrieved',
+      values: payload
+    });
   })
 );
 

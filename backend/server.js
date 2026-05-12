@@ -23,6 +23,7 @@ const sessionRoutes = require('./routes/session');
 const googleAuthRoutes = require('./routes/googleAuth');
 const plansRoutes = require('./routes/plans');
 const paymentRoutes = require('./routes/payment');
+const runtimeValuesRoutes = require('./routes/runtimeValues');
 
 const app = express();
 
@@ -65,6 +66,7 @@ app.use('/api/admin', require('./routes/admin'));
 app.use('/api/plans', plansRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/log', require('./routes/log'));
+app.use('/api/runtime', runtimeValuesRoutes);
 
 // Error handling
 app.use(errorHandler);

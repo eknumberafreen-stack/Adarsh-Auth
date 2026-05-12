@@ -20,6 +20,7 @@ import {
   UserGroupIcon,
   UsersIcon,
   XMarkIcon,
+  CpuChipIcon,
 } from '@heroicons/react/24/outline'
 import { getAvatarInitial, getDisplayName, getEmailPrefix } from '@/lib/username'
 
@@ -67,6 +68,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       { name: 'Licenses', href: '/dashboard/licenses', icon: KeyIcon, group: 'Operations' },
       { name: 'Users', href: '/dashboard/users', icon: UsersIcon, group: 'Operations' },
       { name: 'Sessions', href: '/dashboard/sessions', icon: ClockIcon, group: 'Operations' },
+      { name: 'Offsets & Bones', href: '/dashboard/offsets', icon: CpuChipIcon, group: 'Operations' },
       { name: 'Billing', href: '/dashboard/billing', icon: CreditCardIcon, group: 'Account' },
       { name: 'My Payments', href: '/dashboard/my-payments', icon: BanknotesIcon, group: 'Account' },
       { name: 'Profile', href: '/dashboard/profile', icon: UserCircleIcon, group: 'Account' },
@@ -298,7 +300,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </div>
 
               {/* Global App Selector */}
-              {applications.length > 0 && (pathname.includes('/users') || pathname.includes('/licenses') || pathname.includes('/sessions') || pathname.includes('/settings') || pathname.includes('/team')) && (
+              {applications.length > 0 && (pathname.includes('/users') || pathname.includes('/licenses') || pathname.includes('/sessions') || pathname.includes('/settings') || pathname.includes('/team') || pathname.includes('/offsets')) && (
                 <div className="relative z-50 ml-8 flex items-center gap-3">
                   <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 whitespace-nowrap">Select Application:</span>
                   <select
