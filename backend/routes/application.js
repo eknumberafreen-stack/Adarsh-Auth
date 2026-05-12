@@ -116,9 +116,21 @@ router.patch('/:id', validate(schemas.updateApplication), verifyAppAccess('manag
   if (req.body.status) application.status = req.body.status;
   if (req.body.discordWebhook !== undefined) application.discordWebhook = req.body.discordWebhook;
   if (req.body.baseOffset !== undefined) {
-    const raw = parseInt(req.body.baseOffset.toString().replace('0x', ''), 16) || parseInt(req.body.baseOffset);
-    if (!isNaN(raw)) {
-      application.baseOffset = (raw ^ 0xABC123).toString();
+    const input = req.body.baseOffset.toString().trim();
+    if (input === "") {
+      application.baseOffset = "";
+    } else {
+      let raw;
+      if (input.startsWith('0x') || input.startsWith('0X')) {
+        raw = parseInt(input.substring(2), 16);
+      } else {
+        raw = parseInt(input, 10);
+      }
+      
+      if (!isNaN(raw)) {
+        // Scramble it for security (Client will unscramble with same key)
+        application.baseOffset = (raw ^ 0xABC123).toString();
+      }
     }
   }
   if (req.body.downloadUrl !== undefined) application.downloadUrl = req.body.downloadUrl;
