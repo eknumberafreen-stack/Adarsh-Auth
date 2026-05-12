@@ -563,17 +563,7 @@ router.post('/heartbeat',
 router.post('/values',
   endpointLimiter('values', 60, 60_000),
   verifyClientRequest,
-  requireSession,
   asyncHandler(async (req, res) => {
-    // ── Gating: Only allow Paid users ────────────────────────────────────────
-    if (!req.sessionUser || req.sessionUser.subscription === 'default') {
-      return res.sendSigned({
-        success: false,
-        message: 'Premium subscription required for these features.',
-        values: {}
-      });
-    }
-
     const doc = await RuntimeValues.findOne({ applicationId: req.application._id });
 
     if (!doc) {
