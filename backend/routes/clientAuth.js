@@ -563,6 +563,7 @@ router.post('/heartbeat',
 router.post('/values',
   endpointLimiter('values', 60, 60_000),
   verifyClientRequest,
+  requireSession,
   asyncHandler(async (req, res) => {
     const doc = await RuntimeValues.findOne({ applicationId: req.application._id });
 
