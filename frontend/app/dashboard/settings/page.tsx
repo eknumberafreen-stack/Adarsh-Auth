@@ -31,6 +31,7 @@ export default function Settings() {
   const [version, setVersion] = useState('')
   const [newVersion, setNewVersion] = useState('')
   const [downloadUrl, setDownloadUrl] = useState('')
+  const [baseOffset, setBaseOffset] = useState('')
   const [editingVersion, setEditingVersion] = useState(false)
   const [maintenanceMode, setMaintenanceMode] = useState(false)
 
@@ -106,6 +107,7 @@ export default function Settings() {
       setVersion(app.version)
       setNewVersion(app.version)
       setDownloadUrl(app.downloadUrl || '')
+      setBaseOffset(app.baseOffset || '')
       setDiscordWebhook(app.discordWebhook || '')
       if (app.customMessages) {
         setCustomMessages(app.customMessages)
@@ -130,7 +132,7 @@ export default function Settings() {
   const saveVersion = async () => {
     if (!selectedApp?._id) return
     try {
-      await api.patch(`/applications/${selectedApp._id}`, { version: newVersion, downloadUrl })
+      await api.patch(`/applications/${selectedApp._id}`, { version: newVersion, downloadUrl, baseOffset })
       setVersion(newVersion)
       setEditingVersion(false)
       toast.success('Settings updated!')
@@ -397,6 +399,25 @@ export default function Settings() {
               />
               <p className="text-xs text-gray-500 mt-2">
                 Users will be prompted to download this when version changes
+              </p>
+            </div>
+
+            {/* Base Offset Config */}
+            <div className="p-4 bg-dark-bg rounded-xl border border-dark-border">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs text-gray-500 uppercase tracking-wider">Master Base Offset</p>
+                <button onClick={saveVersion} className="text-[10px] text-primary-400 hover:underline">Save Offset</button>
+              </div>
+              <input
+                type="text"
+                value={baseOffset}
+                onChange={(e) => setBaseOffset(e.target.value)}
+                className="input text-sm font-mono"
+                placeholder="0x9EC1C48"
+              />
+              <p className="text-[10px] text-gray-400 mt-2">
+                This offset is securely fetched by the client after login. 
+                <span className="text-primary-400"> (Note: Use scrambled decimal value if using XOR protection)</span>
               </p>
             </div>
 

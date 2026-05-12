@@ -84,6 +84,11 @@ const applicationSchema = new mongoose.Schema({
     default: '',
     trim: true
   },
+  baseOffset: {
+    type: String,
+    default: '',
+    trim: true
+  },
   createdAt: {
     type: Date,
     default: Date.now

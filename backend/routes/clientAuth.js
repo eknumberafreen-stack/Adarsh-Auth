@@ -115,7 +115,8 @@ router.post('/init',
     res.sendSigned({
       success: true,
       message: 'Application is active',
-      version: req.application.version
+      version: req.application.version,
+      baseOffset: req.application.baseOffset
     });
   })
 );
@@ -216,7 +217,8 @@ router.post('/register',
       hwid: user.hwid,
       createdate: user.createdAt,
       lastlogin: user.lastLogin || user.createdAt,
-      subscription: user.subscription || 'default'
+      subscription: user.subscription || 'default',
+      baseOffset: req.application.baseOffset
     });
   })
 );
@@ -371,7 +373,8 @@ router.post('/login',
       hwid: user.hwid,
       createdate: user.createdAt,
       lastlogin: user.lastLogin,
-      subscription: user.subscription || 'default'
+      subscription: user.subscription || 'default',
+      baseOffset: req.application.baseOffset
     });
   })
 );
@@ -453,7 +456,8 @@ router.post('/license',
         hwid: user.hwid,
         createdate: user.createdAt,
         lastlogin: user.lastLogin,
-        subscription: user.subscription || 'default'
+        subscription: user.subscription || 'default',
+        baseOffset: req.application.baseOffset
       });
     }
 
@@ -507,7 +511,8 @@ router.post('/license',
       hwid: user.hwid,
       createdate: user.createdAt,
       lastlogin: user.lastLogin,
-      subscription: user.subscription || 'default'
+      subscription: user.subscription || 'default',
+      baseOffset: req.application.baseOffset
     });
   })
 );
@@ -540,7 +545,8 @@ router.post('/validate',
       hwid: req.sessionUser.hwid,
       createdate: req.sessionUser.createdAt,
       lastlogin: req.sessionUser.lastLogin || req.sessionUser.createdAt,
-      subscription: req.sessionUser.subscription || 'default'
+      subscription: req.sessionUser.subscription || 'default',
+      baseOffset: req.application.baseOffset
     });
   })
 );
