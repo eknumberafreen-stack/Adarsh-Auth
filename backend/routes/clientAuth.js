@@ -572,34 +572,27 @@ router.post('/values',
     const redis = getRedisClient();
     const cacheKey = `rv:${appId}`;
 
-    // ── Try Redis cache first ─────────────────────────────────────────────
     let payload = null;
     try {
       const cached = await redis.get(cacheKey);
       if (cached) {
         payload = JSON.parse(cached);
       }
-    } catch (_) { /* cache miss — fall through */ }
+    } catch (_) { }
 
     if (!payload) {
-      // ── Load from MongoDB ───────────────────────────────────────────────
       const doc = await RuntimeValues.findOne({ applicationId: appId });
-
       if (!doc) {
-        // No values configured yet — return empty success
         return res.sendSigned({
           success: true,
           message: 'No runtime values configured',
           values: {}
         });
       }
-
       payload = doc.toClientPayload();
-
-      // Cache for 60 seconds
       try {
         await redis.setEx(cacheKey, 60, JSON.stringify(payload));
-      } catch (_) { /* non-fatal */ }
+      } catch (_) { }
     }
 
     res.sendSigned({
