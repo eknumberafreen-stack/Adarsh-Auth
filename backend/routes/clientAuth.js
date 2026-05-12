@@ -558,7 +558,6 @@ router.post('/heartbeat',
     res.sendSigned({ success: true, message: 'OK' });
   })
 );
-
 // ─── POST /api/client/values ──────────────────────────────────────────────────
 router.post('/values',
   endpointLimiter('values', 60, 60_000),
