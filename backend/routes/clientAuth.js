@@ -8,6 +8,7 @@ const crypto = require('crypto');
 const AppUser = require('../models/AppUser');
 const License = require('../models/License');
 const AuditLog = require('../models/AuditLog');
+const RuntimeValues = require('../models/RuntimeValues');
 const { getRedisClient } = require('../config/redis');
 const { verifyClientRequest } = require('../middleware/clientAuth');
 const { requireSession } = require('../middleware/sessionValidator');
@@ -556,6 +557,30 @@ router.post('/heartbeat',
     await redis.hSet(key, 'lastHeartbeat', Date.now().toString());
     res.sendSigned({ success: true, message: 'OK' });
   })
+);
+
+// ─── POST /api/client/values ──────────────────────────────────────────────────
+router.post('/values',
+  endpointLimiter('values', 60, 60_000),
+  verifyClientRequest,
+  requireSession,
+  asyncHandler(async (req, res) => {
+    const doc = await RuntimeValues.findOne({ applicationId: req.application._id });
+
+    if (!doc) {
+      return res.sendSigned({
+        success: true,
+        message: 'No runtime values configured',
+        values: {}
+      });
+    }
+
+    return res.sendSigned({
+      success: true,
+      message: 'Values retrieved',
+      values: doc.toClientPayload()
+    });
+  }))
 );
 
 module.exports = router;

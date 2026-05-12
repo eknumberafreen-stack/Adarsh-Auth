@@ -1,114 +1,135 @@
 const express = require('express');
 const router = express.Router();
 const RuntimeValues = require('../models/RuntimeValues');
-const { verifyToken, verifyAppAccess } = require('../middleware/auth');
+const { verifyToken } = require('../middleware/auth');
 const { asyncHandler } = require('../middleware/errorHandler');
 
-// All routes here require login
 router.use(verifyToken);
 
 /**
- * Get all values for an app (for the dashboard table)
+ * GET all values for an app
  */
 router.get('/:appId', asyncHandler(async (req, res) => {
   const { appId } = req.params;
-  let doc = await RuntimeValues.findOne({ applicationId: appId });
+  const doc = await RuntimeValues.findOne({ applicationId: appId });
   
   if (!doc) {
-    // Return empty structure if not found
     return res.json({ 
       success: true, 
       data: {
         initBase: '',
-        offsets: [],
+        offsets: [], weaponOffsets: [], cameraOffsets: [],
+        silentAimOffsets: [], espOffsets: [], entityOffsets: [],
         bones: []
       }
     });
   }
 
-  res.json({ 
-    success: true, 
-    data: {
-      initBase: doc.initBase || '',
-      offsets: doc.offsets || [],
-      bones: doc.bones || []
-    }
-  });
+  res.json({ success: true, data: doc });
 }));
 
 /**
- * Update InitBase
+ * PATCH InitBase
  */
 router.patch('/:appId/initbase', asyncHandler(async (req, res) => {
   const { appId } = req.params;
   const { value } = req.body;
-
   const doc = await RuntimeValues.findOneAndUpdate(
     { applicationId: appId },
     { $set: { initBase: value, updatedAt: Date.now() } },
     { upsert: true, new: true }
   );
-
   res.json({ success: true, data: doc });
 }));
 
 /**
- * Update or add an offset
+ * PATCH Offset (Dynamic Category)
  */
-router.patch('/:appId/offsets/offsets', asyncHandler(async (req, res) => {
-  const { appId } = req.params;
-  const { name, value, description } = req.body;
+router.patch('/:appId/offsets/:category', asyncHandler(async (req, res) => {
+  const { appId, category } = req.params;
+  const { offsetId, name, value, description } = req.body;
 
-  // Find doc or create
   let doc = await RuntimeValues.findOne({ applicationId: appId });
-  if (!doc) {
-    doc = new RuntimeValues({ applicationId: appId });
+  if (!doc) doc = new RuntimeValues({ applicationId: appId });
+
+  // If category doesn't exist on schema, fail
+  if (doc[category] === undefined) return res.status(400).json({ error: 'Invalid category' });
+
+  if (offsetId) {
+    // Update existing
+    const item = doc[category].id(offsetId);
+    if (item) {
+      item.name = name;
+      item.value = value;
+      item.description = description;
+    }
+  } else {
+    // Add new (check for duplicates first)
+    doc[category] = doc[category].filter(o => o.name !== name);
+    doc[category].push({ name, value, description });
   }
 
-  // Remove existing with same name if any
-  doc.offsets = doc.offsets.filter(o => o.name !== name);
-  // Add new
-  doc.offsets.push({ name, value, description });
-  
   await doc.save();
   res.json({ success: true, data: doc });
 }));
 
 /**
- * Update or add a bone
+ * PATCH Bone
  */
 router.patch('/:appId/bones', asyncHandler(async (req, res) => {
   const { appId } = req.params;
-  const { name, value } = req.body;
+  const { boneId, name, value } = req.body;
 
   let doc = await RuntimeValues.findOne({ applicationId: appId });
-  if (!doc) {
-    doc = new RuntimeValues({ applicationId: appId });
+  if (!doc) doc = new RuntimeValues({ applicationId: appId });
+
+  if (boneId) {
+    const item = doc.bones.id(boneId);
+    if (item) {
+      item.name = name;
+      item.value = value;
+    }
+  } else {
+    doc.bones = doc.bones.filter(b => b.name !== name);
+    doc.bones.push({ name, value });
   }
 
-  doc.bones = doc.bones.filter(b => b.name !== name);
-  doc.bones.push({ name, value });
-  
   await doc.save();
   res.json({ success: true, data: doc });
 }));
 
 /**
- * Delete a value
+ * DELETE Offset
  */
-router.delete('/:appId/:type/:name', asyncHandler(async (req, res) => {
-  const { appId, type, name } = req.params;
+router.delete('/:appId/offsets/:category/:offsetId', asyncHandler(async (req, res) => {
+  const { appId, category, offsetId } = req.params;
   const doc = await RuntimeValues.findOne({ applicationId: appId });
-  
-  if (doc) {
-    if (type === 'offset') {
-      doc.offsets = doc.offsets.filter(o => o.name !== name);
-    } else if (type === 'bone') {
-      doc.bones = doc.bones.filter(b => b.name !== name);
-    }
+  if (doc && doc[category]) {
+    doc[category].pull({ _id: offsetId });
     await doc.save();
   }
-  
+  res.json({ success: true });
+}));
+
+/**
+ * DELETE Bone
+ */
+router.delete('/:appId/bones/:boneId', asyncHandler(async (req, res) => {
+  const { appId, boneId } = req.params;
+  const doc = await RuntimeValues.findOne({ applicationId: appId });
+  if (doc) {
+    doc.bones.pull({ _id: boneId });
+    await doc.save();
+  }
+  res.json({ success: true });
+}));
+
+/**
+ * DELETE Reset
+ */
+router.delete('/:appId/reset', asyncHandler(async (req, res) => {
+  const { appId } = req.params;
+  await RuntimeValues.deleteOne({ applicationId: appId });
   res.json({ success: true });
 }));
 
