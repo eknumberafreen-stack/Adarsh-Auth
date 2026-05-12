@@ -95,4 +95,4 @@ const startServer = async () => {
 startServer();
 
 process.on('SIGTERM', () => { console.log('Shutting down...'); process.exit(0); });
-process.on('SIGINT',  () => { console.log('Shutting down...'); process.exit(0); });
+process.on('SIGINT', () => { console.log('Shutting down...'); process.exit(0); });
