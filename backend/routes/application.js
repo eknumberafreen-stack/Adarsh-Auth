@@ -115,10 +115,6 @@ router.patch('/:id', validate(schemas.updateApplication), verifyAppAccess('manag
   if (req.body.version) application.version = req.body.version;
   if (req.body.status) application.status = req.body.status;
   if (req.body.discordWebhook !== undefined) application.discordWebhook = req.body.discordWebhook;
-  if (req.body.baseOffset !== undefined) {
-    // Simply store the value exactly as it is (No Scrambling)
-    application.baseOffset = req.body.baseOffset.toString().trim();
-  }
   if (req.body.downloadUrl !== undefined) application.downloadUrl = req.body.downloadUrl;
   if (req.body.integrityCheck !== undefined) application.integrityCheck = req.body.integrityCheck;
   if (req.body.clientHash !== undefined) application.clientHash = req.body.clientHash;
@@ -138,9 +134,8 @@ router.patch('/:id', validate(schemas.updateApplication), verifyAppAccess('manag
     const redis = getRedisClient();
     
     // Invalidate cache for BOTH old and new app names to be safe
-    // Key format must match clientAuth.js: `app:${ownerId}:${appName}`
     await redis.del(`app:${ownerId}:${oldName}`);
-    if (req.body.name && req.body.name !== oldName) {
+    if (req.body.name) {
       await redis.del(`app:${ownerId}:${req.body.name}`);
     }
     
