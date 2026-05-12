@@ -152,8 +152,9 @@ router.patch('/:id', validate(schemas.updateApplication), verifyAppAccess('manag
     const redis = getRedisClient();
     
     // Invalidate cache for BOTH old and new app names to be safe
+    // Key format must match clientAuth.js: `app:${ownerId}:${appName}`
     await redis.del(`app:${ownerId}:${oldName}`);
-    if (req.body.name) {
+    if (req.body.name && req.body.name !== oldName) {
       await redis.del(`app:${ownerId}:${req.body.name}`);
     }
     
