@@ -580,7 +580,7 @@ router.post('/values',
       message: 'Values retrieved',
       values: doc.toClientPayload()
     });
-  }))
+  })
 );
 
 module.exports = router;
