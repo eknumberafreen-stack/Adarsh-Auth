@@ -406,7 +406,10 @@ export default function Settings() {
             <div className="p-4 bg-dark-bg rounded-xl border border-dark-border">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-xs text-gray-500 uppercase tracking-wider">Master Base Offset</p>
-                <button onClick={saveVersion} className="text-[10px] text-primary-400 hover:underline">Save Offset</button>
+                <div className="flex gap-2">
+                  <button onClick={saveVersion} className="text-[10px] text-primary-400 hover:underline">Save Offset</button>
+                  <button onClick={() => { setBaseOffset(''); saveVersion(); }} className="text-[10px] text-red-400 hover:underline">Clear Offset</button>
+                </div>
               </div>
               <input
                 type="text"
