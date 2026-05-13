@@ -24,8 +24,10 @@ const {
   bannedEmbed,
   hwidMismatchEmbed,
 } = require('../utils/discord');
+const { getUserPlanWithUsage } = require('../services/planService');
 
 const router = express.Router();
+
 
 // Global middleware for all client routes
 router.use(checkIPBan);
@@ -564,6 +566,15 @@ router.post('/values',
   verifyClientRequest,
   requireSession,
   asyncHandler(async (req, res) => {
+    // Check if the application owner is on a paid plan
+    const { plan } = await getUserPlanWithUsage(req.application.userId);
+    if (!plan || plan.name === 'free') {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Offsets & Bones are not available for this application\'s plan. Please upgrade to a pro plan.' 
+      });
+    }
+
     const doc = await RuntimeValues.findOne({ applicationId: req.application._id });
 
     if (!doc) {
@@ -581,5 +592,6 @@ router.post('/values',
     });
   })
 );
+
 
 module.exports = router;

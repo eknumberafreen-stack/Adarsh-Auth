@@ -1,11 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const RuntimeValues = require('../models/RuntimeValues');
-const { verifyToken, verifyAppAccess } = require('../middleware/auth');
+const { verifyToken, verifyAppAccess, requirePaidPlan } = require('../middleware/auth');
 const { asyncHandler } = require('../middleware/errorHandler');
 
 // Require login for all routes
 router.use(verifyToken);
+// Require paid plan for all runtime values (Offsets & Bones)
+router.use(requirePaidPlan);
 
 /**
  * GET all values for an app

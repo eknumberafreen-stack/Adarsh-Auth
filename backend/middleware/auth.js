@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Application = require('../models/Application');
+const { getUserPlanWithUsage } = require('../services/planService');
 
 // Verify JWT access token
 const verifyToken = async (req, res, next) => {
@@ -98,4 +99,25 @@ const verifyAppAccess = (requiredPermission) => {
   };
 };
 
-module.exports = { verifyToken, verifyOwner, verifyAppAccess };
+/**
+ * Ensures the user has a paid subscription (not 'free')
+ */
+const requirePaidPlan = async (req, res, next) => {
+  try {
+    const { plan } = await getUserPlanWithUsage(req.userId);
+    if (!plan || plan.name === 'free') {
+      return res.status(403).json({ 
+        success: false, 
+        error: 'Forbidden', 
+        message: 'This feature is only available for paid subscription plans. Please upgrade your account.' 
+      });
+    }
+    next();
+  } catch (error) {
+    console.error('Paid plan check error:', error);
+    res.status(500).json({ error: 'Server error checking subscription' });
+  }
+};
+
+module.exports = { verifyToken, verifyOwner, verifyAppAccess, requirePaidPlan };
+
