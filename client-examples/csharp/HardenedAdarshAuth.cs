@@ -25,10 +25,35 @@ namespace Keyauth
         private const string API_BASE = "https://api.adarshauth.online/api/client";
 
         // ── Session state ────────────────────────────────────────────────────
-        private string _sessionToken;
+        private byte[] _sessionEnc;
+        private byte[] _sessionKey;
         private bool   _initialized;
         private string _lastNonce;
         private System.Timers.Timer _heartbeatTimer;
+
+        private string SessionToken
+        {
+            get => Decrypt(_sessionEnc, _sessionKey);
+            set => Encrypt(value);
+        }
+
+        private void Encrypt(string value)
+        {
+            if (string.IsNullOrEmpty(value)) { _sessionEnc = null; _sessionKey = null; return; }
+            _sessionKey = new byte[32];
+            using (var rng = RandomNumberGenerator.Create()) rng.GetBytes(_sessionKey);
+            byte[] plain = Encoding.UTF8.GetBytes(value);
+            _sessionEnc = new byte[plain.Length];
+            for (int i = 0; i < plain.Length; i++) _sessionEnc[i] = (byte)(plain[i] ^ _sessionKey[i % _sessionKey.Length]);
+        }
+
+        private string Decrypt(byte[] enc, byte[] key)
+        {
+            if (enc == null || key == null) return null;
+            byte[] plain = new byte[enc.Length];
+            for (int i = 0; i < enc.Length; i++) plain[i] = (byte)(enc[i] ^ key[i % key.Length]);
+            return Encoding.UTF8.GetString(plain);
+        }
 
         // ── Public data (identical to original KeyAuth) ───────────────────────
         public user_data_class  user_data  = new user_data_class();
@@ -52,7 +77,7 @@ namespace Keyauth
 
             // Enforce TLS 1.2
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | (SecurityProtocolType)3072;
-            ServicePointManager.ServerCertificateValidationCallback = delegate { return true; };
+            // REMOVED: Insecure SSL bypass. Default validation is now used for security.
 
             if (string.IsNullOrEmpty(ownerid) || string.IsNullOrEmpty(secret))
             {
@@ -141,7 +166,7 @@ namespace Keyauth
             response.message = result.message;
             if (result.success)
             {
-                _sessionToken = result.sessionToken;
+                SessionToken = result.sessionToken;
                 LoadUserData(result, hwid);
                 StartHeartbeat();
             }
@@ -163,7 +188,7 @@ namespace Keyauth
             response.message = result.message;
             if (result.success)
             {
-                _sessionToken = result.sessionToken;
+                SessionToken = result.sessionToken;
                 LoadUserData(result, hwid);
                 StartHeartbeat();
             }
@@ -183,7 +208,7 @@ namespace Keyauth
             response.message = result.message;
             if (result.success)
             {
-                _sessionToken = result.sessionToken;
+                SessionToken = result.sessionToken;
                 LoadUserData(result, hwid);
                 StartHeartbeat();
             }
@@ -192,7 +217,7 @@ namespace Keyauth
         public void check()
         {
             CheckInit();
-            if (string.IsNullOrEmpty(_sessionToken))
+            if (string.IsNullOrEmpty(SessionToken))
             {
                 response.success = false;
                 response.message = "Not logged in";
@@ -200,20 +225,20 @@ namespace Keyauth
             }
             var payload = new Dictionary<string, object>
             {
-                ["session_token"] = _sessionToken,
+                ["session_token"] = SessionToken,
                 ["hwid"]          = GetHWID()
             };
             var result = PostSigned("/validate", payload);
             response.success = result.success;
             response.message = result.message;
             if (result.success) LoadUserData(result, GetHWID());
-            else { StopHeartbeat(); _sessionToken = null; }
+            else { StopHeartbeat(); SessionToken = null; }
         }
 
         public void logout()
         {
             StopHeartbeat();
-            _sessionToken = null;
+            SessionToken = null;
             _initialized  = false;
             response.success = true;
             response.message = "Logged out";
@@ -237,11 +262,26 @@ namespace Keyauth
         private async System.Threading.Tasks.Task SendHeartbeatAsync()
         {
             try {
-                if (string.IsNullOrEmpty(_sessionToken)) return;
-                var payload = new Dictionary<string, object> { ["session_token"] = _sessionToken, ["hwid"] = GetHWID() };
+                string token = SessionToken;
+                if (string.IsNullOrEmpty(token)) return;
+
+                var payload = new Dictionary<string, object> { ["session_token"] = token, ["hwid"] = GetHWID() };
                 var result = PostSigned("/heartbeat", payload);
-                if (!result.success) { StopHeartbeat(); _sessionToken = null; }
-            } catch { }
+                
+                if (!result.success) {
+                    string msg = result.message?.ToLower() ?? "";
+                    // Only terminate for confirmed invalid-session states from the backend.
+                    // This prevents crashes due to temporary network lag or server downtime.
+                    if (msg.Contains("session") || msg.Contains("invalid") || msg.Contains("expired") || msg.Contains("not found") || msg.Contains("not active")) {
+                        StopHeartbeat();
+                        SessionToken = null;
+                        error("Session Validation Failed: " + result.message);
+                        Environment.Exit(0);
+                    }
+                }
+            } catch { 
+                // Ignore transient network errors during heartbeat to maintain stability.
+            }
         }
 
         private string GetHWID()

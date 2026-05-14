@@ -25,8 +25,33 @@ namespace AdarshAuth
         private readonly string _ownerId;
         private readonly string _appSecret;
 
-        private string _sessionToken;
+        private byte[] _sessionEnc;
+        private byte[] _sessionKey;
         private System.Timers.Timer _heartbeatTimer;
+
+        private string SessionToken
+        {
+            get => Decrypt(_sessionEnc, _sessionKey);
+            set => Encrypt(value);
+        }
+
+        private void Encrypt(string value)
+        {
+            if (string.IsNullOrEmpty(value)) { _sessionEnc = null; _sessionKey = null; return; }
+            _sessionKey = new byte[32];
+            using (var rng = RandomNumberGenerator.Create()) rng.GetBytes(_sessionKey);
+            byte[] plain = Encoding.UTF8.GetBytes(value);
+            _sessionEnc = new byte[plain.Length];
+            for (int i = 0; i < plain.Length; i++) _sessionEnc[i] = (byte)(plain[i] ^ _sessionKey[i % _sessionKey.Length]);
+        }
+
+        private string Decrypt(byte[] enc, byte[] key)
+        {
+            if (enc == null || key == null) return null;
+            byte[] plain = new byte[enc.Length];
+            for (int i = 0; i < enc.Length; i++) plain[i] = (byte)(enc[i] ^ key[i % key.Length]);
+            return Encoding.UTF8.GetString(plain);
+        }
 
         private const int HEARTBEAT_INTERVAL_MS = 15_000; // 15 seconds
 
@@ -122,7 +147,7 @@ namespace AdarshAuth
                 };
 
                 var r = await PostSigned("/client/register", payload);
-                _sessionToken = r.GetProperty("sessionToken").GetString();
+                SessionToken = r.GetProperty("sessionToken").GetString();
                 Console.WriteLine("✓ Registered successfully");
                 StartHeartbeat();
                 return true;
@@ -142,7 +167,7 @@ namespace AdarshAuth
                 };
 
                 var r = await PostSigned("/client/login", payload);
-                _sessionToken = r.GetProperty("sessionToken").GetString();
+                SessionToken = r.GetProperty("sessionToken").GetString();
                 Console.WriteLine("✓ Logged in successfully");
                 StartHeartbeat();
                 return true;
@@ -180,7 +205,7 @@ namespace AdarshAuth
             {
                 var payload = new Dictionary<string, object>
                 {
-                    ["session_token"] = _sessionToken,
+                    ["session_token"] = SessionToken,
                     ["hwid"]          = GetHWID()
                 };
                 await PostSigned("/client/validate", payload);
@@ -202,17 +227,28 @@ namespace AdarshAuth
         {
             try
             {
+                string token = SessionToken;
+                if (string.IsNullOrEmpty(token)) return;
+
                 var payload = new Dictionary<string, object>
                 {
-                    ["session_token"] = _sessionToken,
+                    ["session_token"] = token,
                     ["hwid"]          = GetHWID()
                 };
                 await PostSigned("/client/heartbeat", payload);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"✗ Heartbeat failed: {ex.Message}");
-                StopHeartbeat();
+                string msg = ex.Message.ToLower();
+                // Fatal session errors from backend
+                if (msg.Contains("session") || msg.Contains("invalid") || msg.Contains("expired") || msg.Contains("not found"))
+                {
+                    Console.WriteLine($"✗ Fatal Session Error: {ex.Message}");
+                    StopHeartbeat();
+                    SessionToken = null;
+                    Environment.Exit(0);
+                }
+                // Ignore transient network errors
             }
         }
 
