@@ -340,6 +340,9 @@ export default function Users() {
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
+  const isOwner = selectedApp?.ownerId === user?.id
+  const showCreatedBy = isOwner && (selectedApp?.team?.length > 0 || users.some(u => u.createdBy))
+
   return (
     <div>
       {/* Header */}
@@ -385,26 +388,23 @@ export default function Users() {
             <div className="text-center py-12 text-gray-400">No users yet</div>
           ) : (
             <div className="card overflow-visible p-0">
-              {(() => {
-                const showCreatedBy = users.some(u => u.createdBy)
-                return (
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-dark-border">
-                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Username</th>
-                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Status</th>
-                        <th className="text-left px-4 py-3 text-gray-400 font-medium">HWID</th>
-                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Last Login</th>
-                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Last IP</th>
-                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Expiry</th>
-                        {showCreatedBy && (
-                          <th className="text-left px-4 py-3 text-gray-400 font-medium">Created By</th>
-                        )}
-                        <th className="text-left px-4 py-3 text-gray-400 font-medium">HWID Affected</th>
-                        <th className="px-4 py-3" />
-                      </tr>
-                    </thead>
-                    <tbody>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-dark-border">
+                    <th className="text-left px-4 py-3 text-gray-400 font-medium">Username</th>
+                    <th className="text-left px-4 py-3 text-gray-400 font-medium">Status</th>
+                    <th className="text-left px-4 py-3 text-gray-400 font-medium">HWID</th>
+                    <th className="text-left px-4 py-3 text-gray-400 font-medium">Last Login</th>
+                    <th className="text-left px-4 py-3 text-gray-400 font-medium">Last IP</th>
+                    <th className="text-left px-4 py-3 text-gray-400 font-medium">Expiry</th>
+                    {showCreatedBy && (
+                      <th className="text-left px-4 py-3 text-gray-400 font-medium">Created By</th>
+                    )}
+                    <th className="text-left px-4 py-3 text-gray-400 font-medium">HWID Affected</th>
+                    <th className="px-4 py-3" />
+                  </tr>
+                </thead>
+                <tbody>
                       {users.map((user: any) => (
                         <tr key={user._id} className="border-b border-dark-border/50 hover:bg-dark-hover/30 transition-colors">
                           <td className="px-4 py-3 font-medium">{user.username}</td>
@@ -473,7 +473,7 @@ export default function Users() {
                     </tbody>
                   </table>
                 )
-              })()}
+              }
 
               {/* Pagination Controls — KeyAuth Style */}
               <div className="flex items-center justify-between px-6 py-4 bg-black/20 border-t border-white/5">

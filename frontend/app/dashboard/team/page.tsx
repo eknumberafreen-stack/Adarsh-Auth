@@ -28,6 +28,16 @@ export default function TeamPage() {
   const [editAppIds, setEditAppIds] = useState<string[]>([])
   const [originalAppIds, setOriginalAppIds] = useState<string[]>([])
 
+  // Custom Confirm Modal
+  const [confirmModal, setConfirmModal] = useState({
+    show: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    type: 'danger' as 'danger' | 'warning' | 'info',
+    confirmText: 'Confirm'
+  })
+
   useEffect(() => {
     if (selectedApp?._id) loadApplication()
   }, [selectedApp?._id])
@@ -142,16 +152,26 @@ export default function TeamPage() {
   }
 
   // ── Remove Member ───────────────────────────────────────────────────────────
-  const handleRemoveMember = async (userId: string) => {
+  const handleRemoveMember = async (member: any) => {
     if (!selectedApp?._id) return
-    if (!confirm('Are you sure you want to remove this member?')) return
-    try {
-      await api.delete(`/applications/${selectedApp._id}/team/${userId}`)
-      toast.success('Member removed')
-      loadApplication()
-    } catch (e: any) {
-      toast.error(e.response?.data?.error || 'Failed to remove member')
-    }
+    
+    setConfirmModal({
+      show: true,
+      title: 'Remove Member?',
+      message: `Are you sure you want to remove "${member.userEmail || member.userId}" from this application?`,
+      type: 'danger',
+      confirmText: 'Remove Now',
+      onConfirm: async () => {
+        try {
+          await api.delete(`/applications/${selectedApp._id}/team/${member.userId}`)
+          toast.success('Member removed')
+          loadApplication()
+        } catch (e: any) {
+          toast.error(e.response?.data?.error || 'Failed to remove member')
+        }
+        setConfirmModal(prev => ({ ...prev, show: false }))
+      }
+    })
   }
 
   const togglePermission = (perm: string) => {
@@ -237,7 +257,9 @@ export default function TeamPage() {
                         <th className="text-left px-4 py-4 text-gray-400 font-medium">Member</th>
                         <th className="text-left px-4 py-4 text-gray-400 font-medium">Role</th>
                         <th className="text-left px-4 py-4 text-gray-400 font-medium">Permissions</th>
-                        <th className="text-left px-4 py-4 text-gray-400 font-medium">Added By</th>
+                        {isOwner && (
+                          <th className="text-left px-4 py-4 text-gray-400 font-medium">Added By</th>
+                        )}
                         <th className="text-left px-4 py-4 text-gray-400 font-medium">Added</th>
                         <th className="px-4 py-4 text-right">Actions</th>
                       </tr>
@@ -265,11 +287,13 @@ export default function TeamPage() {
                               ))}
                             </div>
                           </td>
-                          <td className="px-4 py-3">
-                            <span className="px-2 py-0.5 rounded-full bg-white/5 text-gray-300 text-[11px] border border-white/10">
-                              {member.addedByName || 'Owner'}
-                            </span>
-                          </td>
+                          {isOwner && (
+                            <td className="px-4 py-3">
+                              <span className="px-2 py-0.5 rounded-full bg-white/5 text-gray-300 text-[11px] border border-white/10">
+                                {member.addedByName || 'Owner'}
+                              </span>
+                            </td>
+                          )}
                           <td className="px-4 py-3 text-gray-500 text-xs">
                             {new Date(member.addedAt).toLocaleDateString()}
                           </td>
@@ -284,7 +308,7 @@ export default function TeamPage() {
                                   <PencilSquareIcon className="w-4 h-4" />
                                 </button>
                                 <button
-                                  onClick={() => handleRemoveMember(member.userId)}
+                                  onClick={() => handleRemoveMember(member)}
                                   className="p-1.5 rounded-lg text-rose-400 hover:bg-rose-500/10 transition-colors inline-flex"
                                   title="Remove member"
                                 >
@@ -423,6 +447,47 @@ export default function TeamPage() {
                 <button onClick={() => setShowEditModal(false)} className="btn bg-white/5 hover:bg-white/10 text-white flex-1 border border-white/10">Cancel</button>
                 <button onClick={handleEditMember} disabled={saving} className="btn btn-primary flex-1 disabled:opacity-50">
                   {saving ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Custom Confirmation Modal ────────────────────────────────────── */}
+      {confirmModal.show && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-200">
+          <div className="w-full max-w-sm bg-[#13131a] border border-white/5 rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex flex-col items-center text-center">
+              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 ${
+                confirmModal.type === 'danger' ? 'bg-red-500/20 text-red-400' :
+                confirmModal.type === 'warning' ? 'bg-yellow-500/20 text-yellow-400' :
+                'bg-blue-500/20 text-blue-400'
+              }`}>
+                {confirmModal.type === 'danger' ? '🗑️' : confirmModal.type === 'warning' ? '⚠️' : '🔄'}
+              </div>
+              
+              <h3 className="text-xl font-bold text-white mb-2">{confirmModal.title}</h3>
+              <p className="text-sm text-gray-400 mb-8 leading-relaxed">
+                {confirmModal.message}
+              </p>
+
+              <div className="flex gap-3 w-full">
+                <button
+                  onClick={() => setConfirmModal(prev => ({ ...prev, show: false }))}
+                  className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-gray-300 rounded-2xl text-sm font-bold transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmModal.onConfirm}
+                  className={`flex-1 px-4 py-3 rounded-2xl text-sm font-bold text-white transition-all shadow-lg ${
+                    confirmModal.type === 'danger' ? 'bg-red-600 hover:bg-red-500 shadow-red-900/20' :
+                    confirmModal.type === 'warning' ? 'bg-yellow-600 hover:bg-yellow-500 shadow-yellow-900/20' :
+                    'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-900/20'
+                  }`}
+                >
+                  {confirmModal.confirmText}
                 </button>
               </div>
             </div>
