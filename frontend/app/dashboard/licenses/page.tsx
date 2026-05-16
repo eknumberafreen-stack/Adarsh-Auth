@@ -5,6 +5,7 @@ import api from '@/lib/api'
 import { useAppStore } from '@/lib/store'
 import toast from 'react-hot-toast'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useRouter } from 'next/navigation'
 import { 
   PlusIcon, 
   XMarkIcon, 
@@ -78,6 +79,7 @@ function MenuBtn({ onClick, icon, label, color = "text-slate-200" }: any) {
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function Licenses() {
+  const router = useRouter()
   const { applications, selectedApp } = useAppStore()
   const [licenses, setLicenses] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
