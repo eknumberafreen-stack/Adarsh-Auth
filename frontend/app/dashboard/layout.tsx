@@ -6,6 +6,8 @@ import { useAuthStore, useAppStore } from '@/lib/store'
 import api, { clearStoredAuth, refreshAccessToken } from '@/lib/api'
 import toast from 'react-hot-toast'
 import ParticleField from '@/components/ParticleField'
+import PageAnimate from '@/components/PageAnimate'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowRightOnRectangleIcon,
   BanknotesIcon,
@@ -24,24 +26,23 @@ import {
 } from '@heroicons/react/24/outline'
 import { getAvatarInitial, getDisplayName, getEmailPrefix } from '@/lib/username'
 
-const PLAN_STYLE: Record<string, { shell: string; dot: string }> = {
-  free: { shell: 'border-zinc-400/20 bg-zinc-400/10 text-zinc-200', dot: 'bg-zinc-300' },
-  pro: { shell: 'border-indigo-400/20 bg-indigo-400/10 text-indigo-200', dot: 'bg-indigo-300' },
-  enterprise: { shell: 'border-slate-300/20 bg-slate-300/10 text-slate-200', dot: 'bg-slate-200' },
-  yearly: { shell: 'border-violet-400/20 bg-violet-400/10 text-violet-200', dot: 'bg-violet-300' },
+const PLAN_STYLE: Record<string, { shell: string; dot: string; glow: string }> = {
+  free: { shell: 'border-zinc-500/20 bg-zinc-500/5 text-zinc-400', dot: 'bg-zinc-500', glow: 'shadow-zinc-500/10' },
+  pro: { shell: 'border-indigo-500/20 bg-indigo-500/5 text-indigo-400', dot: 'bg-indigo-500', glow: 'shadow-indigo-500/10' },
+  enterprise: { shell: 'border-amber-500/20 bg-amber-500/5 text-amber-400', dot: 'bg-amber-500', glow: 'shadow-amber-500/10' },
+  yearly: { shell: 'border-violet-500/20 bg-violet-500/5 text-violet-400', dot: 'bg-violet-500', glow: 'shadow-violet-500/10' },
 }
 
 function DashboardBackdrop() {
   return (
     <>
       <ParticleField
-        className="pointer-events-none fixed inset-0 opacity-60"
-        particleColor="rgba(161, 161, 170, 0.16)"
-        lineColor="rgba(99, 102, 241, 0.12)"
-        count={60}
+        className="pointer-events-none fixed inset-0 opacity-40"
+        particleColor="rgba(161, 161, 170, 0.1)"
+        lineColor="rgba(99, 102, 241, 0.08)"
+        count={50}
       />
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top_left,rgba(79,70,229,0.12),transparent_24%),radial-gradient(circle_at_bottom_right,rgba(39,39,42,0.24),transparent_26%)]" />
-      <div className="pointer-events-none fixed left-1/2 top-0 h-[420px] w-[620px] -translate-x-1/2 rounded-full bg-indigo-500/8 blur-[160px]" />
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(99,102,241,0.05),transparent_40%),radial-gradient(circle_at_80%_100%,rgba(79,70,229,0.03),transparent_40%)]" />
     </>
   )
 }
@@ -55,7 +56,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [planDisplay, setPlanDisplay] = useState<string>('Free')
   const [checkingSession, setCheckingSession] = useState(true)
 
-  // App Store for global data
   const { applications, setApplications, selectedApp, setSelectedApp, setLoadingApplications } = useAppStore()
 
   const isOwner = user?.email === (process.env.NEXT_PUBLIC_OWNER_EMAIL || 'donumberafreen@gmail.com')
@@ -70,7 +70,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       { name: 'Sessions', href: '/dashboard/sessions', icon: ClockIcon, group: 'Operations' },
       ...(planName !== 'free' ? [{ name: 'Offsets & Bones', href: '/dashboard/offsets', icon: CpuChipIcon, group: 'Operations' }] : []),
       { name: 'Billing', href: '/dashboard/billing', icon: CreditCardIcon, group: 'Account' },
-
       { name: 'My Payments', href: '/dashboard/my-payments', icon: BanknotesIcon, group: 'Account' },
       { name: 'Profile', href: '/dashboard/profile', icon: UserCircleIcon, group: 'Account' },
       ...(isOwner
@@ -94,15 +93,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     let active = true
-
     const ensureSession = async () => {
       if (!hasHydrated) return
-
       if (accessToken) {
         if (active) setCheckingSession(false)
         return
       }
-
       if (refreshToken) {
         try {
           await refreshAccessToken()
@@ -114,236 +110,260 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           clearStoredAuth()
         }
       }
-
-      if (active) {
-        router.replace('/login')
-      }
+      if (active) router.replace('/login')
     }
-
     ensureSession()
-
-    return () => {
-      active = false
-    }
+    return () => { active = false }
   }, [accessToken, refreshToken, hasHydrated, router])
 
   useEffect(() => {
     if (!hasHydrated || !accessToken) return
-    api
-      .get('/plans/my')
-      .then((res) => {
-        const plan = res.data?.plan
-        if (plan) {
-          setPlanName(plan.name ?? 'free')
-          setPlanDisplay(plan.displayName ?? 'Free')
-        }
-      })
-      .catch(() => {})
+    api.get('/plans/my').then((res) => {
+      const plan = res.data?.plan
+      if (plan) {
+        setPlanName(plan.name ?? 'free')
+        setPlanDisplay(plan.displayName ?? 'Free')
+      }
+    }).catch(() => {})
   }, [accessToken, hasHydrated])
 
-  // Pre-load applications globally
   useEffect(() => {
     if (!hasHydrated || !accessToken) return
-    
-    // Only fetch if we haven't loaded applications yet
     if (applications.length === 0) {
-      api.get('/applications')
-        .then((res) => {
-          const apps = res.data.applications || []
-          setApplications(apps)
-          // Automatically select the first app if none is selected
-          if (apps.length > 0 && !selectedApp) {
-            setSelectedApp(apps[0])
-          }
-        })
-        .catch(() => {})
-        .finally(() => {
-          setLoadingApplications(false)
-        })
+      api.get('/applications').then((res) => {
+        const apps = res.data.applications || []
+        setApplications(apps)
+        if (apps.length > 0 && !selectedApp) setSelectedApp(apps[0])
+      }).catch(() => {}).finally(() => setLoadingApplications(false))
     } else {
       setLoadingApplications(false)
     }
   }, [accessToken, hasHydrated, applications.length, selectedApp, setApplications, setSelectedApp, setLoadingApplications])
 
-  useEffect(() => {
-    setMobileOpen(false)
-  }, [pathname])
+  useEffect(() => { setMobileOpen(false) }, [pathname])
 
   const handleLogout = async () => {
-    try {
-      await api.post('/auth/logout')
-    } catch {}
+    try { await api.post('/auth/logout') } catch {}
     logout()
     toast.success('Logged out')
     router.push('/login')
   }
 
-  if (!hasHydrated || checkingSession) {
-    return <div className="min-h-screen bg-[#07070a]" />
-  }
-
-  if (!accessToken) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#07070a] text-slate-400">
-        Redirecting...
-      </div>
-    )
-  }
+  if (!hasHydrated || checkingSession) return <div className="min-h-screen bg-dark-bg" />
 
   const activePage = navigation.find((item) => item.href === pathname)?.name ?? 'Dashboard'
   const planStyle = PLAN_STYLE[planName] ?? PLAN_STYLE.free
 
   return (
-    <div className="relative min-h-screen text-white">
+    <div className="relative min-h-screen bg-dark-bg selection:bg-primary-500/30 selection:text-white">
       <DashboardBackdrop />
 
-      <div className="relative z-10 flex min-h-screen">
-        {mobileOpen && <div className="fixed inset-0 z-30 bg-slate-950/70 backdrop-blur-sm lg:hidden" onClick={() => setMobileOpen(false)} />}
-
-        <aside
-          className={`fixed inset-y-0 left-0 z-40 flex w-[290px] flex-col border-r border-white/10 bg-slate-950/90 backdrop-blur-2xl transition-transform duration-300 lg:translate-x-0 ${
-            mobileOpen ? 'translate-x-0' : '-translate-x-full'
-          }`}
-        >
-          <div className="flex items-center justify-between border-b border-white/10 px-6 py-5">
-            <button type="button" onClick={() => router.push('/dashboard')} className="flex items-center gap-3 text-left">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-400 to-cyan-500 text-slate-950 shadow-lg shadow-sky-500/20">
-                <CubeIcon className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-300/75">Control Center</p>
-                <p className="text-lg font-bold text-white">Adarsh Auth</p>
-              </div>
-            </button>
-            <button className="rounded-xl border border-white/10 p-2 text-slate-400 lg:hidden" onClick={() => setMobileOpen(false)}>
-              <XMarkIcon className="h-5 w-5" />
-            </button>
-          </div>
-
-          <div className="border-b border-white/10 px-6 py-5">
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-500/15 text-sm font-bold text-sky-200">
-                  {getAvatarInitial(user?.username ?? null, user?.email ?? '')}
-                </div>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-white">{getDisplayName(user?.username ?? null, user?.email ?? '')}</p>
-                  <p className="truncate text-xs text-slate-400">{user?.username ? user.email : getEmailPrefix(user?.email ?? '')}</p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => router.push('/dashboard/billing')}
-                className={`mt-4 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold ${planStyle.shell}`}
-              >
-                <span className={`h-2 w-2 rounded-full ${planStyle.dot}`} />
-                {planDisplay} Plan
-              </button>
-
-              <p className="mt-3 text-xs leading-5 text-slate-400">
-                Manage applications, credentials, users, sessions, and billing from one operational workspace.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto px-4 py-5">
-            <div className="space-y-6">
-              {Object.entries(groupedNavigation).map(([group, items]) => (
-                <div key={group}>
-                  <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">{group}</p>
-                  <div className="mt-2 space-y-1.5">
-                    {items.map((item) => {
-                      const active = pathname === item.href
-                      return (
-                        <button
-                          type="button"
-                          key={item.name}
-                          onClick={() => router.push(item.href)}
-                          className={`flex items-center gap-3 rounded-2xl px-3 py-3 text-sm transition-all ${
-                            active
-                              ? 'border border-indigo-400/25 bg-indigo-400/10 text-indigo-100 shadow-lg shadow-indigo-950/30'
-                              : 'border border-transparent text-slate-400 hover:border-white/10 hover:bg-white/[0.04] hover:text-white'
-                          }`}
-                        >
-                          <item.icon className="h-5 w-5 flex-shrink-0" />
-                          <span className="font-medium">{item.name}</span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="border-t border-white/10 px-4 py-4">
-            <button
-              onClick={handleLogout}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm font-semibold text-rose-200 transition-colors hover:bg-rose-500/15"
+      {/* Mobile Drawer */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileOpen(false)}
+              className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm lg:hidden"
+            />
+            <motion.aside
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed inset-y-0 left-0 z-[70] flex w-[280px] flex-col bg-dark-bg/95 backdrop-blur-2xl border-r border-white/5 lg:hidden"
             >
-              <ArrowRightOnRectangleIcon className="h-5 w-5" />
-              Sign Out
-            </button>
-          </div>
+              <SidebarContent navigation={groupedNavigation} pathname={pathname} user={user} planStyle={planStyle} planDisplay={planDisplay} onLogout={handleLogout} onClose={() => setMobileOpen(false)} />
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
+      <div className="relative z-10 flex min-h-screen">
+        {/* Desktop Sidebar */}
+        <aside className="fixed inset-y-0 left-0 hidden w-[280px] flex-col border-r border-white/5 bg-dark-bg/50 backdrop-blur-xl lg:flex">
+          <SidebarContent navigation={groupedNavigation} pathname={pathname} user={user} planStyle={planStyle} planDisplay={planDisplay} onLogout={handleLogout} />
         </aside>
 
-        <div className="flex min-h-screen flex-1 flex-col lg:pl-[290px]">
-          <header className="sticky top-0 z-20 border-b border-white/10 bg-slate-950/60 backdrop-blur-xl">
-            <div className="flex items-center gap-4 px-4 py-4 sm:px-6 lg:px-8">
-              <button className="rounded-2xl border border-white/10 p-2 text-slate-300 lg:hidden" onClick={() => setMobileOpen(true)}>
-                <Bars3Icon className="h-5 w-5" />
-              </button>
-
-              <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Adarsh Auth Dashboard</p>
-                <h1 className="truncate text-lg font-bold text-white">{activePage}</h1>
+        <div className="flex flex-1 flex-col lg:pl-[280px]">
+          <header className="sticky top-0 z-[50] border-b border-white/5 bg-dark-bg/60 backdrop-blur-xl">
+            <div className="flex h-20 items-center justify-between px-4 sm:px-8">
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => setMobileOpen(true)}
+                  className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 border border-white/10 text-slate-300 lg:hidden"
+                >
+                  <Bars3Icon className="h-6 w-6" />
+                </button>
+                <div className="hidden sm:block">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-dark-muted">Platform Hub</p>
+                  <h1 className="text-xl font-bold text-white tracking-tight">{activePage}</h1>
+                </div>
               </div>
 
-              {/* Global App Selector */}
-              {applications.length > 0 && (pathname.includes('/users') || pathname.includes('/licenses') || pathname.includes('/sessions') || pathname.includes('/settings') || pathname.includes('/team') || pathname.includes('/offsets')) && (
-                <div className="relative z-50 ml-8 flex items-center gap-3">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 whitespace-nowrap">Select Application:</span>
-                  <select
-                    value={selectedApp?._id || ''}
-                    onChange={(e) => {
-                      const app = applications.find(a => a._id === e.target.value)
-                      if (app) setSelectedApp(app)
-                    }}
-                    className="h-10 rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm font-semibold text-white outline-none focus:border-indigo-500/50 transition-all min-w-[180px]"
-                  >
-                    {applications.map((app) => (
-                      <option key={app._id} value={app._id} className="bg-[#0f0f13]">
-                        {app.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+              <div className="flex items-center gap-3 sm:gap-6">
+                {/* Global App Selector - Redesigned for Mobile */}
+                {applications.length > 0 && (pathname.includes('/users') || pathname.includes('/licenses') || pathname.includes('/sessions') || pathname.includes('/settings') || pathname.includes('/team') || pathname.includes('/offsets')) && (
+                  <div className="hidden md:flex items-center gap-3">
+                    <select
+                      value={selectedApp?._id || ''}
+                      onChange={(e) => {
+                        const app = applications.find(a => a._id === e.target.value)
+                        if (app) setSelectedApp(app)
+                      }}
+                      className="h-10 rounded-xl border border-white/5 bg-white/[0.04] px-4 text-xs font-semibold text-white outline-none focus:border-primary-500/50 transition-all hover:bg-white/[0.06]"
+                    >
+                      {applications.map((app) => (
+                        <option key={app._id} value={app._id} className="bg-dark-card text-white">{app.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
-              <div className="ml-auto flex items-center gap-3">
-                <div className="hidden rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2 text-right md:block">
-                  <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Status</p>
-                  <p className="text-sm font-semibold text-indigo-200">Operational</p>
+                <div className="flex items-center gap-3">
+                   <div className="hidden xl:block text-right">
+                    <p className="text-[9px] uppercase tracking-[0.2em] text-dark-muted">Status</p>
+                    <div className="flex items-center gap-1.5 justify-end">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="text-xs font-bold text-emerald-400/90">Healthy</span>
+                    </div>
+                  </div>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => router.push('/dashboard/profile')}
+                    className="flex h-10 w-10 items-center justify-center rounded-xl border border-primary-500/20 bg-primary-500/10 text-xs font-bold text-primary-400 shadow-glow"
+                  >
+                    {getAvatarInitial(user?.username ?? null, user?.email ?? '')}
+                  </motion.button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => router.push('/dashboard/profile')}
-                  className="flex h-11 w-11 items-center justify-center rounded-2xl border border-indigo-400/20 bg-indigo-400/10 text-sm font-bold text-indigo-100"
-                >
-                  {getAvatarInitial(user?.username ?? null, user?.email ?? '')}
-                </button>
               </div>
             </div>
+
+            {/* Mobile App Selector - Only on mobile and specific pages */}
+            {applications.length > 0 && (pathname.includes('/users') || pathname.includes('/licenses') || pathname.includes('/sessions') || pathname.includes('/settings') || pathname.includes('/team') || pathname.includes('/offsets')) && (
+              <div className="flex h-12 items-center px-4 border-t border-white/5 md:hidden">
+                <select
+                  value={selectedApp?._id || ''}
+                  onChange={(e) => {
+                    const app = applications.find(a => a._id === e.target.value)
+                    if (app) setSelectedApp(app)
+                  }}
+                  className="w-full bg-transparent text-xs font-bold text-slate-300 outline-none"
+                >
+                  {applications.map((app) => (
+                    <option key={app._id} value={app._id} className="bg-dark-card text-white">{app.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
           </header>
 
-          <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+          <main className="flex-1 overflow-x-hidden">
+            <PageAnimate>
+              <div className="p-4 sm:p-8 max-w-[1600px] mx-auto">
+                {children}
+              </div>
+            </PageAnimate>
+          </main>
 
-          <footer className="border-t border-white/10 px-4 py-4 text-center text-xs text-slate-500 sm:px-6 lg:px-8">
-           |    © 2026    •    Developed By Adarsh Cheats    •    Dev - Hariom    |
+          <footer className="py-6 px-8 text-center">
+            <p className="text-[10px] font-medium text-dark-muted uppercase tracking-[0.3em] opacity-50">
+              © 2026 • Adarsh Cheats Engineering • v2.0
+            </p>
           </footer>
         </div>
       </div>
     </div>
+  )
+}
+
+function SidebarContent({ navigation, pathname, user, planStyle, planDisplay, onLogout, onClose }: any) {
+  const router = useRouter()
+  return (
+    <>
+      <div className="flex h-20 items-center justify-between px-6 border-b border-white/5">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 text-white shadow-lg shadow-primary-500/20">
+            <CubeIcon className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-500">Adarsh</p>
+            <p className="text-base font-bold text-white tracking-tight">Auth Platform</p>
+          </div>
+        </div>
+        {onClose && (
+          <button onClick={onClose} className="p-2 text-slate-500 hover:text-white lg:hidden">
+            <XMarkIcon className="h-5 w-5" />
+          </button>
+        )}
+      </div>
+
+      <div className="px-4 py-6">
+        <div className="card-premium p-4 group">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-500/10 text-xs font-bold text-primary-400 group-hover:scale-110 transition-transform">
+              {getAvatarInitial(user?.username ?? null, user?.email ?? '')}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-bold text-white">{getDisplayName(user?.username ?? null, user?.email ?? '')}</p>
+              <p className="truncate text-[10px] font-medium text-dark-muted">{user?.username ? user.email : getEmailPrefix(user?.email ?? '')}</p>
+            </div>
+          </div>
+          <div className={`mt-4 inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider ${planStyle.shell} ${planStyle.glow}`}>
+            <span className={`h-1.5 w-1.5 rounded-full ${planStyle.dot}`} />
+            {planDisplay} Member
+          </div>
+        </div>
+      </div>
+
+      <nav className="flex-1 space-y-8 overflow-y-auto px-4 py-4 scrollbar-hide">
+        {Object.entries(navigation).map(([group, items]: [string, any]) => (
+          <div key={group} className="space-y-2">
+            <p className="px-3 text-[10px] font-bold uppercase tracking-[0.3em] text-dark-muted/60">{group}</p>
+            <div className="space-y-1">
+              {items.map((item: any) => {
+                const active = pathname === item.href
+                return (
+                  <button
+                    key={item.name}
+                    onClick={() => {
+                      router.push(item.href)
+                      if (onClose) onClose()
+                    }}
+                    className={`group relative flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm transition-all active:scale-[0.98] ${
+                      active ? 'text-white' : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+                    }`}
+                  >
+                    {active && (
+                      <motion.div
+                        layoutId="nav-pill"
+                        className="absolute inset-0 z-0 rounded-xl bg-primary-600/10 border border-primary-500/20 shadow-glow"
+                        transition={{ type: 'spring', bounce: 0.25, duration: 0.5 }}
+                      />
+                    )}
+                    <item.icon className={`relative z-10 h-5 w-5 transition-transform group-hover:scale-110 ${active ? 'text-primary-400' : 'text-slate-500 group-hover:text-slate-300'}`} />
+                    <span className="relative z-10 font-semibold">{item.name}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        ))}
+      </nav>
+
+      <div className="p-4 border-t border-white/5">
+        <button
+          onClick={onLogout}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-rose-500/10 bg-rose-500/5 px-4 py-3 text-sm font-bold text-rose-400 hover:bg-rose-500/10 transition-colors"
+        >
+          <ArrowRightOnRectangleIcon className="h-5 w-5" />
+          Sign Out
+        </button>
+      </div>
+    </>
   )
 }

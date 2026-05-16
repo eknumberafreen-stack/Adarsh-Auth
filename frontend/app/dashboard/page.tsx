@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import api from '@/lib/api'
 import { useAuthStore, useAppStore } from '@/lib/store'
 import { getDisplayName } from '@/lib/username'
+import { motion } from 'framer-motion'
 import {
   ArrowTrendingUpIcon,
   ChartBarIcon,
@@ -12,6 +13,8 @@ import {
   KeyIcon,
   ShieldCheckIcon,
   UsersIcon,
+  SparklesIcon,
+  ArrowRightIcon
 } from '@heroicons/react/24/outline'
 
 export default function Dashboard() {
@@ -41,9 +44,6 @@ export default function Dashboard() {
       const res = await api.get(`/applications?page=${page}&limit=${limit}`)
       setRecentApps(res.data.applications)
       setTotalPages(res.data.pagination.pages)
-      
-      // Update stats based on full application count if needed, 
-      // but here we just update the total from pagination metadata
       setStats(prev => ({ ...prev, applications: res.data.pagination.total }))
     } catch (err) {
       console.error('Failed to load recent apps:', err)
@@ -57,279 +57,194 @@ export default function Dashboard() {
     setCurrentPage(newPage)
   }
 
-  const loadStats = async (appsToUse = applications) => {
-    if (appsToUse.length === 0) {
-      setLoading(false)
-      return
-    }
-    setRecentApps(appsToUse.slice(0, limit))
-
-    try {
-
-      let totalLicenses = 0
-      let usedLicenses = 0
-      let totalUsers = 0
-      let bannedUsers = 0
-      let totalSessions = 0
-
-      // Fetch all stats in parallel for all apps
-      const results = await Promise.all(appsToUse.map(app => 
-        Promise.all([
-          api.get(`/licenses/application/${app._id}`),
-          api.get(`/users/application/${app._id}`),
-          api.get(`/sessions/application/${app._id}`)
-        ]).catch(() => [null, null, null])
-      ))
-
-      results.forEach(resSet => {
-        const [lRes, uRes, sRes] = resSet as any
-        if (lRes) {
-          totalLicenses += lRes.data.licenses.length
-          usedLicenses += lRes.data.licenses.filter((license: any) => license.used).length
-        }
-        if (uRes) {
-          totalUsers += uRes.data.users.length
-          bannedUsers += uRes.data.users.filter((appUser: any) => appUser.banned).length
-        }
-        if (sRes) {
-          totalSessions += sRes.data.sessions.length
-        }
-      })
-
-      const finalStats = {
-        applications: appsToUse.length,
-        licenses: totalLicenses,
-        users: totalUsers,
-        sessions: totalSessions,
-        usedLicenses,
-        bannedUsers,
-        recentApps: appsToUse.slice(0, limit)
-      }
-
-      setStats(finalStats)
-      setStatsCache(finalStats)
-    } catch (error) {
-      console.error(error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const statCards = [
-    {
-      name: 'Applications',
-      value: stats.applications,
-      icon: CubeIcon,
-      meta: `${recentApps.length} recently active`,
-      color: 'text-indigo-300',
-    },
-    {
-      name: 'Licenses',
-      value: stats.licenses,
-      icon: KeyIcon,
-      meta: `${stats.usedLicenses} activated`,
-      color: 'text-slate-200',
-    },
-    {
-      name: 'Users',
-      value: stats.users,
-      icon: UsersIcon,
-      meta: `${Math.max(stats.users - stats.bannedUsers, 0)} currently active`,
-      color: 'text-zinc-200',
-    },
-    {
-      name: 'Sessions',
-      value: stats.sessions,
-      icon: ClockIcon,
-      meta: 'Live authenticated client sessions',
-      color: 'text-indigo-200',
-    },
+    { name: 'Sectors', value: stats.applications, icon: CubeIcon, meta: `${recentApps.length} active units`, color: 'text-indigo-400', bg: 'bg-indigo-500/10' },
+    { name: 'Auth Keys', value: stats.licenses, icon: KeyIcon, meta: `${stats.usedLicenses} consumed`, color: 'text-amber-400', bg: 'bg-amber-500/10' },
+    { name: 'Personnel', value: stats.users, icon: UsersIcon, meta: `${Math.max(stats.users - stats.bannedUsers, 0)} healthy`, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+    { name: 'Live Link', value: stats.sessions, icon: ClockIcon, meta: 'Active sessions', color: 'text-sky-400', bg: 'bg-sky-500/10' },
   ]
 
   const licenseUsage = stats.licenses > 0 ? Math.round((stats.usedLicenses / stats.licenses) * 100) : 0
   const healthyUsers = stats.users > 0 ? Math.round(((stats.users - stats.bannedUsers) / stats.users) * 100) : 100
 
   return (
-    <div className="space-y-8">
-      <section className="surface-panel px-6 py-8 md:px-8">
-        <div className="page-header">
-          <div>
-            <p className="page-eyebrow">Overview</p>
-            <h1 className="page-title">Manage authentication, licenses, users, and sessions from one workspace.</h1>
-            <p className="page-subtitle">
-              Welcome back, {getDisplayName(user?.username ?? null, user?.email ?? '')}. This view consolidates your applications,
-              license inventory, users, and active sessions with a cleaner classic dark layout.
+    <div className="space-y-10">
+      {/* Welcome Section */}
+      <section className="relative overflow-hidden card-premium p-8 sm:p-12 border-primary-500/20 bg-primary-500/[0.02]">
+        <div className="absolute top-0 right-0 p-8 opacity-10">
+          <SparklesIcon className="w-32 h-32 text-primary-500" />
+        </div>
+        
+        <div className="relative z-10 max-w-3xl">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+            <p className="text-xs font-black uppercase tracking-[0.3em] text-primary-500 mb-4">Command Center Console</p>
+            <h1 className="text-4xl sm:text-5xl font-black text-white tracking-tight leading-[1.1] mb-6">
+              Welcome back, <span className="text-primary-400">{getDisplayName(user?.username ?? null, user?.email ?? '')}</span>.
+            </h1>
+            <p className="text-lg text-slate-400 font-medium leading-relaxed">
+              Your authentication network is currently operational. Monitor your applications, license inventory, and active personnel sessions from this central hub.
             </p>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl border border-indigo-400/20 bg-indigo-400/10 px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-indigo-200/80">Authentication</p>
-              <p className="mt-2 text-lg font-bold text-white">Secure sign-in, tokens, and request protection</p>
+            
+            <div className="flex flex-wrap gap-4 mt-10">
+              <div className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full text-xs font-bold text-slate-300">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
+                Network Online
+              </div>
+              <div className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full text-xs font-bold text-slate-300">
+                <ShieldCheckIcon className="w-4 h-4 text-primary-400" />
+                Secure Protocol Active
+              </div>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Dashboard</p>
-              <p className="mt-2 text-lg font-bold text-white">Clearer views for apps, licenses, users, and live sessions</p>
-            </div>
-          </div>
+          </motion.div>
         </div>
       </section>
 
-      {loading || loadingApplications ? (
-        <div className="flex justify-center py-24">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-400 border-t-transparent" />
+      {/* Stats Grid */}
+      <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        {statCards.map((stat, idx) => (
+          <motion.div 
+            key={stat.name} 
+            initial={{ opacity: 0, y: 20 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            transition={{ delay: idx * 0.1 }}
+            className="card-premium group p-6 hover:scale-[1.02] transition-transform"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className={`p-3 rounded-2xl ${stat.bg} ${stat.color} group-hover:scale-110 transition-transform`}>
+                <stat.icon className="h-6 w-6" />
+              </div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-dark-muted">{stat.name}</p>
+            </div>
+            <p className="text-4xl font-black text-white tracking-tighter mb-1">{stat.value}</p>
+            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">{stat.meta}</p>
+          </motion.div>
+        ))}
+      </section>
+
+      {/* Main Content Area */}
+      <section className="grid gap-8 xl:grid-cols-3">
+        {/* Recent Activity */}
+        <div className="xl:col-span-2 space-y-6">
+          <div className="flex items-center justify-between px-2">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-primary-500/10 text-primary-400">
+                <ChartBarIcon className="h-5 w-5" />
+              </div>
+              <h2 className="text-xl font-black text-white uppercase tracking-tight">Active Sectors</h2>
+            </div>
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="p-1.5 rounded-lg border border-white/5 bg-white/5 text-slate-500 disabled:opacity-20"><ArrowRightIcon className="w-4 h-4 rotate-180" /></button>
+                <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} className="p-1.5 rounded-lg border border-white/5 bg-white/5 text-slate-500 disabled:opacity-20"><ArrowRightIcon className="w-4 h-4" /></button>
+              </div>
+            )}
+          </div>
+
+          <div className="grid gap-4">
+            {loading ? (
+              <div className="py-24 text-center space-y-4">
+                <div className="h-8 w-8 border-2 border-primary-500 border-t-transparent animate-spin rounded-full mx-auto" />
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-600 animate-pulse">Syncing Active Sectors...</p>
+              </div>
+            ) : recentApps.length === 0 ? (
+              <div className="card-premium p-16 text-center border-dashed border-white/10 bg-transparent">
+                <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">No Active Sectors Found</p>
+              </div>
+            ) : (
+              recentApps.map((app: any, idx: number) => (
+                <motion.div 
+                  key={app._id} 
+                  initial={{ opacity: 0, x: -20 }} 
+                  animate={{ opacity: 1, x: 0 }} 
+                  transition={{ delay: idx * 0.1 }}
+                  className="card-premium group p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-primary-500/30 transition-all"
+                >
+                  <div className="flex items-center gap-5">
+                    <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center text-xl font-black text-slate-400 border border-white/5 group-hover:border-primary-500/20 group-hover:text-primary-400 transition-all">
+                      {app.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-black text-white tracking-tight">{app.name}</h3>
+                      <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-0.5">
+                        Version {app.version} • {app.userCount || 0} Connected
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.2em] border ${app.status === 'active' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-slate-500/10 border-slate-500/20 text-slate-500'}`}>
+                      {app.status}
+                    </span>
+                    <button className="p-2 rounded-xl bg-white/5 text-slate-600 group-hover:text-white transition-colors">
+                      <ArrowRightIcon className="w-5 h-5" />
+                    </button>
+                  </div>
+                </motion.div>
+              ))
+            )}
+          </div>
         </div>
-      ) : (
-        <>
-          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {statCards.map((stat) => (
-              <div key={stat.name} className="stat-tile">
-                <div className="flex items-center justify-between">
-                  <p className="stat-label">{stat.name}</p>
-                  <stat.icon className={`h-5 w-5 ${stat.color}`} />
-                </div>
-                <p className="stat-value">{stat.value}</p>
-                <p className="stat-meta">{stat.meta}</p>
+
+        {/* Sidebar Stats */}
+        <div className="space-y-8">
+          {/* Health Ratios */}
+          <div className="card-premium p-8">
+            <div className="flex items-center gap-3 mb-8">
+              <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400">
+                <ArrowTrendingUpIcon className="h-5 w-5" />
               </div>
-            ))}
-          </section>
-
-          <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-            <div className="card">
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-400/10 text-indigo-200">
-                  <ChartBarIcon className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="page-eyebrow">Recent Applications</p>
-                  <h2 className="text-2xl font-bold text-white">Most recently managed apps</h2>
-                </div>
-              </div>
-
-              <div className="mt-6 space-y-3">
-                {recentApps.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-white/10 px-5 py-12 text-center text-sm text-slate-400">
-                    No applications yet. Create your first app to start issuing credentials and client sessions.
-                  </div>
-                ) : (
-                  recentApps.map((app: any) => (
-                    <div key={app._id} className="rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4">
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                          <p className="text-lg font-bold text-white">{app.name}</p>
-                          <p className="mt-1 text-sm text-slate-400">
-                            Version {app.version} • {app.userCount || 0} users currently linked
-                          </p>
-                        </div>
-                        <span
-                          className={`badge ${
-                            app.status === 'active'
-                              ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-200'
-                              : 'border-zinc-400/20 bg-zinc-400/10 text-zinc-200'
-                          }`}
-                        >
-                          {app.status}
-                        </span>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              {/* Pagination Controls — KeyAuth Style */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-6 pt-6 border-t border-white/5">
-                  <button
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="px-5 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-gray-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                  >
-                    Previous
-                  </button>
-                  
-                  <div className="text-xs font-medium text-gray-500">
-                    Showing page <span className="text-gray-200">{currentPage}</span> of <span className="text-gray-200">{totalPages}</span>
-                  </div>
-
-                  <button
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className="px-5 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-gray-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                  >
-                    Next
-                  </button>
-                </div>
-              )}
+              <h2 className="text-lg font-black text-white uppercase tracking-tight">System Health</h2>
             </div>
 
-            <div className="space-y-6">
-              <div className="card">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-400/10 text-indigo-200">
-                    <ArrowTrendingUpIcon className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="page-eyebrow">Operational Ratios</p>
-                    <h2 className="text-2xl font-bold text-white">Health indicators</h2>
-                  </div>
-                </div>
-
-                <div className="mt-6 space-y-5">
-                  {[
-                    {
-                      label: 'License activation',
-                      value: licenseUsage,
-                      caption: `${stats.usedLicenses} of ${stats.licenses} licenses have been consumed`,
-                      color: 'bg-indigo-400',
-                    },
-                    {
-                      label: 'User health',
-                      value: healthyUsers,
-                      caption: `${Math.max(stats.users - stats.bannedUsers, 0)} active versus ${stats.bannedUsers} banned`,
-                      color: 'bg-emerald-400',
-                    },
-                  ].map((item) => (
-                    <div key={item.label}>
-                      <div className="mb-2 flex items-center justify-between text-sm">
-                        <span className="font-medium text-slate-300">{item.label}</span>
-                        <span className="text-slate-400">{item.value}%</span>
-                      </div>
-                      <div className="h-2 overflow-hidden rounded-full bg-white/[0.05]">
-                        <div className={`h-full rounded-full ${item.color}`} style={{ width: `${item.value}%` }} />
-                      </div>
-                      <p className="mt-2 text-xs text-slate-500">{item.caption}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="card">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.06] text-slate-200">
-                    <ShieldCheckIcon className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="page-eyebrow">Security Summary</p>
-                    <h2 className="text-2xl font-bold text-white">Controls currently surfaced</h2>
-                  </div>
-                </div>
-                <div className="mt-6 grid gap-3">
-                  {[
-                    'JWT access and refresh handling',
-                    'Signed client requests and replay protection',
-                    'HWID-aware session validation',
-                    'Audit visibility for authentication events',
-                  ].map((item) => (
-                    <div key={item} className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4 text-sm text-slate-300">
-                      {item}
-                    </div>
-                  ))}
-                </div>
-              </div>
+            <div className="space-y-10">
+              <HealthBar label="License Consumed" value={licenseUsage} color="bg-primary-500" />
+              <HealthBar label="Personnel Safety" value={healthyUsers} color="bg-emerald-500" />
             </div>
-          </section>
-        </>
-      )}
+          </div>
+
+          {/* Features / Security */}
+          <div className="card-premium p-8 bg-gradient-to-br from-dark-card to-dark-bg">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
+                <ShieldCheckIcon className="h-5 w-5" />
+              </div>
+              <h2 className="text-lg font-black text-white uppercase tracking-tight">Sec-Ops Summary</h2>
+            </div>
+            
+            <ul className="space-y-4">
+              {['JWT Multi-Factor Sync', 'HWID Protocol Enforced', 'Signed Request Layer', 'Audit Log Trail v2'].map((item) => (
+                <li key={item} className="flex items-center gap-3 text-xs font-bold text-slate-400 p-4 rounded-2xl bg-white/[0.02] border border-white/5 group hover:bg-white/[0.04] transition-all">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 group-hover:scale-150 transition-transform" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+    </div>
+  )
+}
+
+function HealthBar({ label, value, color }: { label: string, value: number, color: string }) {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-end justify-between">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 mb-1">{label}</p>
+          <p className="text-2xl font-black text-white tracking-tighter">{value}%</p>
+        </div>
+        <div className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest ${value > 80 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'}`}>
+          {value > 80 ? 'Optimal' : 'Caution'}
+        </div>
+      </div>
+      <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+        <motion.div 
+          initial={{ width: 0 }} 
+          animate={{ width: `${value}%` }} 
+          transition={{ duration: 1, ease: "easeOut" }}
+          className={`h-full rounded-full ${color} shadow-[0_0_12px_rgba(99,102,241,0.3)]`} 
+        />
+      </div>
     </div>
   )
 }

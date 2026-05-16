@@ -1,11 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useAuthStore } from '@/lib/store'
-import { useAppStore } from '@/lib/store'
+import { useAuthStore, useAppStore } from '@/lib/store'
 import api from '@/lib/api'
 import toast from 'react-hot-toast'
 import { isValidUsername } from '@/lib/username'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   Cog6ToothIcon,
   ShieldCheckIcon,
@@ -16,18 +16,21 @@ import {
   TrashIcon,
   PencilIcon,
   CheckIcon,
-  ChatBubbleBottomCenterTextIcon
+  ChatBubbleBottomCenterTextIcon,
+  XMarkIcon,
+  SignalIcon,
+  CommandLineIcon,
+  ArrowPathIcon
 } from '@heroicons/react/24/outline'
 
 export default function Settings() {
   const { user } = useAuthStore()
-  const { applications, selectedApp, setSelectedApp } = useAppStore()
+  const { selectedApp, setSelectedApp } = useAppStore()
   const [activeTab, setActiveTab] = useState('app-config')
   const [loading, setLoading] = useState(false)
 
   // App Config state
   const [appStatus, setAppStatus] = useState(true)
-  const [hwidLock, setHwidLock] = useState(true)
   const [version, setVersion] = useState('')
   const [newVersion, setNewVersion] = useState('')
   const [downloadUrl, setDownloadUrl] = useState('')
@@ -48,53 +51,27 @@ export default function Settings() {
 
   // Custom Messages state
   const [customMessages, setCustomMessages] = useState<any>({
-    appDisabled: '',
-    appPaused: '',
-    invalidLicense: '',
-    licenseUsed: '',
-    invalidUsername: '',
-    usernameTaken: '',
-    hwidMismatch: '',
-    userBanned: '',
-    invalidCreds: '',
-    invalidPassword: '',
-    noSubscription: '',
-    accountPaused: '',
-    subPaused: '',
-    expiredLicense: ''
+    appDisabled: '', appPaused: '', invalidLicense: '', licenseUsed: '',
+    invalidUsername: '', usernameTaken: '', hwidMismatch: '', userBanned: '',
+    invalidCreds: '', invalidPassword: '', noSubscription: '', accountPaused: '',
+    subPaused: '', expiredLicense: ''
   })
   const [messagesSaving, setMessagesSaving] = useState(false)
 
+  useEffect(() => { setNewUsername(user?.username ?? '') }, [user])
+
   useEffect(() => {
-    setNewUsername(user?.username ?? '')
-  }, [user])
-
-  const loadMaintenanceMode = async () => {
-    try {
-      const res = await api.get('/admin/config')
-      setMaintenanceMode(res.data.MAINTENANCE_MODE)
-    } catch {}
-  }
-
-  const toggleMaintenanceMode = async () => {
-    try {
-      const newVal = !maintenanceMode
-      await api.post('/admin/config/maintenance', { enabled: newVal })
-      setMaintenanceMode(newVal)
-      toast.success(`Maintenance mode ${newVal ? 'ENABLED' : 'DISABLED'}`)
-    } catch {
-      toast.error('Failed to update maintenance mode')
+    const loadPlatformConfig = async () => {
+      try {
+        const res = await api.get('/admin/config')
+        setMaintenanceMode(res.data.MAINTENANCE_MODE)
+      } catch {}
     }
-  }
-
-  useEffect(() => {
-    loadMaintenanceMode()
+    loadPlatformConfig()
   }, [])
 
   useEffect(() => {
-    if (selectedApp?._id) {
-      loadApp()
-    }
+    if (selectedApp?._id) loadApp()
   }, [selectedApp?._id])
 
   const loadApp = async () => {
@@ -102,17 +79,10 @@ export default function Settings() {
     try {
       const res = await api.get(`/applications/${selectedApp._id}`)
       const app = res.data.application
-      setAppStatus(app.status === 'active')
-      setVersion(app.version)
-      setNewVersion(app.version)
-      setDownloadUrl(app.downloadUrl || '')
-      setDiscordWebhook(app.discordWebhook || '')
-      if (app.customMessages) {
-        setCustomMessages(app.customMessages)
-      }
-    } catch {
-      toast.error('Failed to load application')
-    }
+      setAppStatus(app.status === 'active'); setVersion(app.version); setNewVersion(app.version)
+      setDownloadUrl(app.downloadUrl || ''); setDiscordWebhook(app.discordWebhook || '')
+      if (app.customMessages) setCustomMessages(app.customMessages)
+    } catch { toast.error('Sync failed') }
   }
 
   const toggleAppStatus = async () => {
@@ -120,35 +90,33 @@ export default function Settings() {
     try {
       const newStatus = appStatus ? 'paused' : 'active'
       await api.patch(`/applications/${selectedApp._id}`, { status: newStatus })
-      setAppStatus(!appStatus)
-      toast.success(`Application ${newStatus}`)
-    } catch {
-      toast.error('Failed to update status')
-    }
+      setAppStatus(!appStatus); toast.success(`Unit ${newStatus}`)
+    } catch { toast.error('Status update failed') }
+  }
+
+  const toggleMaintenanceMode = async () => {
+    try {
+      const newVal = !maintenanceMode
+      await api.post('/admin/config/maintenance', { enabled: newVal })
+      setMaintenanceMode(newVal); toast.success(`Standby Mode ${newVal ? 'Engaged' : 'Disengaged'}`)
+    } catch { toast.error('Maintenance toggle failed') }
   }
 
   const saveVersion = async () => {
     if (!selectedApp?._id) return
     try {
       await api.patch(`/applications/${selectedApp._id}`, { version: newVersion, downloadUrl })
-      setVersion(newVersion)
-      setEditingVersion(false)
-      toast.success('Settings updated!')
-    } catch {
-      toast.error('Failed to update settings')
-    }
+      setVersion(newVersion); setEditingVersion(false); toast.success('Logic Updated')
+    } catch { toast.error('Update failed') }
   }
 
   const regenerateSecret = async () => {
     if (!selectedApp?._id) return
-    if (!confirm('This will invalidate all active sessions. Continue?')) return
+    if (!confirm('Regenerate Master Secret? All active links will be severed.')) return
     try {
       await api.post(`/applications/${selectedApp._id}/regenerate-secret`)
-      toast.success('App secret regenerated!')
-      loadApp()
-    } catch {
-      toast.error('Failed to regenerate secret')
-    }
+      toast.success('Secret Rotated'); loadApp()
+    } catch { toast.error('Rotation failed') }
   }
 
   const saveWebhook = async () => {
@@ -156,26 +124,19 @@ export default function Settings() {
     setWebhookSaving(true)
     try {
       await api.patch(`/applications/${selectedApp._id}`, { discordWebhook })
-      toast.success('Discord webhook saved!')
-    } catch {
-      toast.error('Failed to save webhook')
-    } finally {
-      setWebhookSaving(false)
-    }
+      toast.success('Webhook Synced')
+    } catch { toast.error('Sync failed') }
+    finally { setWebhookSaving(false) }
   }
 
   const testWebhook = async () => {
-    if (!selectedApp?._id) return
-    if (!discordWebhook) { toast.error('Enter a webhook URL first'); return }
+    if (!selectedApp?._id || !discordWebhook) return toast.error('Webhook missing')
     setWebhookTesting(true)
     try {
       await api.post(`/applications/${selectedApp._id}/test-webhook`, { webhookUrl: discordWebhook })
-      toast.success('Test message sent to Discord!')
-    } catch {
-      toast.error('Failed to send test message')
-    } finally {
-      setWebhookTesting(false)
-    }
+      toast.success('Test Pulse Sent')
+    } catch { toast.error('Pulse failed') }
+    finally { setWebhookTesting(false) }
   }
 
   const saveMessages = async () => {
@@ -183,512 +144,278 @@ export default function Settings() {
     setMessagesSaving(true)
     try {
       await api.patch(`/applications/${selectedApp._id}`, { customMessages })
-      toast.success('Custom messages saved!')
-    } catch {
-      toast.error('Failed to save custom messages')
-    } finally {
-      setMessagesSaving(false)
-    }
+      toast.success('Protocol Messages Saved')
+    } catch { toast.error('Save failed') }
+    finally { setMessagesSaving(false) }
   }
 
   const deleteApp = async () => {
     if (!selectedApp?._id) return
     if (!confirm('Are you sure? This will delete ALL data for this application.')) return
-    if (!confirm('This action is IRREVERSIBLE. Type confirm to proceed.')) return
     try {
       await api.delete(`/applications/${selectedApp._id}`)
-      toast.success('Application deleted')
-      setSelectedApp(null)
-    } catch {
-      toast.error('Failed to delete application')
-    }
+      toast.success('Unit Purged'); setSelectedApp(null)
+    } catch { toast.error('Purge failed') }
   }
 
   const saveUsername = async () => {
     setUsernameSaving(true)
     try {
       await api.patch('/auth/username', { username: newUsername })
-      useAuthStore.setState((state) => ({
-        user: state.user ? { ...state.user, username: newUsername } : state.user,
-      }))
-      toast.success('Username updated!')
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to update username')
-    } finally {
-      setUsernameSaving(false)
-    }
+      useAuthStore.setState((state) => ({ user: state.user ? { ...state.user, username: newUsername } : state.user }))
+      toast.success('Identity Updated')
+    } catch (e: any) { toast.error(e.response?.data?.error || 'Update failed') }
+    finally { setUsernameSaving(false) }
   }
 
   const tabs = [
-    { id: 'app-config', label: 'App Config', icon: Cog6ToothIcon },
-    { id: 'webhooks',   label: 'Webhooks',   icon: BellIcon },
-    { id: 'messages',   label: 'Messages',   icon: ChatBubbleBottomCenterTextIcon },
-    { id: 'account',   label: 'Account',    icon: UserCircleIcon },
-    { id: 'security',  label: 'Security',   icon: ShieldCheckIcon },
+    { id: 'app-config', label: 'Unit Config', icon: Cog6ToothIcon },
+    { id: 'webhooks',   label: 'Signals',     icon: BellIcon },
+    { id: 'messages',   label: 'Protocols',   icon: ChatBubbleBottomCenterTextIcon },
+    { id: 'account',    label: 'Identity',    icon: UserCircleIcon },
+    { id: 'security',   label: 'Shield',      icon: ShieldCheckIcon },
   ]
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-10">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold">Settings</h1>
-        <p className="text-gray-400 text-sm mt-1">Control your application and account settings</p>
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.25em] text-primary-500 mb-1">System Control</p>
+          <h2 className="text-3xl font-bold text-white tracking-tight">Configuration</h2>
+        </div>
+        
+        {/* Modern Tabs */}
+        <div className="flex flex-wrap gap-2 p-1.5 bg-white/5 border border-white/5 rounded-2xl">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`relative flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+                activeTab === tab.id ? 'text-white' : 'text-slate-500 hover:text-slate-300'
+              }`}
+            >
+              {activeTab === tab.id && (
+                <motion.div layoutId="setting-tab" className="absolute inset-0 bg-primary-500 rounded-xl shadow-glow shadow-primary-500/20" transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }} />
+              )}
+              <tab.icon className={`relative z-10 w-4 h-4 ${activeTab === tab.id ? 'text-white' : 'text-slate-600'}`} />
+              <span className="relative z-10">{tab.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
-
-      {/* Tabs */}
-      <div className="flex gap-1 bg-dark-card border border-dark-border rounded-xl p-1 w-fit">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              activeTab === tab.id
-                ? 'bg-primary-600 text-white'
-                : 'text-gray-400 hover:text-gray-200'
-            }`}
-          >
-            <tab.icon className="w-4 h-4" />
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* App Config Tab */}
-      {activeTab === 'app-config' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Access Controls */}
-          <div className="card space-y-4">
-            <h2 className="text-lg font-bold flex items-center gap-2">
-              <ShieldCheckIcon className="w-5 h-5 text-primary-400" />
-              Access Controls
-            </h2>
-
-            {/* App Status Toggle */}
-            <div className="flex items-start justify-between p-4 bg-dark-bg rounded-xl border border-dark-border">
-              <div className="flex-1 mr-4">
-                <p className="font-medium text-sm">App Status</p>
-                <p className="text-xs text-gray-400 mt-1">
-                  Enable or disable the application, preventing users from logging in
-                </p>
-              </div>
-              <button
-                onClick={toggleAppStatus}
-                className={`relative w-12 h-6 rounded-full transition-all flex-shrink-0 ${
-                  appStatus ? 'bg-primary-600' : 'bg-gray-600'
-                }`}
-              >
-                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${
-                  appStatus ? 'left-7' : 'left-1'
-                }`}></div>
-              </button>
-            </div>
-
-            {/* HWID Lock Toggle */}
-            <div className="flex items-start justify-between p-4 bg-dark-bg rounded-xl border border-dark-border">
-              <div className="flex-1 mr-4">
-                <p className="font-medium text-sm">HWID Lock</p>
-                <p className="text-xs text-gray-400 mt-1">
-                  Lock users to their device hardware ID to prevent account sharing
-                </p>
-              </div>
-              <button
-                onClick={() => setHwidLock(!hwidLock)}
-                className={`relative w-12 h-6 rounded-full transition-all flex-shrink-0 ${
-                  hwidLock ? 'bg-primary-600' : 'bg-gray-600'
-                }`}
-              >
-                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${
-                  hwidLock ? 'left-7' : 'left-1'
-                }`}></div>
-              </button>
-            </div>
-
-            {/* Global Kill Switch */}
-            <div className="flex items-start justify-between p-4 bg-red-500/5 border border-red-500/20 rounded-xl">
-              <div className="flex-1 mr-4">
-                <p className="font-medium text-sm text-red-400">🔴 Global Kill Switch</p>
-                <p className="text-xs text-gray-400 mt-1">
-                  Enable maintenance mode — blocks ALL client API requests platform-wide
-                </p>
-              </div>
-              <button
-                onClick={toggleMaintenanceMode}
-                className={`relative w-12 h-6 rounded-full transition-all flex-shrink-0 ${
-                  maintenanceMode ? 'bg-red-600' : 'bg-gray-600'
-                }`}
-              >
-                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${
-                  maintenanceMode ? 'left-7' : 'left-1'
-                }`}></div>
-              </button>
-            </div>
-
-            {/* Danger Zone */}
-            <div className="p-4 bg-red-500/5 border border-red-500/20 rounded-xl">
-              <p className="font-medium text-sm text-red-400 mb-3">Danger Zone</p>
-              <div className="space-y-2">
-                <button
-                  onClick={regenerateSecret}
-                  className="w-full px-4 py-2 bg-orange-600/20 hover:bg-orange-600/30 border border-orange-500/30 text-orange-400 rounded-lg text-sm font-medium transition-all flex items-center gap-2"
-                >
-                  <KeyIcon className="w-4 h-4" />
-                  Regenerate App Secret
-                </button>
-                <button
-                  onClick={deleteApp}
-                  className="w-full px-4 py-2 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-400 rounded-lg text-sm font-medium transition-all flex items-center gap-2"
-                >
-                  <TrashIcon className="w-4 h-4" />
-                  Delete Application
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Download & Update */}
-          <div className="card space-y-4">
-            <h2 className="text-lg font-bold flex items-center gap-2">
-              <ArrowDownTrayIcon className="w-5 h-5 text-primary-400" />
-              Download & Update
-            </h2>
-
-            {/* Version */}
-            <div className="p-4 bg-dark-bg rounded-xl border border-dark-border">
-              <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Application Version</p>
-              {editingVersion ? (
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={newVersion}
-                    onChange={(e) => setNewVersion(e.target.value)}
-                    className="input text-sm flex-1"
-                    placeholder="1.0"
-                  />
-                  <button onClick={saveVersion} className="btn btn-primary px-3">
-                    <CheckIcon className="w-4 h-4" />
-                  </button>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.2 }}
+        >
+          {activeTab === 'app-config' && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="space-y-6">
+                <SectionHeader icon={ShieldCheckIcon} title="Access Controls" />
+                <div className="space-y-4">
+                  <ToggleSetting title="Operational Status" desc="Master switch for all client authorization requests." active={appStatus} onClick={toggleAppStatus} />
+                  <ToggleSetting title="Hardware Locking" desc="Bind personnel profiles to unique hardware signatures." active={true} onClick={() => {}} disabled />
+                  <ToggleSetting title="Emergency Standby" desc="Global maintenance mode. Blocks all platform API traffic." active={maintenanceMode} onClick={toggleMaintenanceMode} color="bg-rose-600" />
                 </div>
-              ) : (
-                <div className="flex items-center justify-between">
-                  <span className="text-2xl font-bold">{version || '1.0'}</span>
-                  <button
-                    onClick={() => setEditingVersion(true)}
-                    className="p-2 hover:bg-dark-hover rounded-lg text-gray-400"
-                  >
-                    <PencilIcon className="w-4 h-4" />
-                  </button>
-                </div>
-              )}
-            </div>
 
-            {/* Auto-Update Link */}
-            <div className="p-4 bg-dark-bg rounded-xl border border-dark-border">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-xs text-gray-500 uppercase tracking-wider">Auto-Update Download Link</p>
-                <button onClick={saveVersion} className="text-[10px] text-primary-400 hover:underline">Save Link</button>
-              </div>
-              <input
-                type="text"
-                value={downloadUrl}
-                onChange={(e) => setDownloadUrl(e.target.value)}
-                className="input text-sm"
-                placeholder="https://example.com/update.zip"
-              />
-              <p className="text-xs text-gray-500 mt-2">
-                Users will be prompted to download this when version changes
-              </p>
-            </div>
-
-            {/* App Info */}
-            {selectedApp && (
-              <div className="p-4 bg-dark-bg rounded-xl border border-dark-border space-y-3">
-                <p className="text-xs text-gray-500 uppercase tracking-wider">Application Info</p>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <p className="text-gray-400 text-xs">Name</p>
-                    <p className="font-medium">{selectedApp.name}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-400 text-xs">Status</p>
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                      selectedApp.status === 'active'
-                        ? 'bg-green-500/20 text-green-400'
-                        : 'bg-yellow-500/20 text-yellow-400'
-                    }`}>
-                      {selectedApp.status?.toUpperCase()}
-                    </span>
-                  </div>
-                  <div>
-                    <p className="text-gray-400 text-xs">Total Users</p>
-                    <p className="font-medium">{selectedApp.userCount || 0}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-400 text-xs">Created</p>
-                    <p className="font-medium text-xs">{new Date(selectedApp.createdAt).toLocaleDateString()}</p>
+                <div className="card-premium p-8 bg-rose-500/[0.02] border-rose-500/20 space-y-6">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-500">Danger Zone</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <button onClick={regenerateSecret} className="btn bg-rose-600/10 border border-rose-600/20 text-rose-400 py-3 text-xs uppercase tracking-widest font-black">Rotate Secret</button>
+                    <button onClick={deleteApp} className="btn bg-rose-600 text-white py-3 text-xs uppercase tracking-widest font-black">Purge Unit</button>
                   </div>
                 </div>
               </div>
-            )}
-          </div>
-        </div>
-      )}
 
-      {/* Webhooks Tab */}
-      {activeTab === 'webhooks' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="card space-y-4">
-            <h2 className="text-lg font-bold flex items-center gap-2">
-              <BellIcon className="w-5 h-5 text-primary-400" />
-              Discord Webhook
-            </h2>
-            <p className="text-sm text-gray-400">
-              Get real-time notifications in your Discord server when users login, register, fail login, or get banned.
-            </p>
-
-            <div className="p-4 bg-dark-bg rounded-xl border border-dark-border space-y-3">
-              <label className="block text-sm font-medium text-gray-300">Webhook URL</label>
-              <input
-                type="text"
-                value={discordWebhook}
-                onChange={(e) => setDiscordWebhook(e.target.value)}
-                className="input text-sm font-mono"
-                placeholder="https://discord.com/api/webhooks/..."
-              />
-              <p className="text-xs text-gray-500">
-                Discord Server → Channel Settings → Integrations → Webhooks → New Webhook → Copy URL
-              </p>
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={saveWebhook}
-                disabled={webhookSaving}
-                className="btn btn-primary flex-1"
-              >
-                {webhookSaving ? 'Saving...' : '💾 Save Webhook'}
-              </button>
-              <button
-                onClick={testWebhook}
-                disabled={webhookTesting}
-                className="btn btn-secondary flex-1"
-              >
-                {webhookTesting ? 'Sending...' : '🧪 Test Webhook'}
-              </button>
-            </div>
-
-            {discordWebhook && (
-              <div className="flex items-center gap-2 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
-                <span className="text-green-400 text-sm">✅ Webhook configured</span>
-              </div>
-            )}
-          </div>
-
-          <div className="card space-y-4">
-            <h2 className="text-lg font-bold">📋 Events Tracked</h2>
-            <div className="space-y-3">
-              {[
-                { emoji: '✅', event: 'Login Success',   color: 'text-green-400',  desc: 'Username, IP, HWID, expiry date' },
-                { emoji: '🆕', event: 'New Registration', color: 'text-blue-400',   desc: 'Username, IP, HWID, license key' },
-                { emoji: '❌', event: 'Login Failed',     color: 'text-red-400',    desc: 'Username, IP, failure reason' },
-                { emoji: '🔨', event: 'Banned Attempt',   color: 'text-yellow-400', desc: 'Username, IP, ban reason' },
-                { emoji: '⚠️', event: 'HWID Mismatch',   color: 'text-orange-400', desc: 'Username, IP, app name' },
-              ].map((e) => (
-                <div key={e.event} className="flex items-start gap-3 p-3 bg-dark-bg rounded-xl border border-dark-border">
-                  <span className="text-xl">{e.emoji}</span>
-                  <div>
-                    <p className={`font-medium text-sm ${e.color}`}>{e.event}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{e.desc}</p>
+              <div className="space-y-6">
+                <SectionHeader icon={ArrowDownTrayIcon} title="Logic & Updates" />
+                <div className="card-premium p-8 space-y-6">
+                  <div className="input-group">
+                    <label className="label">Active Version</label>
+                    <div className="flex gap-3">
+                      <input type="text" value={newVersion} onChange={(e) => setNewVersion(e.target.value)} className="input flex-1 font-bold text-lg" />
+                      <button onClick={saveVersion} className="btn btn-primary px-4"><CheckIcon className="w-5 h-5" /></button>
+                    </div>
+                  </div>
+                  <div className="input-group">
+                    <label className="label">Update Link (Download)</label>
+                    <input type="text" value={downloadUrl} onChange={(e) => setDownloadUrl(e.target.value)} className="input font-mono text-xs" placeholder="https://updates.adarshauth.online/..." />
+                  </div>
+                  <div className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
+                    <p className="text-[10px] font-bold text-slate-500 leading-relaxed">When the client version mismatches the active version, users will be redirected to this link automatically.</p>
                   </div>
                 </div>
-              ))}
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          )}
 
-      {/* Account Tab */}
-      {activeTab === 'account' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="card space-y-4">
-            <h2 className="text-lg font-bold flex items-center gap-2">
-              <UserCircleIcon className="w-5 h-5 text-primary-400" />
-              Account Information
-            </h2>
-            <div>
-              <label className="block text-sm font-medium mb-2 text-gray-300">Email Address</label>
-              <input type="email" value={user?.email || ''} className="input" readOnly />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2 text-gray-300">Username</label>
-              <input
-                type="text"
-                value={newUsername}
-                onChange={(e) => setNewUsername(e.target.value)}
-                className="input"
-                placeholder="e.g. cool_user-123"
-              />
-              {newUsername !== '' && !isValidUsername(newUsername) && (
-                <p className="text-red-400 text-xs mt-1">
-                  Username must be 3–30 characters: lowercase letters, digits, underscores, or hyphens only.
-                </p>
-              )}
-              <button
-                onClick={saveUsername}
-                disabled={usernameSaving || (newUsername !== '' && !isValidUsername(newUsername))}
-                className="btn btn-primary mt-3 w-full"
-              >
-                {usernameSaving ? 'Saving...' : 'Save Username'}
-              </button>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2 text-gray-300">User ID</label>
-              <input type="text" value={user?.id || ''} className="input font-mono text-xs" readOnly />
-            </div>
-          </div>
-
-          <div className="card space-y-4">
-            <h2 className="text-lg font-bold flex items-center gap-2">
-              <KeyIcon className="w-5 h-5 text-primary-400" />
-              Change Password
-            </h2>
-            <div>
-              <label className="block text-sm font-medium mb-2 text-gray-300">Current Password</label>
-              <input
-                type="password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                className="input"
-                placeholder="••••••••"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2 text-gray-300">New Password</label>
-              <input
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="input"
-                placeholder="••••••••"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2 text-gray-300">Confirm New Password</label>
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="input"
-                placeholder="••••••••"
-              />
-            </div>
-            <button className="btn btn-primary w-full">Update Password</button>
-          </div>
-        </div>
-      )}
-
-      {/* Security Tab */}
-      {activeTab === 'security' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="card space-y-4">
-            <h2 className="text-lg font-bold flex items-center gap-2">
-              <ShieldCheckIcon className="w-5 h-5 text-primary-400" />
-              Security Features
-            </h2>
-            {[
-              { label: 'HMAC SHA256 Signatures', desc: 'All client requests are signed and verified', active: true },
-              { label: 'Replay Attack Prevention', desc: 'Timestamp + nonce validation on every request', active: true },
-              { label: 'Rate Limiting', desc: 'Global, auth, and client API rate limits active', active: true },
-              { label: 'Audit Logging', desc: 'All security events are logged automatically', active: true },
-            ].map((item) => (
-              <div key={item.label} className="flex items-start justify-between p-4 bg-dark-bg rounded-xl border border-dark-border">
-                <div className="flex-1 mr-4">
-                  <p className="font-medium text-sm">{item.label}</p>
-                  <p className="text-xs text-gray-400 mt-1">{item.desc}</p>
+          {activeTab === 'webhooks' && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="card-premium p-8 space-y-8">
+                <SectionHeader icon={BellIcon} title="Discord Signal Link" />
+                <div className="space-y-6">
+                  <div className="input-group">
+                    <label className="label">Webhook Target URL</label>
+                    <input type="text" value={discordWebhook} onChange={(e) => setDiscordWebhook(e.target.value)} className="input font-mono text-xs" placeholder="https://discord.com/api/webhooks/..." />
+                  </div>
+                  <div className="flex gap-4">
+                    <button onClick={saveWebhook} disabled={webhookSaving} className="btn btn-primary flex-1 py-4 text-xs font-black uppercase tracking-widest">{webhookSaving ? 'Syncing...' : 'Sync Webhook'}</button>
+                    <button onClick={testWebhook} disabled={webhookTesting} className="btn btn-secondary flex-1 py-4 text-xs font-black uppercase tracking-widest">{webhookTesting ? 'Pulsing...' : 'Test Pulse'}</button>
+                  </div>
                 </div>
-                <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full font-medium flex-shrink-0">
-                  Active
-                </span>
               </div>
-            ))}
-          </div>
-
-          <div className="card space-y-4">
-            <h2 className="text-lg font-bold flex items-center gap-2">
-              <BellIcon className="w-5 h-5 text-primary-400" />
-              Security Info
-            </h2>
-            <div className="space-y-3 text-sm text-gray-400">
-              <div className="p-4 bg-dark-bg rounded-xl border border-dark-border">
-                <p className="text-white font-medium mb-1">Request Signing</p>
-                <p>Every client request must include a valid HMAC SHA256 signature using your App Secret.</p>
-              </div>
-              <div className="p-4 bg-dark-bg rounded-xl border border-dark-border">
-                <p className="text-white font-medium mb-1">Timestamp Tolerance</p>
-                <p>Requests must be within ±30 seconds of server time to prevent replay attacks.</p>
-              </div>
-              <div className="p-4 bg-dark-bg rounded-xl border border-dark-border">
-                <p className="text-white font-medium mb-1">HWID Locking</p>
-                <p>Users are bound to their hardware ID on first login. Reset from Users page if needed.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Messages Tab */}
-      {activeTab === 'messages' && (
-        <div className="space-y-6">
-          <div className="card space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold flex items-center gap-2">
-                <ChatBubbleBottomCenterTextIcon className="w-5 h-5 text-primary-400" />
-                Alert Messages
-              </h2>
-              <button
-                onClick={saveMessages}
-                disabled={messagesSaving}
-                className="btn btn-primary"
-              >
-                {messagesSaving ? 'Saving...' : '💾 Save Changes'}
-              </button>
-            </div>
-            <p className="text-sm text-gray-400">
-              Customize the messages returned to your client app for various error scenarios.
-            </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {[
-                { id: 'appDisabled', label: 'Application is Disabled', desc: 'Shown when the app status is set to inactive' },
-                { id: 'appPaused', label: 'Application is Paused', desc: 'Shown when maintenance mode is active' },
-                { id: 'invalidLicense', label: 'Invalid License', desc: 'Shown when an unknown license key is provided' },
-                { id: 'licenseUsed', label: 'License Already Used', desc: 'Shown when a key is already bound to another user' },
-                { id: 'invalidUsername', label: 'Invalid Username', desc: 'Shown during registration for invalid chars' },
-                { id: 'usernameTaken', label: 'Username Taken', desc: 'Shown when a username is already registered' },
-                { id: 'hwidMismatch', label: 'HWID Mismatch', desc: 'Shown when a user logs in from a different device' },
-                { id: 'userBanned', label: 'User is Blacklisted', desc: 'Shown when a banned user attempts login' },
-                { id: 'invalidCreds', label: 'Invalid Credentials', desc: 'Shown for generic login failures' },
-                { id: 'invalidPassword', label: 'Password Mismatch', desc: 'Shown when the password provided is incorrect' },
-                { id: 'noSubscription', label: 'No Active Subscription', desc: 'Shown when user subscription has ended or no plan is found' },
-                { id: 'accountPaused', label: 'Subscription Paused', desc: 'Shown when a specific user is paused by staff' },
-                { id: 'versionMismatch', label: 'Version Mismatch', desc: 'Shown when the loader version is outdated' },
-              ].map((field) => (
-                <div key={field.id} className="p-4 bg-dark-bg rounded-xl border border-dark-border space-y-2">
-                  <label className="block text-sm font-medium text-gray-300">{field.label}</label>
-                  <input
-                    type="text"
-                    value={customMessages[field.id] || ''}
-                    onChange={(e) => setCustomMessages({ ...customMessages, [field.id]: e.target.value })}
-                    className="input text-sm"
-                    placeholder={`Enter custom message for ${field.label}...`}
-                  />
-                  <p className="text-[10px] text-gray-500">{field.desc}</p>
+              <div className="card-premium p-8 space-y-6">
+                <SectionHeader icon={InformationCircleIcon} title="Signal Events" />
+                <div className="space-y-3">
+                  <SignalEvent emoji="✅" label="Auth Success" desc="Detailed login metadata & profile link" />
+                  <SignalEvent emoji="🆕" label="New Profile" desc="Registration event & license binding" />
+                  <SignalEvent emoji="🚫" label="Auth Failed" desc="Security triggers & failure reasons" />
+                  <SignalEvent emoji="🔨" label="Security Breach" desc="Hardware mismatch or ban bypass attempts" />
                 </div>
-              ))}
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          )}
+
+          {activeTab === 'messages' && (
+            <div className="card-premium p-8 space-y-8">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+                <SectionHeader icon={ChatBubbleBottomCenterTextIcon} title="Custom Protocols" />
+                <button onClick={saveMessages} disabled={messagesSaving} className="btn btn-primary px-8 py-3 text-xs uppercase tracking-widest font-black">{messagesSaving ? 'Syncing...' : 'Save Protocols'}</button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {Object.keys(customMessages).map(key => (
+                  <div key={key} className="input-group p-4 bg-white/[0.02] border border-white/5 rounded-2xl hover:border-primary-500/20 transition-all">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 block">{key.replace(/([A-Z])/g, ' $1')}</label>
+                    <input type="text" value={customMessages[key]} onChange={(e) => setCustomMessages({ ...customMessages, [key]: e.target.value })} className="input bg-transparent border-none p-0 focus:ring-0 text-sm font-bold text-white" placeholder="Default Protocol Message" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'account' && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="card-premium p-8 space-y-6">
+                <SectionHeader icon={UserCircleIcon} title="Identity Profile" />
+                <div className="space-y-6">
+                  <div className="input-group"><label className="label">Email Designation</label><input type="text" value={user?.email || ''} className="input opacity-50" readOnly /></div>
+                  <div className="input-group">
+                    <label className="label">Public Username</label>
+                    <input type="text" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} className="input font-bold" />
+                    {!isValidUsername(newUsername) && <p className="text-[9px] text-rose-500 font-bold uppercase tracking-widest mt-2">Invalid Format (3-30 chars, lowercase/numbers)</p>}
+                  </div>
+                  <button onClick={saveUsername} disabled={usernameSaving || !isValidUsername(newUsername)} className="btn btn-primary w-full py-4 text-xs font-black uppercase tracking-widest">{usernameSaving ? 'Syncing...' : 'Update Identity'}</button>
+                </div>
+              </div>
+              <div className="card-premium p-8 space-y-6">
+                <SectionHeader icon={KeyIcon} title="Security Credentials" />
+                <div className="space-y-4">
+                  <div className="input-group"><label className="label">Current Secret</label><input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="input" placeholder="••••••••" /></div>
+                  <div className="input-group"><label className="label">New Secret</label><input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="input" placeholder="••••••••" /></div>
+                  <div className="input-group"><label className="label">Confirm New Secret</label><input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="input" placeholder="••••••••" /></div>
+                  <button className="btn btn-secondary w-full py-4 text-xs font-black uppercase tracking-widest">Update Credentials</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'security' && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="card-premium p-8 space-y-6">
+                <SectionHeader icon={ShieldCheckIcon} title="Active Shields" />
+                <div className="space-y-4">
+                  <SecurityFeature label="HMAC SHA256 Sync" desc="Full cryptographic signing of client requests." />
+                  <SecurityFeature label="Replay Protection" desc="Timestamp & Nonce validation protocols active." />
+                  <SecurityFeature label="Rate Limit Layer" desc="Dynamic traffic shaping and DDoS protection." />
+                  <SecurityFeature label="HWID Entropy" desc="Device signature analysis and lock enforcement." />
+                </div>
+              </div>
+              <div className="card-premium p-8 bg-primary-500/[0.03] border-primary-500/20">
+                <SectionHeader icon={SignalIcon} title="System Integrity" />
+                <div className="space-y-6 pt-4">
+                  <p className="text-sm text-slate-400 leading-relaxed">Your application uses a multi-layered security approach. Every client interaction is verified against your master secret and checked for hardware integrity. In case of a secret leak, use the <span className="text-primary-400 font-bold">Rotate Secret</span> function immediately.</p>
+                  <div className="p-4 bg-white/5 rounded-2xl flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-primary-500/10 flex items-center justify-center text-primary-400"><ArrowPathIcon className="w-5 h-5" /></div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-white">Auto-Sync Active</p>
+                      <p className="text-[10px] text-slate-500 font-medium">Platform-wide security policies are updated in real-time.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </motion.div>
+      </AnimatePresence>
     </div>
+  )
+}
+
+function SectionHeader({ icon: Icon, title }: any) {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="p-2 rounded-xl bg-primary-500/10 text-primary-400"><Icon className="w-5 h-5" /></div>
+      <h3 className="text-xl font-black text-white uppercase tracking-tight">{title}</h3>
+    </div>
+  )
+}
+
+function ToggleSetting({ title, desc, active, onClick, color = "bg-primary-500", disabled = false }: any) {
+  return (
+    <div className="flex items-center justify-between p-5 card-premium bg-white/[0.02] border-white/5 hover:border-white/10 transition-all">
+      <div className="flex-1 mr-4">
+        <p className="text-sm font-bold text-white tracking-tight">{title}</p>
+        <p className="text-[10px] text-slate-500 font-medium mt-1 uppercase tracking-widest">{desc}</p>
+      </div>
+      <button
+        onClick={onClick}
+        disabled={disabled}
+        className={`relative w-12 h-6 rounded-full transition-all flex-shrink-0 ${disabled ? 'opacity-30 cursor-not-allowed' : ''} ${
+          active ? color : 'bg-slate-700'
+        }`}
+      >
+        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${active ? 'left-7' : 'left-1'}`}></div>
+      </button>
+    </div>
+  )
+}
+
+function SignalEvent({ emoji, label, desc }: any) {
+  return (
+    <div className="flex items-start gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-all">
+      <span className="text-xl shrink-0">{emoji}</span>
+      <div>
+        <p className="text-xs font-bold text-white uppercase tracking-widest">{label}</p>
+        <p className="text-[10px] text-slate-500 font-medium mt-1 leading-relaxed">{desc}</p>
+      </div>
+    </div>
+  )
+}
+
+function SecurityFeature({ label, desc }: any) {
+  return (
+    <div className="flex items-center justify-between p-4 rounded-2xl bg-emerald-500/[0.03] border border-emerald-500/10">
+      <div className="flex-1 mr-4">
+        <p className="text-xs font-bold text-emerald-400 uppercase tracking-widest">{label}</p>
+        <p className="text-[10px] text-slate-500 font-medium mt-1">{desc}</p>
+      </div>
+      <div className="flex items-center gap-1.5 text-emerald-500">
+        <CheckIcon className="w-4 h-4" />
+        <span className="text-[9px] font-black uppercase tracking-widest">Active</span>
+      </div>
+    </div>
+  )
+}
+
+function InformationCircleIcon(props: any) {
+  return (
+    <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.835a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+    </svg>
   )
 }

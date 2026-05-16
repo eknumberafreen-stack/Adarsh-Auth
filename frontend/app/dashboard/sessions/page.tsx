@@ -4,14 +4,25 @@ import { useEffect, useState } from 'react'
 import api from '@/lib/api'
 import { useAppStore } from '@/lib/store'
 import toast from 'react-hot-toast'
-import { ClockIcon, SignalIcon, TrashIcon, UserCircleIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { motion, AnimatePresence } from 'framer-motion'
+import { 
+  ClockIcon, 
+  SignalIcon, 
+  TrashIcon, 
+  UserCircleIcon, 
+  XMarkIcon,
+  GlobeAltIcon,
+  FingerPrintIcon,
+  ShieldCheckIcon,
+  CalendarDaysIcon,
+  BoltIcon
+} from '@heroicons/react/24/outline'
 
 export default function Sessions() {
   const { applications, selectedApp } = useAppStore()
   const [sessions, setSessions] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
 
-  // Custom Confirm Modal
   const [confirmModal, setConfirmModal] = useState({
     show: false,
     title: '',
@@ -22,9 +33,7 @@ export default function Sessions() {
   })
 
   useEffect(() => {
-    if (selectedApp?._id) {
-      loadSessions()
-    }
+    if (selectedApp?._id) loadSessions()
   }, [selectedApp?._id])
 
   const loadSessions = async () => {
@@ -33,28 +42,22 @@ export default function Sessions() {
     try {
       const response = await api.get(`/sessions/application/${selectedApp._id}`)
       setSessions(response.data.sessions)
-    } catch {
-      toast.error('Failed to load sessions')
-    } finally {
-      setLoading(false)
-    }
+    } catch { toast.error('Sync failed') }
+    finally { setLoading(false) }
   }
 
   const terminateSession = async (id: string) => {
     setConfirmModal({
       show: true,
-      title: 'Terminate Session?',
-      message: 'Are you sure you want to terminate this active session? The user will be disconnected immediately.',
+      title: 'Sever Link?',
+      message: 'This specific client connection will be force-disconnected immediately.',
       type: 'danger',
-      confirmText: 'Terminate',
+      confirmText: 'Sever Link',
       onConfirm: async () => {
         try {
           await api.delete(`/sessions/${id}`)
-          toast.success('Session terminated')
-          loadSessions()
-        } catch {
-          toast.error('Failed to terminate session')
-        }
+          toast.success('Link severed'); loadSessions()
+        } catch { toast.error('Termination failed') }
         setConfirmModal(prev => ({ ...prev, show: false }))
       }
     })
@@ -63,172 +66,176 @@ export default function Sessions() {
   const terminateAll = async () => {
     setConfirmModal({
       show: true,
-      title: 'Terminate All?',
-      message: 'Are you sure you want to terminate EVERY active session for this application? All users will be disconnected.',
+      title: 'Full Purge?',
+      message: 'Sever ALL active connections for this sector? This cannot be undone.',
       type: 'danger',
-      confirmText: 'Terminate All',
+      confirmText: 'Purge All',
       onConfirm: async () => {
         try {
           await api.delete(`/sessions/application/${selectedApp?._id}/all`)
-          toast.success('All sessions terminated')
-          loadSessions()
-        } catch {
-          toast.error('Failed to terminate sessions')
-        }
+          toast.success('Fleet Purged'); loadSessions()
+        } catch { toast.error('Purge failed') }
         setConfirmModal(prev => ({ ...prev, show: false }))
       }
     })
   }
 
-
   return (
-    <div className="space-y-8">
-      <section className="page-header">
+    <div className="space-y-10">
+      {/* Header Section */}
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <p className="page-eyebrow">Sessions</p>
-          <h1 className="page-title">Review active authenticated sessions with a clearer dark layout.</h1>
-          <p className="page-subtitle">
-            Monitor session heartbeat activity, device binding, and expiry windows for each application, then terminate specific or all
-            sessions when needed.
-          </p>
+          <p className="text-xs font-black uppercase tracking-[0.25em] text-primary-500 mb-1">Live Monitor</p>
+          <h2 className="text-3xl font-bold text-white tracking-tight">Active Sessions</h2>
+          <p className="text-sm text-slate-400 mt-2 max-w-xl">Monitor real-time heartbeats, device bindings, and connection metadata for the active sector.</p>
         </div>
-
+        
         {sessions.length > 0 && (
-          <button onClick={terminateAll} className="btn btn-danger">
-            <XMarkIcon className="h-5 w-5" />
-            Terminate All
-          </button>
+          <motion.button 
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={terminateAll} 
+            className="btn bg-rose-600/10 border border-rose-600/20 text-rose-500 shadow-glow shadow-rose-900/10 py-4 px-8 font-black uppercase tracking-widest text-xs"
+          >
+            <XMarkIcon className="w-5 h-5" />
+            <span>Sever All Links</span>
+          </motion.button>
         )}
-      </section>
+      </div>
 
       {applications.length === 0 ? (
-        <div className="card text-center">
-          <p className="text-lg font-semibold text-white">Create an application first</p>
-          <p className="mt-2 text-sm text-slate-400">Sessions are application-specific, so there is nothing to monitor yet.</p>
+        <div className="card-premium p-20 text-center flex flex-col items-center">
+          <BoltIcon className="w-12 h-12 text-slate-700 mb-4" />
+          <h3 className="text-xl font-bold text-white mb-2">No Applications Found</h3>
+          <p className="text-slate-500 max-w-sm">Sessions require an active application sector. Initialize a new application to start monitoring.</p>
         </div>
       ) : (
-        <>
-          <section className="grid gap-4 lg:grid-cols-[0.8fr_1.2fr]">
-            <div className="card h-fit">
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-                <div className="stat-tile">
-                  <div className="flex items-center justify-between">
-                    <p className="stat-label">Selected App</p>
-                    <SignalIcon className="h-5 w-5 text-indigo-300" />
-                  </div>
-                  <p className="mt-4 text-xl font-bold text-white">{selectedApp?.name ?? 'Unknown'}</p>
-                  <p className="stat-meta">Version {selectedApp?.version ?? 'N/A'}</p>
+        <div className="grid gap-8 lg:grid-cols-[320px_1fr]">
+          {/* Status Sidebar */}
+          <div className="space-y-6 h-fit lg:sticky lg:top-28">
+            <div className="card-premium p-6 space-y-8">
+              <div className="space-y-1">
+                <p className="text-[10px] font-black uppercase tracking-widest text-dark-muted">Active Sector</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 rounded-full bg-primary-500 shadow-glow animate-pulse" />
+                  <p className="text-lg font-black text-white truncate">{selectedApp?.name || 'Unknown'}</p>
                 </div>
+              </div>
 
-                <div className="stat-tile">
-                  <div className="flex items-center justify-between">
-                    <p className="stat-label">Active Sessions</p>
-                    <ClockIcon className="h-5 w-5 text-slate-200" />
-                  </div>
-                  <p className="stat-value">{sessions.length}</p>
-                  <p className="stat-meta">Real-time count for the selected application</p>
-                </div>
+              <div className="space-y-1">
+                <p className="text-[10px] font-black uppercase tracking-widest text-dark-muted">Live Connections</p>
+                <p className="text-4xl font-black text-white tracking-tighter">{sessions.length}</p>
+              </div>
+
+              <div className="pt-6 border-t border-white/5">
+                <button onClick={loadSessions} className="btn btn-secondary w-full py-3 text-xs uppercase tracking-widest font-black">Refresh Hub</button>
               </div>
             </div>
 
-            <div className="card">
-              <p className="page-eyebrow">Session Surface</p>
-              <h2 className="mt-2 text-2xl font-bold text-white">Active authenticated clients</h2>
+            <div className="card-premium p-6 bg-primary-500/[0.03] border-primary-500/20">
+              <div className="flex items-center gap-2 mb-4 text-primary-400">
+                <ShieldCheckIcon className="w-4 h-4" />
+                <span className="text-[10px] font-black uppercase tracking-widest">Sec-Ops Active</span>
+              </div>
+              <p className="text-xs text-slate-400 leading-relaxed font-medium">Session heartbeats are monitored every 60 seconds. Inactive links are purged automatically.</p>
+            </div>
+          </div>
 
-              {loading ? (
-                <div className="flex justify-center py-16">
-                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-400 border-t-transparent" />
-                </div>
-              ) : sessions.length === 0 ? (
-                <div className="mt-6 rounded-2xl border border-dashed border-white/10 px-5 py-16 text-center">
-                  <p className="text-lg font-semibold text-white">No active sessions</p>
-                  <p className="mt-2 text-sm text-slate-400">When a client logs in and starts heartbeating, it will appear here.</p>
-                </div>
-              ) : (
-                <div className="mt-6 grid gap-4 xl:grid-cols-2">
-                  {sessions.map((session: any) => (
-                    <div key={session._id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-400/10 text-indigo-200">
-                              <UserCircleIcon className="h-6 w-6" />
+          {/* Sessions Main View */}
+          <div className="space-y-6">
+            <div className="flex items-center gap-3 px-2">
+              <div className="p-2 rounded-xl bg-primary-500/10 text-primary-400"><SignalIcon className="w-5 h-5" /></div>
+              <h3 className="text-xl font-black text-white uppercase tracking-tight">Personnel Stream</h3>
+            </div>
+
+            {loading ? (
+              <div className="py-32 text-center"><div className="h-10 w-10 border-2 border-primary-500 border-t-transparent animate-spin rounded-full mx-auto" /></div>
+            ) : sessions.length === 0 ? (
+              <div className="card-premium p-20 text-center border-dashed border-white/10 bg-transparent flex flex-col items-center">
+                <SignalIcon className="w-12 h-12 text-slate-800 mb-4 opacity-20" />
+                <p className="text-slate-600 font-black uppercase tracking-widest text-xs">No active links detected in this sector</p>
+              </div>
+            ) : (
+              <div className="grid gap-6 sm:grid-cols-1 xl:grid-cols-2">
+                <AnimatePresence>
+                  {sessions.map((session, idx) => (
+                    <motion.div
+                      key={session._id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ delay: idx * 0.05 }}
+                      className="card-premium group p-6 flex flex-col justify-between"
+                    >
+                      <div>
+                        <div className="flex items-start justify-between mb-6">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center text-primary-400 group-hover:scale-110 transition-transform">
+                              <UserCircleIcon className="w-6 h-6" />
                             </div>
                             <div>
-                              <p className="text-lg font-bold text-white">{session.userId?.username || 'Unknown User'}</p>
-                              <p className="text-sm text-slate-400">Application session record</p>
+                              <h4 className="text-base font-black text-white tracking-tight">{session.userId?.username || 'Guest Identity'}</h4>
+                              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Application Link Active</p>
                             </div>
                           </div>
+                          <button onClick={() => terminateSession(session._id)} className="p-2 rounded-xl bg-rose-500/5 text-rose-500 hover:bg-rose-500/10 transition-all opacity-0 group-hover:opacity-100"><TrashIcon className="w-4 h-4" /></button>
                         </div>
 
-                        <button onClick={() => terminateSession(session._id)} className="btn btn-danger px-3 py-2 text-xs">
-                          <TrashIcon className="h-4 w-4" />
-                          Terminate
-                        </button>
-                      </div>
-
-                      <div className="mt-5 grid gap-3">
-                        {[
-                          { label: 'IP Address', value: session.ip },
-                          { label: 'HWID', value: session.hwid },
-                          { label: 'Last Heartbeat', value: new Date(session.lastHeartbeat).toLocaleString() },
-                          { label: 'Created', value: new Date(session.createdAt).toLocaleString() },
-                          { label: 'Expires', value: new Date(session.expiresAt).toLocaleString() },
-                        ].map((item) => (
-                          <div key={item.label} className="rounded-xl border border-white/8 bg-slate-950/40 px-4 py-3">
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">{item.label}</p>
-                            <p className="mt-1 break-all text-sm text-slate-200">{item.value}</p>
+                        <div className="grid grid-cols-1 gap-3">
+                          <SessionField icon={GlobeAltIcon} label="Network IP" value={session.ip} />
+                          <SessionField icon={FingerPrintIcon} label="HWID Binding" value={session.hwid} />
+                          <div className="grid grid-cols-2 gap-3">
+                            <SessionField icon={BoltIcon} label="Heartbeat" value={new Date(session.lastHeartbeat).toLocaleTimeString()} />
+                            <SessionField icon={CalendarDaysIcon} label="Expiry" value={new Date(session.expiresAt).toLocaleTimeString()} />
                           </div>
-                        ))}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </section>
-        </>
-      )}
-      {/* ── Custom Confirmation Modal ────────────────────────────────────── */}
-      {confirmModal.show && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-200">
-          <div className="w-full max-w-sm bg-[#13131a] border border-white/5 rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="flex flex-col items-center text-center">
-              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 ${
-                confirmModal.type === 'danger' ? 'bg-red-500/20 text-red-400' :
-                confirmModal.type === 'warning' ? 'bg-yellow-500/20 text-yellow-400' :
-                'bg-blue-500/20 text-blue-400'
-              }`}>
-                {confirmModal.type === 'danger' ? '🗑️' : confirmModal.type === 'warning' ? '⚠️' : '🔄'}
-              </div>
-              
-              <h3 className="text-xl font-bold text-white mb-2">{confirmModal.title}</h3>
-              <p className="text-sm text-gray-400 mb-8 leading-relaxed">
-                {confirmModal.message}
-              </p>
 
-              <div className="flex gap-3 w-full">
-                <button
-                  onClick={() => setConfirmModal(prev => ({ ...prev, show: false }))}
-                  className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-gray-300 rounded-2xl text-sm font-bold transition-all"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={confirmModal.onConfirm}
-                  className={`flex-1 px-4 py-3 rounded-2xl text-sm font-bold text-white transition-all shadow-lg ${
-                    confirmModal.type === 'danger' ? 'bg-red-600 hover:bg-red-500 shadow-red-900/20' :
-                    confirmModal.type === 'warning' ? 'bg-yellow-600 hover:bg-yellow-500 shadow-yellow-900/20' :
-                    'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-900/20'
-                  }`}
-                >
-                  {confirmModal.confirmText}
-                </button>
+                      <div className="mt-6 pt-6 border-t border-white/5 flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          <span className="text-[9px] font-black uppercase tracking-widest text-emerald-500">Link Secure</span>
+                        </div>
+                        <p className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">Ref: {session._id.substring(0, 8)}</p>
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
               </div>
-            </div>
+            )}
           </div>
         </div>
       )}
+
+      {/* Confirmation Modal */}
+      <AnimatePresence>
+        {confirmModal.show && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setConfirmModal(prev => ({...prev, show: false}))} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative w-full max-w-sm card-premium p-8 text-center">
+              <div className="w-16 h-16 rounded-3xl bg-rose-500/10 text-rose-400 flex items-center justify-center mx-auto mb-6"><XMarkIcon className="w-8 h-8" /></div>
+              <h3 className="text-xl font-bold text-white mb-2">{confirmModal.title}</h3>
+              <p className="text-sm text-slate-500 mb-8 leading-relaxed">{confirmModal.message}</p>
+              <div className="flex gap-3">
+                <button onClick={() => setConfirmModal(prev => ({...prev, show: false}))} className="btn btn-secondary flex-1 text-xs font-bold uppercase tracking-widest">Cancel</button>
+                <button onClick={confirmModal.onConfirm} className="btn bg-rose-600 text-white flex-1 text-xs font-bold uppercase tracking-widest shadow-lg shadow-rose-950/40">Terminate</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+function SessionField({ icon: Icon, label, value }: any) {
+  return (
+    <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 flex items-center gap-3">
+      <Icon className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+      <div className="min-w-0">
+        <p className="text-[8px] font-black uppercase tracking-widest text-slate-600 mb-0.5">{label}</p>
+        <p className="text-[10px] font-mono font-bold text-slate-300 truncate">{value || 'N/A'}</p>
+      </div>
     </div>
   )
 }

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import api from '@/lib/api'
 import { useAppStore } from '@/lib/store'
 import toast from 'react-hot-toast'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   CheckIcon,
   CubeIcon,
@@ -18,7 +19,11 @@ import {
   UserGroupIcon,
   XMarkIcon,
   CodeBracketIcon,
-  CommandLineIcon
+  CommandLineIcon,
+  KeyIcon,
+  ShieldCheckIcon,
+  RocketLaunchIcon,
+  InformationCircleIcon
 } from '@heroicons/react/24/outline'
 
 export default function Applications() {
@@ -41,7 +46,6 @@ export default function Applications() {
   const limit = 10
   const [selectedLang, setSelectedLang] = useState('C++')
 
-  // Custom Confirm Modal
   const [confirmModal, setConfirmModal] = useState({
     show: false,
     title: '',
@@ -59,107 +63,75 @@ export default function Applications() {
     setLoading(true)
     try {
       const response = await api.get(`/applications?page=${page}&limit=${limit}&search=${searchTerm}`)
-      const apps = response.data.applications
-      setApplications(apps)
+      setApplications(response.data.applications)
       setTotalPages(response.data.pagination.pages)
       setTotalApps(response.data.pagination.total)
-
-      // Update local stats from pagination data for "Total Apps"
       setStats(prev => ({ ...prev, total: response.data.pagination.total }))
-
-      // Note: Full stats like "Active Sessions" would still need a separate call or be returned by backend
-    } catch {
-      toast.error('Failed to load applications')
-    } finally {
-      setLoading(false)
-    }
+    } catch { toast.error('Sync failed') }
+    finally { setLoading(false) }
   }
 
   const handlePageChange = (newPage: number) => {
     if (newPage < 1 || newPage > totalPages) return
-    setCurrentPage(newPage)
-    loadApplications(newPage)
+    setCurrentPage(newPage); loadApplications(newPage)
   }
 
   useEffect(() => {
     if (applications.length > 0) {
-      // Calculate stats based on existing applications
-      let sessions = 0
       setStats({
-        total: applications.length,
+        total: totalApps,
         active: applications.filter((app: any) => app.status === 'active').length,
         paused: applications.filter((app: any) => app.status === 'paused').length,
-        sessions,
+        sessions: 0,
       })
     }
-  }, [applications])
+  }, [applications, totalApps])
 
   const selectApp = async (app: any) => {
     try {
       const response = await api.get(`/applications/${app._id}`)
       setSelectedApp(response.data.application)
       setCredentials(response.data.application)
-    } catch {
-      toast.error('Failed to load credentials')
-    }
+    } catch { toast.error('Identity fetch failed') }
   }
 
   const createApplication = async () => {
-    if (!newAppName.trim()) return toast.error('Name is required')
+    if (!newAppName.trim()) return toast.error('Name required')
     try {
       await api.post('/applications', { name: newAppName, version: newAppVersion })
-      toast.success('Application created!')
-      setShowCreateModal(false)
-      setNewAppName('')
-      setNewAppVersion('1.0')
-      loadApplications()
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to create')
-    }
+      toast.success('Sector Initialized'); setShowCreateModal(false); setNewAppName(''); setNewAppVersion('1.0'); loadApplications()
+    } catch { toast.error('Initialization failed') }
   }
 
   const renameApplication = async () => {
-    if (!newName.trim()) return toast.error('Name is required')
+    if (!newName.trim()) return toast.error('Name required')
     try {
       await api.patch(`/applications/${renameApp._id}`, { name: newName })
-      toast.success('Renamed!')
-      setShowRenameModal(false)
-      loadApplications()
-    } catch {
-      toast.error('Failed to rename')
-    }
+      toast.success('Identity Updated'); setShowRenameModal(false); loadApplications()
+    } catch { toast.error('Update failed') }
   }
 
   const toggleStatus = async (app: any) => {
     try {
       const newStatus = app.status === 'active' ? 'paused' : 'active'
       await api.patch(`/applications/${app._id}`, { status: newStatus })
-      toast.success(`Application ${newStatus}`)
-      loadApplications()
-    } catch {
-      toast.error('Failed to update status')
-    }
+      toast.success(`Unit ${newStatus}`); loadApplications()
+    } catch { toast.error('Status toggle failed') }
   }
 
   const deleteApplication = async (id: string) => {
     setConfirmModal({
       show: true,
-      title: 'Delete Application?',
-      message: 'Are you sure you want to delete this application and ALL its associated data? This action cannot be undone.',
+      title: 'Purge Application?',
+      message: 'ALL data associated with this sector will be permanently erased.',
       type: 'danger',
-      confirmText: 'Delete',
+      confirmText: 'Purge Now',
       onConfirm: async () => {
         try {
           await api.delete(`/applications/${id}`)
-          toast.success('Deleted')
-          if (selectedApp?._id === id) {
-            setSelectedApp(null)
-            setCredentials(null)
-          }
+          toast.success('Purged'); if (selectedApp?._id === id) { setSelectedApp(null); setCredentials(null) }
           loadApplications()
-        } catch {
-          toast.error('Failed to delete')
-        }
+        } catch { toast.error('Purge failed') }
         setConfirmModal(prev => ({ ...prev, show: false }))
       }
     })
@@ -169,489 +141,275 @@ export default function Applications() {
     if (!credentials) return
     setConfirmModal({
       show: true,
-      title: 'Regenerate Secret?',
-      message: 'This will invalidate all current user sessions and old secrets. Your clients will need to update to the new secret to connect. Continue?',
+      title: 'Rotate Secret?',
+      message: 'All current links will be severed. Clients must update to the new key.',
       type: 'warning',
-      confirmText: 'Regenerate Now',
+      confirmText: 'Rotate Now',
       onConfirm: async () => {
         try {
           const response = await api.post(`/applications/${credentials._id}/regenerate-secret`)
           setCredentials({ ...credentials, appSecret: response.data.appSecret })
-          toast.success('Secret regenerated!')
-        } catch {
-          toast.error('Failed to regenerate')
-        }
+          toast.success('Secret Rotated')
+        } catch { toast.error('Rotation failed') }
         setConfirmModal(prev => ({ ...prev, show: false }))
       }
     })
   }
 
-  const copy = (text: string, label = 'Copied!') => {
-    navigator.clipboard.writeText(text)
-    toast.success(label)
-  }
-
-  const filtered = applications.filter((app: any) => app.name.toLowerCase().includes(search.toLowerCase()))
-
-  const statTiles = [
-    { label: 'Total Apps', value: stats.total, icon: CubeIcon, tone: 'text-indigo-300' },
-    { label: 'Active', value: stats.active, icon: CheckIcon, tone: 'text-emerald-300' },
-    { label: 'Paused', value: stats.paused, icon: PauseIcon, tone: 'text-zinc-200' },
-    { label: 'Active Sessions', value: stats.sessions, icon: SignalIcon, tone: 'text-slate-200' },
-  ]
+  const copy = (text: string) => { navigator.clipboard.writeText(text); toast.success('Copied') }
 
   return (
-    <div className="space-y-8">
-      <section className="page-header">
+    <div className="space-y-10">
+      {/* Header Section */}
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <p className="page-eyebrow">Applications</p>
-          <h1 className="page-title">Manage the applications behind your authentication workflow.</h1>
-          <p className="page-subtitle">
-            Create applications, review credentials, rotate secrets, and control status from one classic dark workspace.
-          </p>
+          <p className="text-xs font-black uppercase tracking-[0.25em] text-primary-500 mb-1">Fleet Management</p>
+          <h2 className="text-3xl font-bold text-white tracking-tight">Applications</h2>
+          <p className="text-sm text-slate-400 mt-2 max-w-xl">Initialize and manage your software fleet. Control authorization tokens, versioning, and operational status.</p>
         </div>
+        
+        <motion.button 
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => setShowCreateModal(true)} 
+          className="btn btn-primary shadow-glow shadow-primary-600/20 py-4 px-8"
+        >
+          <PlusIcon className="w-5 h-5" />
+          <span>New Application</span>
+        </motion.button>
+      </div>
 
-        <button onClick={() => setShowCreateModal(true)} className="btn btn-primary">
-          <PlusIcon className="h-5 w-5" />
-          Create Application
-        </button>
-      </section>
-
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {statTiles.map((tile) => (
-          <div key={tile.label} className="stat-tile">
-            <div className="flex items-center justify-between">
-              <p className="stat-label">{tile.label}</p>
-              <tile.icon className={`h-5 w-5 ${tile.tone}`} />
+      {/* Stats Summary */}
+      <section className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+        {[
+          { label: 'Total Fleet', value: stats.total, icon: CubeIcon, color: 'text-indigo-400' },
+          { label: 'Operational', value: stats.active, icon: RocketLaunchIcon, color: 'text-emerald-400' },
+          { label: 'Standby', value: stats.paused, icon: PauseIcon, color: 'text-amber-400' },
+          { label: 'Live Link', value: stats.sessions, icon: SignalIcon, color: 'text-sky-400' },
+        ].map((stat, idx) => (
+          <motion.div 
+            key={stat.label} 
+            initial={{ opacity: 0, y: 20 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            transition={{ delay: idx * 0.1 }}
+            className="card-premium p-6"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[10px] font-black uppercase tracking-widest text-dark-muted">{stat.label}</p>
+              <stat.icon className={`w-4 h-4 ${stat.color}`} />
             </div>
-            <p className="stat-value">{tile.value}</p>
-            <p className="stat-meta">Live summary across your application inventory</p>
-          </div>
+            <p className="text-2xl font-black text-white">{stat.value}</p>
+          </motion.div>
         ))}
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-        <div className="card">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-400/10 text-indigo-200">
-              <DocumentDuplicateIcon className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="page-eyebrow">Selected Credentials</p>
-              <h2 className="text-2xl font-bold text-white">Application secrets and identity</h2>
-            </div>
-          </div>
-
-          {credentials ? (
-            <div className="mt-6 space-y-4">
-              {[
-                { label: 'Application Name', value: credentials.name, copyValue: credentials.name },
-                { label: 'Owner ID', value: credentials.ownerId, copyValue: credentials.ownerId },
-                {
-                  label: 'Application Secret',
-                  value: showSecret ? credentials.appSecret : '•'.repeat(48),
-                  copyValue: credentials.appSecret,
-                  actions: (
-                    <button onClick={() => setShowSecret(!showSecret)} className="btn btn-secondary px-3 py-2 text-xs">
-                      {showSecret ? 'Hide' : 'Show'}
-                    </button>
-                  ),
-                },
-                { label: 'Version', value: credentials.version },
-              ].map((item) => (
-                <div key={item.label} className="rounded-2xl border border-white/10 bg-slate-950/45 p-4">
-                  <div className="mb-2 flex items-center justify-between gap-3">
-                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">{item.label}</p>
-                    <div className="flex items-center gap-2">
-                      {item.actions}
-                      {item.copyValue && (
-                        <button onClick={() => copy(item.copyValue)} className="rounded-xl border border-white/10 p-2 text-slate-400 transition-colors hover:text-white">
-                          <DocumentDuplicateIcon className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  <div className="break-all rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3 font-mono text-sm text-slate-200">
-                    {item.value}
-                  </div>
-                </div>
-              ))}
-
-              <button onClick={regenerateSecret} className="btn btn-danger w-full">
-                Regenerate Secret
-              </button>
-
-              {/* Systematic Code Snippet Section */}
-              <div className="mt-8 pt-8 border-t border-white/10 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-indigo-500/20 text-indigo-400">
-                      <CodeBracketIcon className="h-4 w-4" />
-                    </div>
-                    <span className="text-sm font-bold text-white">Display Code Snippet</span>
-                  </div>
-                  <button
-                    onClick={() => setShowSnippet(!showSnippet)}
-                    className={`relative w-11 h-5 rounded-full transition-all flex-shrink-0 ${
-                      showSnippet ? 'bg-indigo-600' : 'bg-slate-700'
-                    }`}
-                  >
-                    <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${
-                      showSnippet ? 'left-6' : 'left-0.5'
-                    }`}></div>
-                  </button>
-                </div>
-
-                {showSnippet && (
-                  <div className="space-y-4 animate-in fade-in zoom-in-95 duration-300">
-                    <div className="flex flex-col gap-2">
-                      <label className="text-[10px] text-slate-500 uppercase font-bold tracking-[0.2em]">Select Language:</label>
-                      <select
-                        value={selectedLang}
-                        onChange={(e) => setSelectedLang(e.target.value)}
-                        className="input py-2.5 text-sm bg-slate-900/50 border-white/5 focus:border-indigo-500/50"
-                      >
-                        <option>C++</option>
-                        <option>C#</option>
-                        <option>Python</option>
-                        <option>Java</option>
-                      </select>
-                    </div>
-
-                    <div className="relative group rounded-2xl border border-white/5 bg-slate-950 p-1">
-                      <pre className="p-4 overflow-x-auto text-[11px] font-mono leading-relaxed bg-black/20 rounded-xl min-h-[140px]">
-                        {renderSystematicSnippet(selectedLang, credentials)}
-                      </pre>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2 pt-2">
-                      <button
-                        onClick={() => copy(getSnippet(selectedLang, credentials))}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-indigo-900/20"
-                      >
-                        <DocumentDuplicateIcon className="h-4 w-4" />
-                        Copy Code
-                      </button>
-                      <button className="flex-1 px-4 py-2 bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-400 border border-emerald-500/20 rounded-xl text-xs font-bold transition-all">
-                        View Example
-                      </button>
-                      <button className="flex-1 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition-all">
-                        View Tutorial
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="mt-6 rounded-2xl border border-dashed border-white/10 px-5 py-16 text-center">
-              <CubeIcon className="mx-auto h-12 w-12 text-slate-600" />
-              <p className="mt-4 text-base font-semibold text-white">Choose an application to inspect credentials</p>
-              <p className="mt-2 text-sm text-slate-400">Selecting an application keeps the logic the same while making the workflow much easier to scan.</p>
-            </div>
-          )}
-        </div>
-
-        <div className="card">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="page-eyebrow">Inventory</p>
-              <h2 className="text-2xl font-bold text-white">Application list</h2>
-            </div>
-            <div className="relative w-full sm:max-w-xs">
-              <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search applications"
-                className="input pl-9"
-              />
+      {/* Main Grid */}
+      <section className="grid gap-8 xl:grid-cols-2">
+        {/* Inventory Side */}
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-2">
+            <h3 className="text-xl font-black text-white uppercase tracking-tight flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-primary-500/10 text-primary-400"><CubeIcon className="w-5 h-5" /></div>
+              Sector Inventory
+            </h3>
+            <div className="relative">
+              <MagnifyingGlassIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+              <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Filter fleet..." className="input pl-11 py-2.5 sm:w-64" />
             </div>
           </div>
 
-          <div className="mt-6 space-y-4">
+          <div className="space-y-4 max-h-[700px] overflow-y-auto pr-2 scrollbar-hide">
             {loading || loadingApplications ? (
-              <div className="flex justify-center py-24">
-                <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-400 border-t-transparent" />
-              </div>
+              <div className="py-24 text-center"><div className="h-8 w-8 border-2 border-primary-500 border-t-transparent animate-spin rounded-full mx-auto" /></div>
             ) : applications.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-white/10 px-5 py-14 text-center text-sm text-slate-400">
-                No applications found.
-              </div>
+              <div className="card-premium p-16 text-center border-dashed border-white/10 bg-transparent"><p className="text-slate-500 font-bold uppercase tracking-widest text-xs">No Units Found</p></div>
             ) : (
-              <>
-                {applications.map((app: any) => {
-                  const isSelected = selectedApp?._id === app._id
-                  return (
-                    <div
-                      key={app._id}
-                      className={`rounded-2xl border p-5 transition-all ${
-                        isSelected
-                          ? 'border-indigo-400/25 bg-indigo-400/10 shadow-lg shadow-indigo-950/30'
-                          : 'border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.05]'
-                      }`}
-                    >
-                      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                        <div>
-                          <div className="flex flex-wrap items-center gap-3">
-                            <h3 className="text-xl font-bold text-white">{app.name}</h3>
-                            <span
-                              className={`badge ${
-                                app.status === 'active'
-                                  ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-200'
-                                  : 'border-zinc-400/20 bg-zinc-400/10 text-zinc-200'
-                              }`}
-                            >
-                              {app.status}
-                            </span>
-                          </div>
-                          <div className="mt-3 flex flex-wrap gap-4 text-sm text-slate-400">
-                            <span className="inline-flex items-center gap-2">
-                              <CubeIcon className="h-4 w-4" />
-                              Version {app.version}
-                            </span>
-                            <span className="inline-flex items-center gap-2">
-                              <UserGroupIcon className="h-4 w-4" />
-                              {app.userCount || 0} linked users
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-wrap gap-2">
-                          <button onClick={() => selectApp(app)} className={`btn px-3 py-2 text-xs ${isSelected ? 'btn-secondary' : 'btn-primary'}`}>
-                            <CheckIcon className="h-4 w-4" />
-                            {isSelected ? 'Selected' : 'Select'}
-                          </button>
-                          <button
-                            onClick={() => {
-                              setRenameApp(app)
-                              setNewName(app.name)
-                              setShowRenameModal(true)
-                            }}
-                            className="btn btn-secondary px-3 py-2 text-xs"
-                          >
-                            <PencilIcon className="h-4 w-4" />
-                            Rename
-                          </button>
-                          <button onClick={() => toggleStatus(app)} className="btn btn-secondary px-3 py-2 text-xs">
-                            {app.status === 'active' ? <PauseIcon className="h-4 w-4" /> : <PlayIcon className="h-4 w-4" />}
-                            {app.status === 'active' ? 'Pause' : 'Resume'}
-                          </button>
-                          <button onClick={() => deleteApplication(app._id)} className="btn btn-danger px-3 py-2 text-xs">
-                            <TrashIcon className="h-4 w-4" />
-                            Delete
-                          </button>
+              applications.map((app: any, idx: number) => (
+                <motion.div
+                  key={app._id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.05 }}
+                  className={`card-premium group p-6 transition-all ${selectedApp?._id === app._id ? 'border-primary-500/40 bg-primary-500/[0.03] shadow-glow' : 'hover:border-white/10'}`}
+                >
+                  <div className="flex items-start justify-between mb-6">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-black border transition-all ${selectedApp?._id === app._id ? 'bg-primary-500/10 border-primary-500/20 text-primary-400' : 'bg-white/5 border-white/5 text-slate-500 group-hover:text-white'}`}>
+                        {app.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-black text-white tracking-tight">{app.name}</h4>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest border ${app.status === 'active' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-slate-500/10 border-slate-500/20 text-slate-500'}`}>{app.status}</span>
+                          <span className="text-[10px] font-bold text-slate-500 uppercase">v{app.version}</span>
                         </div>
                       </div>
                     </div>
-                  )
-                })}
-
-                {/* Pagination Controls — KeyAuth Style */}
-                <div className="flex items-center justify-between px-2 py-4 bg-transparent border-t border-white/5">
-                  <button
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="px-5 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-gray-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                  >
-                    Previous
-                  </button>
-                  
-                  <div className="text-xs font-medium text-gray-500">
-                    Showing page <span className="text-gray-200">{currentPage}</span> of <span className="text-gray-200">{totalPages || 1}</span>
+                    <div className="text-right">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-600 mb-1">Personnel</p>
+                      <p className="text-xl font-black text-white tracking-tighter">{app.userCount || 0}</p>
+                    </div>
                   </div>
 
-                  <button
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages || totalPages === 0}
-                    className="px-5 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-gray-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                  >
-                    Next
-                  </button>
-                </div>
-              </>
+                  <div className="flex items-center gap-2 pt-4 border-t border-white/5">
+                    <button onClick={() => selectApp(app)} className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${selectedApp?._id === app._id ? 'bg-primary-500 text-white' : 'bg-white/5 text-slate-300 hover:bg-white/10'}`}>Inspect</button>
+                    <button onClick={() => { setRenameApp(app); setNewName(app.name); setShowRenameModal(true) }} className="p-2.5 rounded-xl bg-white/5 text-slate-500 hover:text-white transition-colors"><PencilIcon className="w-4 h-4" /></button>
+                    <button onClick={() => toggleStatus(app)} className="p-2.5 rounded-xl bg-white/5 text-slate-500 hover:text-white transition-colors">{app.status === 'active' ? <PauseIcon className="w-4 h-4" /> : <PlayIcon className="w-4 h-4" />}</button>
+                    <button onClick={() => deleteApplication(app._id)} className="p-2.5 rounded-xl bg-rose-500/5 text-rose-500 hover:bg-rose-500/10 transition-colors"><TrashIcon className="w-4 h-4" /></button>
+                  </div>
+                </motion.div>
+              ))
             )}
           </div>
         </div>
+
+        {/* Credentials Side */}
+        <div className="space-y-6">
+          <h3 className="text-xl font-black text-white uppercase tracking-tight flex items-center gap-3 px-2">
+            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400"><KeyIcon className="w-5 h-5" /></div>
+            Secure Vault
+          </h3>
+
+          <AnimatePresence mode="wait">
+            {credentials ? (
+              <motion.div key={credentials._id} initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} className="card-premium p-8 space-y-8 bg-gradient-to-br from-dark-card/80 to-dark-bg/80 backdrop-blur-2xl">
+                <div className="space-y-6">
+                  <CredentialField label="Sector ID" value={credentials._id} onCopy={() => copy(credentials._id)} />
+                  <CredentialField label="Owner Link" value={credentials.ownerId} onCopy={() => copy(credentials.ownerId)} />
+                  <CredentialField label="Master Secret" value={showSecret ? credentials.appSecret : '•'.repeat(48)} onCopy={() => copy(credentials.appSecret)} isSecret={true} showSecret={showSecret} onToggleSecret={() => setShowSecret(!showSecret)} />
+                </div>
+
+                <button onClick={regenerateSecret} className="btn bg-rose-600/10 border border-rose-600/20 text-rose-400 w-full font-bold uppercase tracking-widest text-xs py-4 hover:bg-rose-600/20">Rotate Security Key</button>
+
+                <div className="pt-8 border-t border-white/5">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <CodeBracketIcon className="w-5 h-5 text-primary-400" />
+                      <h4 className="text-sm font-black text-white uppercase tracking-widest">Integration Link</h4>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {['C++', 'C#', 'Python'].map(lang => (
+                        <button key={lang} onClick={() => setSelectedLang(lang)} className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${selectedLang === lang ? 'bg-primary-500 text-white shadow-glow' : 'text-slate-500 hover:text-slate-300'}`}>{lang}</button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="relative group">
+                    <pre className="p-6 rounded-2xl bg-black/40 border border-white/5 overflow-x-auto text-xs font-mono leading-relaxed text-slate-300">
+                      {getSnippetContent(selectedLang, credentials)}
+                    </pre>
+                    <button onClick={() => copy(getSnippetRaw(selectedLang, credentials))} className="absolute top-4 right-4 p-2 rounded-xl bg-white/5 text-slate-500 hover:text-white transition-all opacity-0 group-hover:opacity-100"><DocumentDuplicateIcon className="w-4 h-4" /></button>
+                  </div>
+                </div>
+              </motion.div>
+            ) : (
+              <div className="card-premium p-16 text-center border-dashed border-white/10 bg-transparent h-full flex flex-col items-center justify-center space-y-4">
+                <ShieldCheckIcon className="w-12 h-12 text-slate-700" />
+                <p className="text-slate-500 font-bold uppercase tracking-widest text-xs max-w-[200px]">Select a sector from the inventory to unlock the vault</p>
+              </div>
+            )}
+          </AnimatePresence>
+        </div>
       </section>
 
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
-          <div className="modal-card w-full max-w-md">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="page-eyebrow">Create</p>
-                <h2 className="text-2xl font-bold text-white">New application</h2>
-              </div>
-              <button onClick={() => setShowCreateModal(false)} className="rounded-xl border border-white/10 p-2 text-slate-400">
-                <XMarkIcon className="h-5 w-5" />
-              </button>
+      {/* Modals */}
+      <AnimatePresence>
+        {showCreateModal && (
+          <Modal title="Initialize Sector" onClose={() => setShowCreateModal(false)}>
+            <div className="space-y-6">
+              <div className="input-group"><label className="label">Unit Name</label><input type="text" value={newAppName} onChange={(e) => setNewAppName(e.target.value)} className="input" placeholder="Primary Core" /></div>
+              <div className="input-group"><label className="label">Base Version</label><input type="text" value={newAppVersion} onChange={(e) => setNewAppVersion(e.target.value)} className="input" placeholder="1.0.0" /></div>
+              <div className="flex gap-4 pt-4"><button onClick={() => setShowCreateModal(false)} className="btn btn-secondary flex-1">Abort</button><button onClick={createApplication} className="btn btn-primary flex-1">Initialize</button></div>
             </div>
+          </Modal>
+        )}
+      </AnimatePresence>
 
-            <div className="mt-6 space-y-4">
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-300">Application Name</label>
-                <input type="text" value={newAppName} onChange={(e) => setNewAppName(e.target.value)} className="input" placeholder="My Application" />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-300">Version</label>
-                <input type="text" value={newAppVersion} onChange={(e) => setNewAppVersion(e.target.value)} className="input" placeholder="1.0" />
-              </div>
-              <div className="flex gap-3">
-                <button onClick={() => setShowCreateModal(false)} className="btn btn-secondary flex-1">
-                  Cancel
-                </button>
-                <button onClick={createApplication} className="btn btn-primary flex-1">
-                  Create
-                </button>
-              </div>
+      <AnimatePresence>
+        {showRenameModal && (
+          <Modal title="Adjust Identity" onClose={() => setShowRenameModal(false)}>
+            <div className="space-y-6">
+              <div className="input-group"><label className="label">New Designation</label><input type="text" value={newName} onChange={(e) => setNewName(e.target.value)} className="input" placeholder="New Unit Name" /></div>
+              <div className="flex gap-4 pt-4"><button onClick={() => setShowRenameModal(false)} className="btn btn-secondary flex-1">Abort</button><button onClick={renameApplication} className="btn btn-primary flex-1">Apply</button></div>
             </div>
-          </div>
-        </div>
-      )}
+          </Modal>
+        )}
+      </AnimatePresence>
 
-      {showRenameModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
-          <div className="modal-card w-full max-w-md">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="page-eyebrow">Rename</p>
-                <h2 className="text-2xl font-bold text-white">Update application name</h2>
-              </div>
-              <button onClick={() => setShowRenameModal(false)} className="rounded-xl border border-white/10 p-2 text-slate-400">
-                <XMarkIcon className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="mt-6 space-y-4">
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-300">New Name</label>
-                <input type="text" value={newName} onChange={(e) => setNewName(e.target.value)} className="input" placeholder="New application name" />
-              </div>
-              <div className="flex gap-3">
-                <button onClick={() => setShowRenameModal(false)} className="btn btn-secondary flex-1">
-                  Cancel
-                </button>
-                <button onClick={renameApplication} className="btn btn-primary flex-1">
-                  Rename
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* ── Custom Confirmation Modal ────────────────────────────────────── */}
-      {confirmModal.show && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-200">
-          <div className="w-full max-w-sm bg-[#13131a] border border-white/5 rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="flex flex-col items-center text-center">
-              {/* Icon Based on Type */}
-              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 ${
-                confirmModal.type === 'danger' ? 'bg-red-500/20 text-red-400' :
-                confirmModal.type === 'warning' ? 'bg-yellow-500/20 text-yellow-400' :
-                'bg-blue-500/20 text-blue-400'
-              }`}>
-                {confirmModal.type === 'danger' ? '🗑️' : confirmModal.type === 'warning' ? '⚠️' : '🔄'}
-              </div>
-              
+      <AnimatePresence>
+        {confirmModal.show && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setConfirmModal(prev => ({...prev, show: false}))} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative w-full max-w-sm card-premium p-8 text-center">
+              <div className={`w-16 h-16 rounded-3xl flex items-center justify-center mx-auto mb-6 ${confirmModal.type === 'danger' ? 'bg-rose-500/10 text-rose-400' : 'bg-amber-500/10 text-amber-400'}`}><XMarkIcon className="w-8 h-8" /></div>
               <h3 className="text-xl font-bold text-white mb-2">{confirmModal.title}</h3>
-              <p className="text-sm text-gray-400 mb-8 leading-relaxed">
-                {confirmModal.message}
-              </p>
-
-              <div className="flex gap-3 w-full">
-                <button
-                  onClick={() => setConfirmModal(prev => ({ ...prev, show: false }))}
-                  className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-gray-300 rounded-2xl text-sm font-bold transition-all"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={confirmModal.onConfirm}
-                  className={`flex-1 px-4 py-3 rounded-2xl text-sm font-bold text-white transition-all shadow-lg ${
-                    confirmModal.type === 'danger' ? 'bg-red-600 hover:bg-red-500 shadow-red-900/20' :
-                    confirmModal.type === 'warning' ? 'bg-yellow-600 hover:bg-yellow-500 shadow-yellow-900/20' :
-                    'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-900/20'
-                  }`}
-                >
-                  {confirmModal.confirmText}
-                </button>
+              <p className="text-sm text-slate-500 mb-8 leading-relaxed">{confirmModal.message}</p>
+              <div className="flex gap-3">
+                <button onClick={() => setConfirmModal(prev => ({...prev, show: false}))} className="btn btn-secondary flex-1 text-xs font-bold uppercase tracking-widest">Cancel</button>
+                <button onClick={confirmModal.onConfirm} className={`btn flex-1 text-xs font-bold uppercase tracking-widest ${confirmModal.type === 'danger' ? 'bg-rose-600 text-white' : 'btn-primary'}`}>{confirmModal.confirmText}</button>
               </div>
-            </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </div>
   )
 }
-function renderSystematicSnippet(lang: string, app: any) {
-  if (!app) return null;
-  const name = app.name;
-  const ownerid = app.ownerId;
-  const secret = app.appSecret || 'YOUR_APP_SECRET';
-  const version = app.version || '1.0';
-  const url = 'https://api.adarshauth.online/api/client';
 
+function CredentialField({ label, value, onCopy, isSecret, showSecret, onToggleSecret }: any) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between px-1">
+        <label className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-600">{label}</label>
+        <div className="flex items-center gap-2">
+          {isSecret && <button onClick={onToggleSecret} className="text-[10px] font-black uppercase tracking-widest text-primary-500 hover:text-primary-400 transition-colors">{showSecret ? 'Hide' : 'Show'}</button>}
+          <button onClick={onCopy} className="text-slate-500 hover:text-white transition-colors"><DocumentDuplicateIcon className="w-3.5 h-3.5" /></button>
+        </div>
+      </div>
+      <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 font-mono text-xs text-slate-300 break-all">{value}</div>
+    </div>
+  )
+}
+
+function Modal({ title, onClose, children }: any) {
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
+      <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} className="relative w-full max-w-lg card-premium p-10">
+        <div className="flex justify-between items-start mb-10">
+          <h3 className="text-2xl font-black text-white uppercase tracking-tight">{title}</h3>
+          <button onClick={onClose} className="p-2 text-slate-500 hover:text-white transition-colors"><XMarkIcon className="w-6 h-6" /></button>
+        </div>
+        {children}
+      </motion.div>
+    </div>
+  )
+}
+
+function getSnippetContent(lang: string, app: any) {
   if (lang === 'C++') {
     return (
       <div className="space-y-0.5">
-        <div><span className="text-blue-400">std::string</span> name = <span className="text-orange-400">skCrypt("{name}").decrypt()</span>;</div>
-        <div><span className="text-blue-400">std::string</span> ownerid = <span className="text-orange-400">skCrypt("{ownerid}").decrypt()</span>;</div>
-        <div><span className="text-blue-400">std::string</span> secret = <span className="text-orange-400">skCrypt("{secret}").decrypt()</span>;</div>
-        <div><span className="text-blue-400">std::string</span> version = <span className="text-orange-400">skCrypt("{version}").decrypt()</span>;</div>
-        <div><span className="text-blue-400">std::string</span> url = <span className="text-orange-400">skCrypt("{url}").decrypt()</span>;</div>
-        <div className="pt-2 text-slate-500">// Initialize API</div>
-        <div><span className="text-blue-400">AdarshAuth::api</span> <span className="text-indigo-300">KeyAuthApp</span>(name, ownerid, version, url, secret);</div>
+        <div className="text-slate-500">// Adarsh Auth Interface</div>
+        <div><span className="text-primary-400">api</span> <span className="text-white">AuthApp</span>(<span className="text-amber-400">"{app.name}"</span>, <span className="text-amber-400">"{app.ownerId}"</span>, <span className="text-amber-400">"{app.version}"</span>);</div>
       </div>
-    );
+    )
   }
-
   if (lang === 'C#') {
     return (
       <div className="space-y-0.5">
-        <div><span className="text-blue-400">public static api</span> <span className="text-indigo-300">AuthApp</span> = <span className="text-blue-400">new api</span>(</div>
-        <div className="pl-4">name: <span className="text-orange-400">"{name}"</span>,</div>
-        <div className="pl-4">ownerid: <span className="text-orange-400">"{ownerid}"</span>,</div>
-        <div className="pl-4">secret: <span className="text-orange-400">"{secret}"</span>,</div>
-        <div className="pl-4">version: <span className="text-orange-400">"{version}"</span></div>
+        <div><span className="text-primary-400">public static api</span> <span className="text-white">AuthApp</span> = <span className="text-primary-400">new api</span>(</div>
+        <div className="pl-4">name: <span className="text-amber-400">"{app.name}"</span>,</div>
+        <div className="pl-4">ownerid: <span className="text-amber-400">"{app.ownerId}"</span></div>
         <div>);</div>
       </div>
-    );
+    )
   }
-
-  return <span className="text-slate-500">// Integration coming soon...</span>;
+  return <div className="text-slate-500 italic">// Integration documentation coming soon for {lang}</div>
 }
 
-function getSnippet(lang: string, app: any) {
-  if (!app) return ''
-  const name = app.name
-  const ownerid = app.ownerId
-  const secret = app.appSecret || 'YOUR_APP_SECRET'
-  const version = app.version || '1.0'
-  const url = 'https://api.adarshauth.online/api/client'
-
-  switch (lang) {
-    case 'C++':
-      return `std::string name = skCrypt("${name}").decrypt();
-std::string ownerid = skCrypt("${ownerid}").decrypt();
-std::string secret = skCrypt("${secret}").decrypt();
-std::string version = skCrypt("${version}").decrypt();
-std::string url = skCrypt("${url}").decrypt();
-
-AdarshAuth::api KeyAuthApp(name, ownerid, version, url, secret);`
-    case 'C#':
-      return `public static api AuthApp = new api(
-    name: "${name}",
-    ownerid: "${ownerid}",
-    secret: "${secret}",
-    version: "${version}"
-);`
-    case 'Python':
-      return `# Python Integration Coming Soon\n# Stay tuned for the library update!`
-    case 'Java':
-      return `// Java Integration Coming Soon\n// Stay tuned for the library update!`
-    default:
-      return ''
-  }
+function getSnippetRaw(lang: string, app: any) {
+  if (lang === 'C++') return `api AuthApp("${app.name}", "${app.ownerId}", "${app.version}");`
+  if (lang === 'C#') return `public static api AuthApp = new api(name: "${app.name}", ownerid: "${app.ownerId}");`
+  return ''
 }
