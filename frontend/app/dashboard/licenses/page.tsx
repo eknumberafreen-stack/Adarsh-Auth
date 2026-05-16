@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import api from '@/lib/api'
-import { useAppStore, useAuthStore } from '@/lib/store'
+import { useAppStore } from '@/lib/store'
 import toast from 'react-hot-toast'
 import { PlusIcon, XMarkIcon, EllipsisVerticalIcon, DocumentDuplicateIcon } from '@heroicons/react/24/outline'
 
@@ -69,7 +69,6 @@ function LicenseMenu({ license, onEdit, onPause, onRevoke, onBlacklist, onDelete
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function Licenses() {
   const { applications, selectedApp } = useAppStore()
-  const { user } = useAuthStore()
   const [licenses, setLicenses] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
@@ -253,7 +252,6 @@ export default function Licenses() {
     return <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 text-xs rounded-full font-medium">Available</span>
   }
 
-  const isOwner = selectedApp?.ownerId === user?.id
   return (
     <div>
       {/* Header */}
@@ -276,22 +274,25 @@ export default function Licenses() {
             <div className="text-center py-12 text-gray-400">No licenses yet. Generate your first one!</div>
           ) : (
             <div className="card overflow-visible p-0">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-dark-border">
-                    <th className="text-left px-4 py-3 text-gray-400 font-medium">License Key</th>
-                    <th className="text-left px-4 py-3 text-gray-400 font-medium">Status</th>
-                    <th className="text-left px-4 py-3 text-gray-400 font-medium">Expiry</th>
-                    <th className="text-left px-4 py-3 text-gray-400 font-medium">Used By</th>
-                    <th className="text-left px-4 py-3 text-gray-400 font-medium">Note</th>
-                    {isOwner && (licenses.some(l => l.createdBy) || selectedApp?.team?.length > 0) && (
-                      <th className="text-left px-4 py-3 text-gray-400 font-medium">Created By</th>
-                    )}
-                    <th className="text-left px-4 py-3 text-gray-400 font-medium">Created</th>
-                    <th className="px-4 py-3" />
-                  </tr>
-                </thead>
-                <tbody>
+              {(() => {
+                const showCreatedBy = licenses.some(l => l.createdBy)
+                return (
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-dark-border">
+                        <th className="text-left px-4 py-3 text-gray-400 font-medium">License Key</th>
+                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Status</th>
+                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Expiry</th>
+                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Used By</th>
+                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Note</th>
+                        {showCreatedBy && (
+                          <th className="text-left px-4 py-3 text-gray-400 font-medium">Created By</th>
+                        )}
+                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Created</th>
+                        <th className="px-4 py-3" />
+                      </tr>
+                    </thead>
+                    <tbody>
                       {licenses.map((license: any) => (
                         <tr key={license._id} className="border-b border-dark-border/50 hover:bg-dark-hover/30 transition-colors">
                           <td className="px-4 py-3">
@@ -310,7 +311,7 @@ export default function Licenses() {
                             {license.usedBy?.username || '—'}
                           </td>
                           <td className="px-4 py-3 text-gray-400 text-xs">{license.note || '—'}</td>
-                          {isOwner && (licenses.some(l => l.createdBy) || selectedApp?.team?.length > 0) && (
+                          {showCreatedBy && (
                             <td className="px-4 py-3">
                               <span className="px-2 py-0.5 rounded-full bg-white/5 text-gray-300 text-[11px] border border-white/10">
                                 {license.createdBy?.username || 'Owner'}
@@ -336,7 +337,7 @@ export default function Licenses() {
                     </tbody>
                   </table>
                 )
-              }
+              })()}
 
               {/* Pagination Controls */}
               {totalPages > 1 && (
