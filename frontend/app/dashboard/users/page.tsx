@@ -385,89 +385,95 @@ export default function Users() {
             <div className="text-center py-12 text-gray-400">No users yet</div>
           ) : (
             <div className="card overflow-visible p-0">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-dark-border">
-                    <th className="text-left px-4 py-3 text-gray-400 font-medium">Username</th>
-                    <th className="text-left px-4 py-3 text-gray-400 font-medium">Status</th>
-                    <th className="text-left px-4 py-3 text-gray-400 font-medium">HWID</th>
-                    <th className="text-left px-4 py-3 text-gray-400 font-medium">Last Login</th>
-                    <th className="text-left px-4 py-3 text-gray-400 font-medium">Last IP</th>
-                    <th className="text-left px-4 py-3 text-gray-400 font-medium">Expiry</th>
-                    {selectedApp?.team?.length > 0 && (
-                      <th className="text-left px-4 py-3 text-gray-400 font-medium">Created By</th>
-                    )}
-                    <th className="text-left px-4 py-3 text-gray-400 font-medium">HWID Affected</th>
-                    <th className="px-4 py-3" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map((user: any) => (
-                    <tr key={user._id} className="border-b border-dark-border/50 hover:bg-dark-hover/30 transition-colors">
-                      <td className="px-4 py-3 font-medium">{user.username}</td>
-                      <td className="px-4 py-3">
-                        {user.banned ? (
-                          <span className="px-2 py-1 bg-red-500/20 text-red-400 text-xs rounded-full font-medium">Banned</span>
-                        ) : user.paused ? (
-                          <span className="px-2 py-1 bg-purple-500/20 text-purple-400 text-xs rounded-full font-medium">Paused</span>
-                        ) : user.expiryDate && new Date(user.expiryDate) < new Date() ? (
-                          <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded-full font-medium">Expired</span>
-                        ) : (
-                          <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full font-medium">Active</span>
+              {(() => {
+                const showCreatedBy = users.some(u => u.createdBy)
+                return (
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-dark-border">
+                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Username</th>
+                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Status</th>
+                        <th className="text-left px-4 py-3 text-gray-400 font-medium">HWID</th>
+                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Last Login</th>
+                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Last IP</th>
+                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Expiry</th>
+                        {showCreatedBy && (
+                          <th className="text-left px-4 py-3 text-gray-400 font-medium">Created By</th>
                         )}
-                      </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400 font-mono">
-                          <button
-                            onClick={() => {
-                              if (user.hwid) {
-                                navigator.clipboard.writeText(user.hwid);
-                                toast.success('HWID copied to clipboard!');
-                              }
-                            }}
-                            className="hover:text-primary-400 transition-colors cursor-pointer text-left"
-                            title="Click to copy full HWID"
-                          >
-                            {user.hwid ? `${user.hwid.substring(0, 12)}...` : 'Not set'}
-                          </button>
-                        </td>
-                      <td className="px-4 py-3 text-gray-400 text-xs">
-                        {formatToDDMMYYYY(user.lastLogin, 'Never', true)}
-                      </td>
-                      <td className="px-4 py-3 text-gray-400 text-xs">{user.lastIp || 'N/A'}</td>
-                        {user.paused 
-                          ? formatToDDMMYYYY(user.pausedExpiry, 'Lifetime', false)
-                          : formatToDDMMYYYY(user.expiryDate, 'Lifetime', false)}
-                      </td>
-                      {selectedApp?.team?.length > 0 && (
-                        <td className="px-4 py-3">
-                          <span className="px-2 py-0.5 rounded-full bg-white/5 text-gray-300 text-[11px] border border-white/10">
-                            {user.createdBy?.username || 'Owner'}
-                          </span>
-                        </td>
-                      )}
-                      <td className="px-4 py-3 text-gray-400 text-xs">
-                        {user.hwidAffected ? (
-                          <span className="text-indigo-400 font-medium">Yes</span>
-                        ) : (
-                          <span className="text-gray-500">No</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <UserMenu
-                          user={user}
-                          onEdit={openEditModal}
-                          onBan={softBan}
-                          onPermanentBan={openBanModal}
-                          onUnban={unbanUser}
-                          onPause={pauseUser}
-                          onResetHwid={resetHwid}
-                          onDelete={deleteUser}
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                        <th className="text-left px-4 py-3 text-gray-400 font-medium">HWID Affected</th>
+                        <th className="px-4 py-3" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {users.map((user: any) => (
+                        <tr key={user._id} className="border-b border-dark-border/50 hover:bg-dark-hover/30 transition-colors">
+                          <td className="px-4 py-3 font-medium">{user.username}</td>
+                          <td className="px-4 py-3">
+                            {user.banned ? (
+                              <span className="px-2 py-1 bg-red-500/20 text-red-400 text-xs rounded-full font-medium">Banned</span>
+                            ) : user.paused ? (
+                              <span className="px-2 py-1 bg-purple-500/20 text-purple-400 text-xs rounded-full font-medium">Paused</span>
+                            ) : user.expiryDate && new Date(user.expiryDate) < new Date() ? (
+                              <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded-full font-medium">Expired</span>
+                            ) : (
+                              <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full font-medium">Active</span>
+                            )}
+                          </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400 font-mono">
+                              <button
+                                onClick={() => {
+                                  if (user.hwid) {
+                                    navigator.clipboard.writeText(user.hwid);
+                                    toast.success('HWID copied to clipboard!');
+                                  }
+                                }}
+                                className="hover:text-primary-400 transition-colors cursor-pointer text-left"
+                                title="Click to copy full HWID"
+                              >
+                                {user.hwid ? `${user.hwid.substring(0, 12)}...` : 'Not set'}
+                              </button>
+                            </td>
+                          <td className="px-4 py-3 text-gray-400 text-xs">
+                            {formatToDDMMYYYY(user.lastLogin, 'Never', true)}
+                          </td>
+                          <td className="px-4 py-3 text-gray-400 text-xs">{user.lastIp || 'N/A'}</td>
+                          <td className="px-4 py-3 text-gray-400 text-xs">
+                            {user.paused 
+                              ? formatToDDMMYYYY(user.pausedExpiry, 'Lifetime', false)
+                              : formatToDDMMYYYY(user.expiryDate, 'Lifetime', false)}
+                          </td>
+                          {showCreatedBy && (
+                            <td className="px-4 py-3">
+                              <span className="px-2 py-0.5 rounded-full bg-white/5 text-gray-300 text-[11px] border border-white/10">
+                                {user.createdBy?.username || 'Owner'}
+                              </span>
+                            </td>
+                          )}
+                          <td className="px-4 py-3 text-gray-400 text-xs">
+                            {user.hwidAffected ? (
+                              <span className="text-indigo-400 font-medium">Yes</span>
+                            ) : (
+                              <span className="text-gray-500">No</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            <UserMenu
+                              user={user}
+                              onEdit={openEditModal}
+                              onBan={softBan}
+                              onPermanentBan={openBanModal}
+                              onUnban={unbanUser}
+                              onPause={pauseUser}
+                              onResetHwid={resetHwid}
+                              onDelete={deleteUser}
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )
+              })()}
 
               {/* Pagination Controls — KeyAuth Style */}
               <div className="flex items-center justify-between px-6 py-4 bg-black/20 border-t border-white/5">

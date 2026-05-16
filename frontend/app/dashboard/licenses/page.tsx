@@ -274,65 +274,70 @@ export default function Licenses() {
             <div className="text-center py-12 text-gray-400">No licenses yet. Generate your first one!</div>
           ) : (
             <div className="card overflow-visible p-0">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-dark-border">
-                    <th className="text-left px-4 py-3 text-gray-400 font-medium">License Key</th>
-                    <th className="text-left px-4 py-3 text-gray-400 font-medium">Status</th>
-                    <th className="text-left px-4 py-3 text-gray-400 font-medium">Expiry</th>
-                    <th className="text-left px-4 py-3 text-gray-400 font-medium">Used By</th>
-                    <th className="text-left px-4 py-3 text-gray-400 font-medium">Note</th>
-                    {selectedApp?.team?.length > 0 && (
-                      <th className="text-left px-4 py-3 text-gray-400 font-medium">Created By</th>
-                    )}
-                    <th className="text-left px-4 py-3 text-gray-400 font-medium">Created</th>
-                    <th className="px-4 py-3" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {licenses.map((license: any) => (
-                    <tr key={license._id} className="border-b border-dark-border/50 hover:bg-dark-hover/30 transition-colors">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <code className="font-mono text-xs text-gray-300 truncate max-w-[180px]">{license.key}</code>
-                          <button onClick={() => copyKey(license.key)} className="text-gray-500 hover:text-gray-300 flex-shrink-0">
-                            <DocumentDuplicateIcon className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">{getStatusBadge(license)}</td>
-                      <td className="px-4 py-3 text-gray-400 text-xs">
-                        {license.expiryUnit === 'lifetime' ? 'Lifetime' : `${license.expiryDuration} ${license.expiryUnit}`}
-                      </td>
-                      <td className="px-4 py-3 text-gray-400 text-xs">
-                        {license.usedBy?.username || '—'}
-                      </td>
-                      <td className="px-4 py-3 text-gray-400 text-xs">{license.note || '—'}</td>
-                      {selectedApp?.team?.length > 0 && (
-                        <td className="px-4 py-3">
-                          <span className="px-2 py-0.5 rounded-full bg-white/5 text-gray-300 text-[11px] border border-white/10">
-                            {license.createdBy?.username || 'Owner'}
-                          </span>
-                        </td>
-                      )}
-                      <td className="px-4 py-3 text-gray-400 text-xs">
-                        {new Date(license.createdAt).toLocaleDateString()}
-                      </td>
-                      <td className="px-4 py-3">
-                        <LicenseMenu
-                          license={license}
-                          onCopy={copyKey}
-                          onEdit={openEditModal}
-                          onPause={pauseLicense}
-                          onRevoke={revokeLicense}
-                          onBlacklist={openBlacklistModal}
-                          onDelete={deleteLicense}
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              {(() => {
+                const showCreatedBy = licenses.some(l => l.createdBy)
+                return (
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-dark-border">
+                        <th className="text-left px-4 py-3 text-gray-400 font-medium">License Key</th>
+                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Status</th>
+                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Expiry</th>
+                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Used By</th>
+                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Note</th>
+                        {showCreatedBy && (
+                          <th className="text-left px-4 py-3 text-gray-400 font-medium">Created By</th>
+                        )}
+                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Created</th>
+                        <th className="px-4 py-3" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {licenses.map((license: any) => (
+                        <tr key={license._id} className="border-b border-dark-border/50 hover:bg-dark-hover/30 transition-colors">
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <code className="font-mono text-xs text-gray-300 truncate max-w-[180px]">{license.key}</code>
+                              <button onClick={() => copyKey(license.key)} className="text-gray-500 hover:text-gray-300 flex-shrink-0">
+                                <DocumentDuplicateIcon className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">{getStatusBadge(license)}</td>
+                          <td className="px-4 py-3 text-gray-400 text-xs">
+                            {license.expiryUnit === 'lifetime' ? 'Lifetime' : `${license.expiryDuration} ${license.expiryUnit}`}
+                          </td>
+                          <td className="px-4 py-3 text-gray-400 text-xs">
+                            {license.usedBy?.username || '—'}
+                          </td>
+                          <td className="px-4 py-3 text-gray-400 text-xs">{license.note || '—'}</td>
+                          {showCreatedBy && (
+                            <td className="px-4 py-3">
+                              <span className="px-2 py-0.5 rounded-full bg-white/5 text-gray-300 text-[11px] border border-white/10">
+                                {license.createdBy?.username || 'Owner'}
+                              </span>
+                            </td>
+                          )}
+                          <td className="px-4 py-3 text-gray-400 text-xs">
+                            {new Date(license.createdAt).toLocaleDateString()}
+                          </td>
+                          <td className="px-4 py-3">
+                            <LicenseMenu
+                              license={license}
+                              onCopy={copyKey}
+                              onEdit={openEditModal}
+                              onPause={pauseLicense}
+                              onRevoke={revokeLicense}
+                              onBlacklist={openBlacklistModal}
+                              onDelete={deleteLicense}
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )
+              })()}
 
               {/* Pagination Controls */}
               {totalPages > 1 && (
