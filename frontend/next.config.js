@@ -3,7 +3,12 @@ const nextConfig = {
   reactStrictMode: true,
   experimental: {
     serverActions: {
-      allowedOrigins: ['adarshauth.online', 'localhost:3000']
+      allowedOrigins: [
+        'adarshauth.online', 
+        '*.adarshauth.online',
+        'adarsh-auth-frontend.up.railway.app', 
+        'localhost:3000'
+      ]
     }
   },
   env: {
