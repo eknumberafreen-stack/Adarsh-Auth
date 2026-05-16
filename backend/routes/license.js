@@ -38,7 +38,7 @@ router.post('/generate',
       expiryUnit,
       expiryDuration: expiryUnit !== 'lifetime' ? expiryDuration : null,
       expiryDate,
-      createdBy: req.userId // Track the reseller/owner who made this
+      createdBy: (req.application && req.application.team && req.application.team.length > 1) ? req.userId : null // Only track if shared
     })
     licenses.push(license)
   }
@@ -64,6 +64,7 @@ router.get('/application/:applicationId', verifyAppAccess('manage_licenses'), as
   const [licenses, total] = await Promise.all([
     License.find(filter)
       .populate('usedBy', 'username')
+      .populate('createdBy', 'username email')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit),

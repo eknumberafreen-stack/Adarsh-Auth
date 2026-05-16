@@ -56,6 +56,7 @@ router.get('/application/:applicationId', verifyAppAccess(), asyncHandler(async 
   const [users, total] = await Promise.all([
     AppUser.find(filter)
       .select('-password')
+      .populate('createdBy', 'username email')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit),
@@ -116,7 +117,8 @@ router.post('/create',
       subscription: subscription || 'default',
       applicationId,
       expiryDate: expiryDate ? new Date(expiryDate) : null,
-      hwidAffected: hwidAffected !== false
+      hwidAffected: hwidAffected !== false,
+      createdBy: (application.team && application.team.length > 1) ? req.userId : null
     });
 
     application.userCount = await AppUser.countDocuments({ applicationId });

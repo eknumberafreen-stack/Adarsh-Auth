@@ -39,6 +39,8 @@ const appUserSchema = new mongoose.Schema({
   failedLoginCount: { type: Number, default: 0 },
   failedLoginResetAt: { type: Date, default: null },
 
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+
   createdAt: { type: Date, default: Date.now }
 }, { timestamps: true });
 
