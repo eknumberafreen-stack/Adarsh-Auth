@@ -1,13 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'standalone',
   reactStrictMode: true,
   experimental: {
     serverActions: {
       allowedOrigins: [
-        'adarshauth.online', 
-        '*.adarshauth.online',
-        'adarsh-auth-frontend.up.railway.app', 
-        'localhost:3000'
+        'adarshauth.online',
+        'www.adarshauth.online',
+        'adarsh-auth-frontend.up.railway.app',
+        'adarsh-auth-frontend-production.up.railway.app'
       ]
     }
   },
