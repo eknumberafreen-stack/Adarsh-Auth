@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import api from '@/lib/api'
-import { useAppStore, useAuthStore } from '@/lib/store'
+import { useAppStore } from '@/lib/store'
 import toast from 'react-hot-toast'
 import { PlusIcon, EyeIcon, EyeSlashIcon, XMarkIcon, EllipsisVerticalIcon } from '@heroicons/react/24/outline'
 
@@ -68,7 +68,6 @@ function UserMenu({ user, onEdit, onBan, onPermanentBan, onUnban, onPause, onRes
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function Users() {
   const { applications, selectedApp, loadingApplications } = useAppStore()
-  const { user: currentUser } = useAuthStore()
   const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
@@ -387,8 +386,7 @@ export default function Users() {
           ) : (
             <div className="card overflow-visible p-0">
               {(() => {
-                const isOwner = currentUser?.id === selectedApp?.ownerId
-                const showCreatedBy = isOwner && (selectedApp?.team?.length > 0 || users.some((u: any) => u.createdBy))
+                const showCreatedBy = selectedApp?.team?.length > 0 || users.some(u => u.createdBy)
                 return (
                   <table className="w-full text-sm">
                     <thead>
