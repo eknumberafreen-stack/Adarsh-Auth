@@ -88,6 +88,7 @@ interface Application {
   status: string
   userCount: number
   createdAt: string
+  team?: any[]
 }
 
 interface AppState {
