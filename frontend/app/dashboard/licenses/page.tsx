@@ -69,7 +69,8 @@ function LicenseMenu({ license, onEdit, onPause, onRevoke, onBlacklist, onDelete
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function Licenses() {
   const { applications, selectedApp } = useAppStore()
-  const { user: currentUser } = useAuthStore()
+  const { user } = useAuthStore()
+  const isOwner = user?.id === selectedApp?.ownerId
   const [licenses, setLicenses] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
@@ -276,8 +277,7 @@ export default function Licenses() {
           ) : (
             <div className="card overflow-visible p-0">
               {(() => {
-                const isOwner = selectedApp?.ownerId === currentUser?.id
-                const showCreatedBy = isOwner && licenses.some(l => l.createdBy)
+                const showCreatedBy = isOwner && (selectedApp?.team?.length > 0 || licenses.some(l => l.createdBy))
                 return (
                   <table className="w-full text-sm">
                     <thead>

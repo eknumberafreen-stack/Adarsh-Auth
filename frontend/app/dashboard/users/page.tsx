@@ -68,7 +68,8 @@ function UserMenu({ user, onEdit, onBan, onPermanentBan, onUnban, onPause, onRes
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function Users() {
   const { applications, selectedApp, loadingApplications } = useAppStore()
-  const { user: currentUser } = useAuthStore()
+  const { user } = useAuthStore()
+  const isOwner = user?.id === selectedApp?.ownerId
   const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
@@ -387,7 +388,6 @@ export default function Users() {
           ) : (
             <div className="card overflow-visible p-0">
               {(() => {
-                const isOwner = selectedApp?.ownerId === currentUser?.id
                 const showCreatedBy = isOwner && (selectedApp?.team?.length > 0 || users.some(u => u.createdBy))
                 return (
                   <table className="w-full text-sm">
