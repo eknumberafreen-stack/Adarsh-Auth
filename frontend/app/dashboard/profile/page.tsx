@@ -5,7 +5,6 @@ import { useAuthStore } from '@/lib/store'
 import api from '@/lib/api'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
-import { motion } from 'framer-motion'
 import {
   EnvelopeIcon,
   IdentificationIcon,
@@ -18,8 +17,6 @@ import {
   ShieldCheckIcon,
   ArrowRightIcon,
   CheckBadgeIcon,
-  SparklesIcon,
-  RocketLaunchIcon
 } from '@heroicons/react/24/outline'
 import { getAvatarInitial, getDisplayName } from '@/lib/username'
 
@@ -50,10 +47,15 @@ function formatLimit(v: number) {
   return v === -1 ? '∞' : String(v)
 }
 
-const PLAN_THEME: Record<string, { gradient: string, text: string, glow: string }> = {
-  free: { gradient: 'from-slate-500/10 to-slate-600/5 border-slate-500/20', text: 'text-slate-400', glow: 'shadow-slate-500/5' },
-  pro: { gradient: 'from-primary-500/10 to-primary-600/5 border-primary-500/20', text: 'text-primary-400', glow: 'shadow-primary-500/10' },
-  enterprise: { gradient: 'from-amber-500/10 to-orange-600/5 border-amber-500/20', text: 'text-amber-400', glow: 'shadow-amber-500/10' },
+const PLAN_GRADIENT: Record<string, string> = {
+  free: 'from-gray-500/20 to-gray-600/10 border-gray-500/20',
+  pro: 'from-indigo-500/20 to-purple-600/10 border-indigo-500/20',
+  enterprise: 'from-amber-500/20 to-orange-600/10 border-amber-500/20',
+}
+const PLAN_TEXT: Record<string, string> = {
+  free: 'text-gray-300',
+  pro: 'text-indigo-300',
+  enterprise: 'text-amber-300',
 }
 
 export default function ProfilePage() {
@@ -72,135 +74,240 @@ export default function ProfilePage() {
       ])
 
       const apps = appsRes.data.applications ?? []
+      let totalLicenses = 0, totalUsers = 0
+
+      await Promise.all(apps.slice(0, 8).map(async (app: any) => {
+        try {
+          const [lRes, uRes] = await Promise.all([
+            api.get(`/licenses/application/${app._id}`),
+            api.get(`/users/application/${app._id}`),
+          ])
+          totalLicenses += lRes.data.licenses?.length ?? 0
+          totalUsers += uRes.data.users?.length ?? 0
+        } catch {}
+      }))
+
       setProfile({
         username: user?.username ?? null,
         email: user?.email ?? '',
         id: meRes.data.user?.id ?? user?.id ?? '',
         createdAt: meRes.data.user?.createdAt ?? '',
         plan: planRes.data?.plan ?? null,
-        stats: { applications: apps.length, licenses: 0, users: 0 },
+        stats: { applications: apps.length, licenses: totalLicenses, users: totalUsers },
       })
-    } catch { toast.error('Sync failed') }
-    finally { setLoading(false) }
+    } catch {
+      toast.error('Failed to load profile')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><div className="w-10 h-10 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" /></div>
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-gray-500">Loading profile...</p>
+        </div>
+      </div>
+    )
+  }
+
   if (!profile) return null
 
+  const displayName = getDisplayName(profile.username, profile.email)
+  const avatarInitial = getAvatarInitial(profile.username, profile.email)
   const planName = profile.plan?.name ?? 'free'
-  const theme = PLAN_THEME[planName] || PLAN_THEME.free
-  const joinDate = new Date(profile.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })
+  const joinDate = profile.createdAt
+    ? new Date(profile.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })
+    : '—'
 
   return (
-    <div className="space-y-8">
-      {/* Identity Banner */}
-      <section className="relative overflow-hidden card-premium p-8 sm:p-12 border-primary-500/20 bg-primary-500/[0.02]">
-        <div className="absolute top-0 right-0 p-8 opacity-5">
-          <RocketLaunchIcon className="w-48 h-48 text-primary-500" />
-        </div>
-        
-        <div className="relative z-10 flex flex-col md:flex-row items-center gap-10">
-          <div className="relative group">
-            <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-3xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-4xl sm:text-5xl font-black text-white shadow-2xl shadow-primary-500/30 group-hover:scale-105 transition-transform duration-500">
-              {getAvatarInitial(profile.username, profile.email)}
-            </div>
-            <div className="absolute -bottom-3 -right-3 p-2 bg-dark-bg rounded-2xl border border-white/10 shadow-xl">
-              <ShieldCheckIcon className="w-6 h-6 text-emerald-400" />
-            </div>
-          </div>
+    <div className="space-y-5">
 
-          <div className="flex-1 text-center md:text-left">
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 mb-2">
-              <h1 className="text-4xl font-black text-white tracking-tight">{getDisplayName(profile.username, profile.email)}</h1>
-              {profile.username && <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-500/10 border border-primary-500/20 text-[10px] font-black uppercase tracking-widest text-primary-400"><CheckBadgeIcon className="w-4 h-4" /> Verified Identity</span>}
-            </div>
-            <p className="text-lg text-slate-400 font-medium mb-6">@{profile.username || 'guest_operator'}</p>
-            
-            <div className="flex flex-wrap justify-center md:justify-start gap-6 text-sm font-bold text-slate-500 uppercase tracking-widest">
-              <div className="flex items-center gap-2"><EnvelopeIcon className="w-4 h-4 text-primary-400" /> {profile.email}</div>
-              <div className="flex items-center gap-2"><CalendarIcon className="w-4 h-4 text-primary-400" /> Joined {joinDate}</div>
-            </div>
-          </div>
+      {/* ── Hero Banner ── */}
+      <div className="relative rounded-2xl overflow-hidden border border-white/[0.06] bg-gradient-to-br from-indigo-600/10 via-purple-600/5 to-transparent">
+        {/* Background pattern */}
+        <div className="absolute inset-0 opacity-[0.03]"
+          style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '24px 24px' }} />
 
-          <Link href="/dashboard/settings" className="btn btn-primary px-8 py-4 text-xs font-black uppercase tracking-widest shadow-glow">Edit Profile</Link>
-        </div>
-      </section>
+        <div className="relative p-6 md:p-8">
+          <div className="flex flex-col md:flex-row md:items-center gap-6">
 
-      {/* Grid Content */}
-      <div className="grid gap-8 lg:grid-cols-2">
-        {/* Tier Details */}
-        <section className={`card-premium p-8 bg-gradient-to-br ${theme.gradient} ${theme.glow}`}>
-          <div className="flex items-center justify-between mb-10">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-2xl bg-white/5 border border-white/5"><SparklesIcon className="w-6 h-6 text-amber-400" /></div>
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-600">Active Membership</p>
-                <h3 className={`text-2xl font-black tracking-tight ${theme.text}`}>{profile.plan?.displayName || 'Free'} Console</h3>
+            {/* Avatar */}
+            <div className="relative flex-shrink-0">
+              <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-3xl md:text-4xl font-black text-white shadow-2xl shadow-indigo-500/30">
+                {avatarInitial}
+              </div>
+              {profile.plan && (
+                <div className={`absolute -bottom-2 -right-2 px-2 py-0.5 rounded-full text-[10px] font-bold border bg-[#09090e] ${PLAN_TEXT[planName]} border-current`}>
+                  {profile.plan.displayName}
+                </div>
+              )}
+            </div>
+
+            {/* Info */}
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-center gap-3 mb-1">
+                <h1 className="text-2xl md:text-3xl font-black text-white">{displayName}</h1>
+                {profile.username && (
+                  <span className="flex items-center gap-1 text-sm text-indigo-400">
+                    <CheckBadgeIcon className="w-4 h-4" />
+                    verified
+                  </span>
+                )}
+              </div>
+
+              {profile.username && (
+                <p className="text-gray-400 text-sm mb-3">@{profile.username}</p>
+              )}
+
+              <div className="flex flex-wrap gap-4 text-sm text-gray-500">
+                <span className="flex items-center gap-1.5">
+                  <EnvelopeIcon className="w-3.5 h-3.5" />
+                  {profile.email}
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <CalendarIcon className="w-3.5 h-3.5" />
+                  Joined {joinDate}
+                </span>
+                <span className="flex items-center gap-1.5 font-mono text-xs">
+                  <IdentificationIcon className="w-3.5 h-3.5" />
+                  {profile.id.slice(0, 16)}…
+                </span>
               </div>
             </div>
-            <Link href="/dashboard/billing" className="text-xs font-black uppercase tracking-widest text-primary-400 hover:text-white transition-colors">Upgrade Tier</Link>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <LimitBox label="Sectors" value={profile.plan?.limits.maxApplications} />
-            <LimitBox label="Users / Unit" value={profile.plan?.limits.maxUsersPerApp} />
-            <LimitBox label="Keys / Unit" value={profile.plan?.limits.maxLicensesPerApp} />
-            <LimitBox label="API Limit / Day" value={profile.plan?.limits.maxApiCallsPerDay} />
+            {/* Edit button */}
+            <Link
+              href="/dashboard/settings"
+              className="flex-shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/[0.06] border border-white/[0.10] text-white hover:bg-white/[0.10] transition-all text-sm font-medium"
+            >
+              <PencilSquareIcon className="w-4 h-4" />
+              Edit Profile
+            </Link>
           </div>
-        </section>
-
-        {/* Account Metadata */}
-        <section className="card-premium p-8 space-y-8">
-          <div className="flex items-center gap-4">
-            <div className="p-3 rounded-2xl bg-white/5 border border-white/5"><IdentificationIcon className="w-6 h-6 text-primary-400" /></div>
-            <h3 className="text-xl font-black text-white uppercase tracking-tight">Security Metadata</h3>
-          </div>
-
-          <div className="space-y-4">
-            <MetadataRow label="Unique Registry ID" value={profile.id} mono />
-            <MetadataRow label="Authorization Email" value={profile.email} />
-            <MetadataRow label="System Status" value="Healthy" color="text-emerald-400" />
-            <MetadataRow label="Last Sync" value={new Date().toLocaleTimeString()} />
-          </div>
-
-          <Link href="/dashboard/settings" className="flex items-center justify-center gap-3 w-full py-4 rounded-2xl bg-white/5 border border-white/5 text-xs font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all">
-            <PencilSquareIcon className="w-4 h-4" />
-            Update Security Protocols
-          </Link>
-        </section>
+        </div>
       </div>
 
-      {/* Promotions */}
-      {!profile.username && (
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="p-8 rounded-3xl bg-indigo-500/10 border border-indigo-500/20 flex flex-col sm:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-5">
-            <div className="w-14 h-14 rounded-2xl bg-indigo-500/20 flex items-center justify-center text-indigo-400"><IdentificationIcon className="w-7 h-7" /></div>
+      {/* ── Stats ── */}
+      <div className="grid grid-cols-3 gap-4">
+        {[
+          { label: 'Applications', value: profile.stats.applications, icon: CubeIcon, color: 'text-indigo-400', bg: 'bg-indigo-500/10', border: 'border-indigo-500/15', href: '/dashboard/applications' },
+          { label: 'Total Licenses', value: profile.stats.licenses, icon: KeyIcon, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/15', href: '/dashboard/licenses' },
+          { label: 'Total Users', value: profile.stats.users, icon: UsersIcon, color: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/15', href: '/dashboard/users' },
+        ].map((s) => (
+          <Link key={s.label} href={s.href}
+            className={`group bg-white/[0.02] border ${s.border} rounded-2xl p-5 hover:bg-white/[0.04] transition-all`}>
+            <div className="flex items-center justify-between mb-4">
+              <div className={`p-2.5 rounded-xl ${s.bg}`}>
+                <s.icon className={`w-5 h-5 ${s.color}`} />
+              </div>
+              <ArrowRightIcon className="w-3.5 h-3.5 text-gray-600 group-hover:text-gray-400 transition-colors" />
+            </div>
+            <p className="text-3xl font-black text-white">{s.value}</p>
+            <p className="text-xs text-gray-500 mt-1 font-medium">{s.label}</p>
+          </Link>
+        ))}
+      </div>
+
+      {/* ── Bottom Grid ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+        {/* Plan Card */}
+        <div className={`rounded-2xl border bg-gradient-to-br p-5 ${PLAN_GRADIENT[planName] ?? PLAN_GRADIENT.free}`}>
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-white/[0.06]">
+                <CreditCardIcon className="w-4 h-4 text-gray-300" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 uppercase tracking-wider">Subscription</p>
+                <p className={`text-base font-bold ${PLAN_TEXT[planName]}`}>
+                  {profile.plan?.displayName ?? 'Free'} Plan
+                </p>
+              </div>
+            </div>
+            <Link href="/dashboard/billing"
+              className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors">
+              Manage <ArrowRightIcon className="w-3 h-3" />
+            </Link>
+          </div>
+
+          {profile.plan && (
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { label: 'Apps', value: profile.plan.limits.maxApplications },
+                { label: 'Users / App', value: profile.plan.limits.maxUsersPerApp },
+                { label: 'Licenses / App', value: profile.plan.limits.maxLicensesPerApp },
+                { label: 'API Calls / Day', value: profile.plan.limits.maxApiCallsPerDay },
+              ].map((item) => (
+                <div key={item.label} className="bg-black/20 rounded-xl p-3 text-center">
+                  <p className="text-xl font-black text-white">{formatLimit(item.value)}</p>
+                  <p className="text-[10px] text-gray-500 mt-0.5 uppercase tracking-wider">{item.label}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Account Details */}
+        <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5 space-y-4">
+          <div className="flex items-center gap-2.5 mb-5">
+            <div className="p-2 rounded-xl bg-white/[0.04]">
+              <ShieldCheckIcon className="w-4 h-4 text-emerald-400" />
+            </div>
             <div>
-              <p className="text-lg font-black text-white uppercase tracking-tight">Set Your Identity</p>
-              <p className="text-sm text-slate-400 font-medium">Claim your unique username to verify your profile platform-wide.</p>
+              <p className="text-xs text-gray-500 uppercase tracking-wider">Account</p>
+              <p className="text-base font-bold text-white">Details & Security</p>
             </div>
           </div>
-          <Link href="/dashboard/settings" className="btn btn-primary px-10 py-4 text-xs font-black uppercase tracking-widest">Set Now</Link>
-        </motion.div>
+
+          <div className="space-y-2">
+            {[
+              { label: 'Email', value: profile.email, icon: EnvelopeIcon },
+              { label: 'Username', value: profile.username ? `@${profile.username}` : 'Not set', icon: IdentificationIcon, muted: !profile.username },
+              { label: 'User ID', value: profile.id, icon: IdentificationIcon, mono: true, truncate: true },
+              { label: 'Member Since', value: joinDate, icon: CalendarIcon },
+            ].map((item) => (
+              <div key={item.label} className="flex items-center gap-3 p-3 bg-white/[0.02] border border-white/[0.04] rounded-xl">
+                <item.icon className="w-4 h-4 text-gray-600 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] text-gray-600 uppercase tracking-wider">{item.label}</p>
+                  <p className={`text-sm mt-0.5 truncate ${item.mono ? 'font-mono text-xs' : 'font-medium'} ${item.muted ? 'text-gray-600 italic' : 'text-gray-200'}`}>
+                    {item.value}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <Link href="/dashboard/settings"
+            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.07] text-gray-300 hover:bg-white/[0.07] transition-all text-sm font-medium mt-2">
+            <PencilSquareIcon className="w-4 h-4" />
+            Edit Account Settings
+          </Link>
+        </div>
+      </div>
+
+      {/* No username prompt */}
+      {!profile.username && (
+        <div className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/15">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-indigo-500/10 flex items-center justify-center flex-shrink-0">
+              <IdentificationIcon className="w-4 h-4 text-indigo-400" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-white">Set your username</p>
+              <p className="text-xs text-gray-500 mt-0.5">Personalise your profile with a unique username</p>
+            </div>
+          </div>
+          <Link href="/dashboard/settings"
+            className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-300 hover:bg-indigo-600/30 transition-all text-sm font-medium">
+            Set Username <ArrowRightIcon className="w-3.5 h-3.5" />
+          </Link>
+        </div>
       )}
-    </div>
-  )
-}
-
-function LimitBox({ label, value }: { label: string, value: any }) {
-  return (
-    <div className="p-5 rounded-2xl bg-black/40 border border-white/5 text-center">
-      <p className="text-2xl font-black text-white tracking-tighter">{formatLimit(value)}</p>
-      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">{label}</p>
-    </div>
-  )
-}
-
-function MetadataRow({ label, value, mono = false, color = "text-slate-300" }: any) {
-  return (
-    <div className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.02] border border-white/5">
-      <span className="text-[10px] font-black uppercase tracking-widest text-slate-600">{label}</span>
-      <span className={`text-xs font-bold truncate max-w-[200px] ${mono ? 'font-mono' : ''} ${color}`}>{value}</span>
     </div>
   )
 }
