@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import api from '@/lib/api'
-import { useAppStore } from '@/lib/store'
+import { useAppStore, useAuthStore } from '@/lib/store'
 import toast from 'react-hot-toast'
 import { PlusIcon, XMarkIcon, EllipsisVerticalIcon, DocumentDuplicateIcon } from '@heroicons/react/24/outline'
 
@@ -69,6 +69,7 @@ function LicenseMenu({ license, onEdit, onPause, onRevoke, onBlacklist, onDelete
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function Licenses() {
   const { applications, selectedApp } = useAppStore()
+  const { user: currentUser } = useAuthStore()
   const [licenses, setLicenses] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
@@ -275,7 +276,8 @@ export default function Licenses() {
           ) : (
             <div className="card overflow-visible p-0">
               {(() => {
-                const showCreatedBy = licenses.some(l => l.createdBy)
+                const isOwner = selectedApp?.ownerId === currentUser?.id
+                const showCreatedBy = isOwner && licenses.some(l => l.createdBy)
                 return (
                   <table className="w-full text-sm">
                     <thead>
