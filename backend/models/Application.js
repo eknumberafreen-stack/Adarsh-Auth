@@ -5,6 +5,7 @@ const teamMemberSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   role: { type: String, enum: ['manager', 'reseller', 'developer'], default: 'reseller' },
   permissions: [{ type: String, enum: ['manage_licenses', 'manage_users', 'manage_settings', 'view_logs'] }],
+  addedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   addedAt: { type: Date, default: Date.now }
 });
 

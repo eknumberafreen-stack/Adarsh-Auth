@@ -394,6 +394,9 @@ export default function Users() {
                     <th className="text-left px-4 py-3 text-gray-400 font-medium">Last Login</th>
                     <th className="text-left px-4 py-3 text-gray-400 font-medium">Last IP</th>
                     <th className="text-left px-4 py-3 text-gray-400 font-medium">Expiry</th>
+                    {selectedApp?.team?.length > 0 && (
+                      <th className="text-left px-4 py-3 text-gray-400 font-medium">Created By</th>
+                    )}
                     <th className="text-left px-4 py-3 text-gray-400 font-medium">HWID Affected</th>
                     <th className="px-4 py-3" />
                   </tr>
@@ -431,11 +434,17 @@ export default function Users() {
                         {formatToDDMMYYYY(user.lastLogin, 'Never', true)}
                       </td>
                       <td className="px-4 py-3 text-gray-400 text-xs">{user.lastIp || 'N/A'}</td>
-                      <td className="px-4 py-3 text-gray-400 text-xs">
                         {user.paused 
                           ? formatToDDMMYYYY(user.pausedExpiry, 'Lifetime', false)
                           : formatToDDMMYYYY(user.expiryDate, 'Lifetime', false)}
                       </td>
+                      {selectedApp?.team?.length > 0 && (
+                        <td className="px-4 py-3">
+                          <span className="px-2 py-0.5 rounded-full bg-white/5 text-gray-300 text-[11px] border border-white/10">
+                            {user.createdBy?.username || 'Owner'}
+                          </span>
+                        </td>
+                      )}
                       <td className="px-4 py-3 text-gray-400 text-xs">
                         {user.hwidAffected ? (
                           <span className="text-indigo-400 font-medium">Yes</span>

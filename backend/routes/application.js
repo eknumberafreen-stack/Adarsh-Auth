@@ -61,7 +61,10 @@ router.get('/', asyncHandler(async (req, res) => {
 // Get single application with credentials
 router.get('/:id', verifyAppAccess(), asyncHandler(async (req, res) => {
   // Populate team user details
-  await req.application.populate('team.userId', 'email username');
+  await req.application.populate([
+    { path: 'team.userId', select: 'email username' },
+    { path: 'team.addedBy', select: 'username' }
+  ]);
   const application = req.application.toObject();
 
   // Flatten populated team data for frontend convenience
@@ -70,7 +73,8 @@ router.get('/:id', verifyAppAccess(), asyncHandler(async (req, res) => {
       ...m,
       userEmail: m.userId?.email || 'Unknown',
       userName: m.userId?.username || null,
-      userId: m.userId?._id || m.userId // keep the ID as a string
+      userId: m.userId?._id || m.userId, // keep the ID as a string
+      addedByName: m.addedBy?.username || 'Owner'
     }));
   }
 
@@ -323,7 +327,8 @@ router.post('/:id/team', verifyAppAccess(), asyncHandler(async (req, res) => {
   application.team.push({
     userId: userToAdd._id,
     role: role || 'reseller',
-    permissions: permissions || ['manage_licenses']
+    permissions: permissions || ['manage_licenses'],
+    addedBy: req.userId
   });
 
   await application.save();

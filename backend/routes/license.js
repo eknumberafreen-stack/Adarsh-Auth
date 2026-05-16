@@ -64,6 +64,7 @@ router.get('/application/:applicationId', verifyAppAccess('manage_licenses'), as
   const [licenses, total] = await Promise.all([
     License.find(filter)
       .populate('usedBy', 'username')
+      .populate('createdBy', 'username')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit),

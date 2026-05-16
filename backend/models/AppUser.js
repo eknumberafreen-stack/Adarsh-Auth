@@ -39,6 +39,9 @@ const appUserSchema = new mongoose.Schema({
   failedLoginCount: { type: Number, default: 0 },
   failedLoginResetAt: { type: Date, default: null },
 
+  // Tracking who generated the user (Owner or Team Member)
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+
   createdAt: { type: Date, default: Date.now }
 }, { timestamps: true });
 

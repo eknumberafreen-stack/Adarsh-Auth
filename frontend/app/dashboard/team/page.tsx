@@ -237,6 +237,7 @@ export default function TeamPage() {
                         <th className="text-left px-4 py-4 text-gray-400 font-medium">Member</th>
                         <th className="text-left px-4 py-4 text-gray-400 font-medium">Role</th>
                         <th className="text-left px-4 py-4 text-gray-400 font-medium">Permissions</th>
+                        <th className="text-left px-4 py-4 text-gray-400 font-medium">Added By</th>
                         <th className="text-left px-4 py-4 text-gray-400 font-medium">Added</th>
                         <th className="px-4 py-4 text-right">Actions</th>
                       </tr>
@@ -263,6 +264,11 @@ export default function TeamPage() {
                                 <span key={p} className="px-1.5 py-0.5 bg-white/5 rounded text-[10px] uppercase tracking-wider">{p.replace('_', ' ')}</span>
                               ))}
                             </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="px-2 py-0.5 rounded-full bg-white/5 text-gray-300 text-[11px] border border-white/10">
+                              {member.addedByName || 'Owner'}
+                            </span>
                           </td>
                           <td className="px-4 py-3 text-gray-500 text-xs">
                             {new Date(member.addedAt).toLocaleDateString()}
