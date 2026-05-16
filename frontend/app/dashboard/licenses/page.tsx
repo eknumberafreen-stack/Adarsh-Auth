@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import api from '@/lib/api'
-import { useAppStore, useAuthStore } from '@/lib/store'
+import { useAppStore } from '@/lib/store'
 import toast from 'react-hot-toast'
 import { PlusIcon, XMarkIcon, EllipsisVerticalIcon, DocumentDuplicateIcon } from '@heroicons/react/24/outline'
 
@@ -69,15 +69,12 @@ function LicenseMenu({ license, onEdit, onPause, onRevoke, onBlacklist, onDelete
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function Licenses() {
   const { applications, selectedApp } = useAppStore()
-  const { user: authUser } = useAuthStore()
   const [licenses, setLicenses] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalLicenses, setTotalLicenses] = useState(0)
   const limit = 20
-
-  const isOwner = authUser?.id === selectedApp?.ownerId
 
   // Generate modal
   const [showGenerateModal, setShowGenerateModal] = useState(false)
@@ -278,7 +275,7 @@ export default function Licenses() {
           ) : (
             <div className="card overflow-visible p-0">
               {(() => {
-                const showCreatedBy = isOwner && (selectedApp?.team?.length > 0 || licenses.some(l => l.createdBy))
+                const showCreatedBy = licenses.some(l => l.createdBy)
                 return (
                   <table className="w-full text-sm">
                     <thead>

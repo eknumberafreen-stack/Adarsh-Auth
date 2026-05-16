@@ -28,8 +28,6 @@ export default function TeamPage() {
   const [editAppIds, setEditAppIds] = useState<string[]>([])
   const [originalAppIds, setOriginalAppIds] = useState<string[]>([])
 
-  const isOwner = user?.id === application?.ownerId
-
   useEffect(() => {
     if (selectedApp?._id) loadApplication()
   }, [selectedApp?._id])
@@ -100,102 +98,135 @@ export default function TeamPage() {
   }
 
   const handleEditMember = async () => {
-    if (!editTarget) return
+    if (!selectedApp?._id) return
     setSaving(true)
     try {
-      // 1. Update on all apps they ARE on
-      const updatePromises = editAppIds.map(appId => 
-        api.patch(`/applications/${appId}/team/${editTarget.userId}`, { 
-          role: editRole, 
-          permissions: editPermissions 
-        })
-      )
-      
-      // 2. Remove from apps they were on but aren't anymore
-      const removedAppIds = originalAppIds.filter(id => !editAppIds.includes(id))
-      const removePromises = removedAppIds.map(appId =>
-        api.delete(`/applications/${appId}/team/${editTarget.userId}`)
-      )
+      // 1. Update role/permissions on current app
+      await api.patch(`/applications/${selectedApp._id}/team/${editTarget.userId}`, {
+        role: editRole,
+        permissions: editPermissions
+      })
 
-      await Promise.all([...updatePromises, ...removePromises])
-      
-      toast.success('Team member updated across selected applications!')
+      // 2. Add to newly checked apps
+      const appsToAdd = editAppIds.filter(id => !originalAppIds.includes(id))
+      for (const appId of appsToAdd) {
+        try {
+          await api.post(`/applications/${appId}/team`, {
+            email: editTarget.userEmail,
+            role: editRole,
+            permissions: editPermissions
+          })
+        } catch (e: any) {
+          toast.error(e.response?.data?.error || 'Failed to add to an app')
+        }
+      }
+
+      // 3. Remove from unchecked apps
+      const appsToRemove = originalAppIds.filter(id => !editAppIds.includes(id))
+      for (const appId of appsToRemove) {
+        try {
+          await api.delete(`/applications/${appId}/team/${editTarget.userId}`)
+        } catch (e: any) {
+          toast.error(e.response?.data?.error || 'Failed to remove from an app')
+        }
+      }
+
+      toast.success('Member updated!')
       setShowEditModal(false)
       loadApplication()
     } catch (e: any) {
-      toast.error(e.response?.data?.error || 'Failed to update team member')
+      toast.error(e.response?.data?.error || 'Failed to update member')
     } finally {
       setSaving(false)
     }
   }
 
+  // ── Remove Member ───────────────────────────────────────────────────────────
   const handleRemoveMember = async (userId: string) => {
-    if (!confirm('Are you sure you want to remove this team member?')) return
+    if (!selectedApp?._id) return
+    if (!confirm('Are you sure you want to remove this member?')) return
     try {
-      await api.delete(`/applications/${selectedApp?._id}/team/${userId}`)
-      toast.success('Team member removed')
+      await api.delete(`/applications/${selectedApp._id}/team/${userId}`)
+      toast.success('Member removed')
       loadApplication()
-    } catch {
-      toast.error('Failed to remove member')
+    } catch (e: any) {
+      toast.error(e.response?.data?.error || 'Failed to remove member')
     }
   }
 
-  const togglePermission = (p: string) => {
-    setPermissions(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p])
+  const togglePermission = (perm: string) => {
+    setPermissions(prev => prev.includes(perm) ? prev.filter(p => p !== perm) : [...prev, perm])
   }
 
-  const toggleEditPermission = (p: string) => {
-    setEditPermissions(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p])
+  const toggleEditPermission = (perm: string) => {
+    setEditPermissions(prev => prev.includes(perm) ? prev.filter(p => p !== perm) : [...prev, perm])
   }
 
-  const toggleAppSelection = (id: string, isEdit = false) => {
-    if (isEdit) {
-      setEditAppIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
-    } else {
-      setInviteAppIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
-    }
+  const toggleEditApp = (appId: string) => {
+    setEditAppIds(prev => prev.includes(appId) ? prev.filter(id => id !== appId) : [...prev, appId])
   }
 
-  const availablePermissions = [
-    { id: 'manage_users', label: 'Manage Users' },
-    { id: 'manage_licenses', label: 'Manage Licenses' },
-    { id: 'manage_app', label: 'Manage Application' },
-    { id: 'view_stats', label: 'View Stats' }
-  ]
+  const isOwner = application?.userId === user?.id
 
-  if (!selectedApp) {
-    return <div className="text-center py-12 text-gray-400">Please select an application first.</div>
-  }
+  // ── Permission Checkboxes (reusable) ────────────────────────────────────────
+  const PermissionCheckboxes = ({ perms, toggle, currentRole }: { perms: string[], toggle: (p: string) => void, currentRole: string }) => (
+    <div className="space-y-2.5 bg-black/20 p-3 rounded-xl border border-white/5">
+      <label className="flex items-center gap-3 cursor-pointer">
+        <input type="checkbox" checked={perms.includes('manage_licenses')} onChange={() => toggle('manage_licenses')} className="rounded border-white/20 bg-black/50 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0" />
+        <span className="text-sm text-gray-300">Manage Licenses</span>
+      </label>
+      <label className="flex items-center gap-3 cursor-pointer">
+        <input type="checkbox" checked={perms.includes('manage_users')} onChange={() => toggle('manage_users')} className="rounded border-white/20 bg-black/50 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0" />
+        <span className="text-sm text-gray-300">Manage Users & Sessions</span>
+      </label>
+      <label className="flex items-center gap-3 cursor-pointer">
+        <input type="checkbox" checked={perms.includes('view_logs')} onChange={() => toggle('view_logs')} className="rounded border-white/20 bg-black/50 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0" />
+        <span className="text-sm text-gray-300">View Logs & Stats</span>
+      </label>
+      {currentRole === 'manager' && (
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input type="checkbox" checked={perms.includes('manage_settings')} onChange={() => toggle('manage_settings')} className="rounded border-white/20 bg-black/50 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0" />
+          <span className="text-sm text-gray-300">Manage App Settings</span>
+        </label>
+      )}
+    </div>
+  )
 
   return (
-    <div className="max-w-6xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-white mb-1">Team Management</h1>
-          <p className="text-sm text-gray-400">Manage who has access to your application</p>
-        </div>
-        {isOwner && (
-          <button onClick={openAddModal} className="btn btn-primary flex items-center gap-2">
-            <PlusIcon className="w-5 h-5" />
-            Invite Member
-          </button>
-        )}
+    <div>
+      {/* Header */}
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Team Management</h1>
+        <button
+          onClick={openAddModal}
+          className="btn btn-primary flex items-center gap-2"
+          disabled={!selectedApp?._id || !isOwner}
+        >
+          <PlusIcon className="w-4 h-4" /> Invite Member
+        </button>
       </div>
 
-      {loading ? (
-        <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500" />
-        </div>
-      ) : !application ? (
-        <div className="text-center py-12 text-gray-400">Failed to load application data</div>
+      {applications.length === 0 ? (
+        <div className="text-center py-12 text-gray-400">Create an application first</div>
       ) : (
-        <div className="space-y-6">
-          {/* Main Table */}
-          <div className="relative">
-            <div className="absolute -inset-1 bg-gradient-to-r from-primary-500/20 to-purple-500/20 rounded-2xl blur-xl" />
-            <div className="relative">
-              {!application.team || application.team.length === 0 ? (
-                <div className="card p-12 text-center text-gray-400 border border-white/10 bg-slate-950/50">
+        <>
+
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-indigo-500" />
+            </div>
+          ) : !application ? (
+            <div className="text-center py-12 text-gray-400">Could not load application details.</div>
+          ) : (
+            <>
+              {!isOwner && (
+                <div className="mb-6 p-4 rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-200 text-sm">
+                  You are viewing this application as a Team Member (Role: {application.team?.find((m: any) => m.userId === user?.id)?.role || 'Unknown'}). Only the owner can invite or remove members.
+                </div>
+              )}
+
+              {application.team?.length === 0 ? (
+                <div className="text-center py-12 text-gray-400 border border-white/5 rounded-2xl bg-white/[0.02]">
                   No team members yet. Invite someone to help manage your application!
                 </div>
               ) : (
@@ -206,9 +237,7 @@ export default function TeamPage() {
                         <th className="text-left px-4 py-4 text-gray-400 font-medium">Member</th>
                         <th className="text-left px-4 py-4 text-gray-400 font-medium">Role</th>
                         <th className="text-left px-4 py-4 text-gray-400 font-medium">Permissions</th>
-                        {isOwner && (
-                          <th className="text-left px-4 py-4 text-gray-400 font-medium">Added By</th>
-                        )}
+                        <th className="text-left px-4 py-4 text-gray-400 font-medium">Added By</th>
                         <th className="text-left px-4 py-4 text-gray-400 font-medium">Added</th>
                         <th className="px-4 py-4 text-right">Actions</th>
                       </tr>
@@ -236,13 +265,11 @@ export default function TeamPage() {
                               ))}
                             </div>
                           </td>
-                          {isOwner && (
-                            <td className="px-4 py-3">
-                              <span className="px-2 py-0.5 rounded-full bg-white/5 text-gray-300 text-[11px] border border-white/10">
-                                {member.addedByName || 'Owner'}
-                              </span>
-                            </td>
-                          )}
+                          <td className="px-4 py-3">
+                            <span className="px-2 py-0.5 rounded-full bg-white/5 text-gray-300 text-[11px] border border-white/10">
+                              {member.addedByName || 'Owner'}
+                            </span>
+                          </td>
                           <td className="px-4 py-3 text-gray-500 text-xs">
                             {new Date(member.addedAt).toLocaleDateString()}
                           </td>
@@ -251,15 +278,15 @@ export default function TeamPage() {
                               <div className="flex items-center justify-end gap-1">
                                 <button
                                   onClick={() => openEditModal(member)}
-                                  className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-all"
-                                  title="Edit Permissions"
+                                  className="p-1.5 rounded-lg text-indigo-400 hover:bg-indigo-500/10 transition-colors inline-flex"
+                                  title="Edit member"
                                 >
                                   <PencilSquareIcon className="w-4 h-4" />
                                 </button>
                                 <button
                                   onClick={() => handleRemoveMember(member.userId)}
-                                  className="p-2 text-red-400/60 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
-                                  title="Remove Member"
+                                  className="p-1.5 rounded-lg text-rose-400 hover:bg-rose-500/10 transition-colors inline-flex"
+                                  title="Remove member"
                                 >
                                   <TrashIcon className="w-4 h-4" />
                                 </button>
@@ -272,140 +299,129 @@ export default function TeamPage() {
                   </table>
                 </div>
               )}
-            </div>
-          </div>
-        </div>
+            </>
+          )}
+        </>
       )}
 
-      {/* ── Add Modal ────────────────────────────────────────────────────────────── */}
+      {/* ── Add Member Modal ────────────────────────────────────────────── */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
-          <div className="modal-card max-w-lg w-full animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+          <div className="card max-w-md w-full border border-white/10 bg-[#0f1015]">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-white">Invite Team Member</h2>
-              <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-white transition-colors">
-                <XMarkIcon className="w-6 h-6" />
-              </button>
+              <h2 className="text-xl font-bold">Invite Team Member</h2>
+              <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-white"><XMarkIcon className="w-5 h-5" /></button>
             </div>
             
             <div className="space-y-5">
               <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Member Email</label>
+                <label className="block text-sm font-medium mb-2 text-gray-300">User Email <span className="text-rose-400">*</span></label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="input w-full"
+                  className="input w-full bg-black/20"
                   placeholder="user@example.com"
                 />
+                <p className="text-[11px] text-gray-500 mt-1.5">The user must already be registered on Adarsh Auth.</p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-300">Role</label>
+                <select value={role} onChange={(e) => setRole(e.target.value)} className="input w-full bg-black/20">
+                  <option value="reseller">Reseller (Limited Access)</option>
+                  <option value="manager">Manager (Admin Access)</option>
+                </select>
+                <p className="text-[11px] text-gray-500 mt-1.5">
+                  {role === 'reseller' ? 'Resellers can only generate and manage licenses they created.' : 'Managers can see all licenses and change app settings.'}
+                </p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-3 text-gray-300">Permissions</label>
+                <PermissionCheckboxes perms={permissions} toggle={togglePermission} currentRole={role} />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Assign Applications</label>
-                <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto p-2 bg-white/5 rounded-xl border border-white/5">
-                  {applications.map(app => (
-                    <label key={app._id} className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all ${inviteAppIds.includes(app._id) ? 'bg-primary-500/20 border-primary-500/50' : 'hover:bg-white/5 border-transparent'} border`}>
-                      <input type="checkbox" checked={inviteAppIds.includes(app._id)} onChange={() => toggleAppSelection(app._id)} className="w-4 h-4 accent-primary-500" />
-                      <span className="text-xs text-white font-medium truncate">{app.name}</span>
+                <label className="block text-sm font-medium mb-3 text-gray-300">Assign to Applications</label>
+                <div className="space-y-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
+                  {applications.map((app: any) => (
+                    <label key={app._id} className="flex items-center gap-3 p-2.5 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] transition-all cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        checked={inviteAppIds.includes(app._id)}
+                        onChange={(e) => {
+                          if (e.target.checked) setInviteAppIds([...inviteAppIds, app._id])
+                          else setInviteAppIds(inviteAppIds.filter(id => id !== app._id))
+                        }}
+                        className="w-4 h-4 rounded border-white/10 bg-black/20 text-indigo-500 focus:ring-offset-0 focus:ring-0"
+                      />
+                      <span className="text-sm text-gray-300 group-hover:text-white transition-colors">{app.name}</span>
                     </label>
                   ))}
                 </div>
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Role</label>
-                  <select value={role} onChange={(e) => setRole(e.target.value)} className="input w-full">
-                    <option value="reseller">Reseller</option>
-                    <option value="manager">Manager</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Permissions</label>
-                  <div className="space-y-2 pt-1">
-                    {availablePermissions.map(p => (
-                      <label key={p.id} className="flex items-center gap-2 cursor-pointer group">
-                        <input
-                          type="checkbox"
-                          checked={permissions.includes(p.id)}
-                          onChange={() => togglePermission(p.id)}
-                          className="w-4 h-4 accent-primary-500"
-                        />
-                        <span className="text-xs text-gray-300 group-hover:text-white transition-colors">{p.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <button onClick={() => setShowAddModal(false)} className="btn btn-secondary flex-1">Cancel</button>
-                <button onClick={handleAddMember} disabled={saving} className="btn btn-primary flex-1">
-                  {saving ? 'Sending Invites...' : 'Send Invites'}
-                </button>
+              
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => setShowAddModal(false)} className="btn bg-white/5 hover:bg-white/10 text-white flex-1 border border-white/10">Cancel</button>
+                <button onClick={handleAddMember} disabled={!email} className="btn btn-primary flex-1 disabled:opacity-50">Send Invite</button>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── Edit Modal ───────────────────────────────────────────────────────────── */}
+      {/* ── Edit Member Modal ───────────────────────────────────────────── */}
       {showEditModal && editTarget && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
-          <div className="modal-card max-w-lg w-full animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+          <div className="card max-w-md w-full border border-white/10 bg-[#0f1015]">
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h2 className="text-xl font-bold text-white">Edit Team Member</h2>
-                <p className="text-xs text-gray-400 mt-1">{editTarget.userEmail}</p>
+                <h2 className="text-xl font-bold">Edit Team Member</h2>
+                <p className="text-sm text-gray-400 mt-1">{editTarget.userEmail || editTarget.userId}</p>
               </div>
-              <button onClick={() => setShowEditModal(false)} className="text-gray-400 hover:text-white transition-colors">
-                <XMarkIcon className="w-6 h-6" />
-              </button>
+              <button onClick={() => setShowEditModal(false)} className="text-gray-400 hover:text-white"><XMarkIcon className="w-5 h-5" /></button>
             </div>
             
             <div className="space-y-5">
               <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Assigned Applications</label>
-                <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto p-2 bg-white/5 rounded-xl border border-white/5">
-                  {applications.map(app => (
-                    <label key={app._id} className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all ${editAppIds.includes(app._id) ? 'bg-primary-500/20 border-primary-500/50' : 'hover:bg-white/5 border-transparent'} border`}>
-                      <input type="checkbox" checked={editAppIds.includes(app._id)} onChange={() => toggleAppSelection(app._id, true)} className="w-4 h-4 accent-primary-500" />
-                      <span className="text-xs text-white font-medium truncate">{app.name}</span>
+                <label className="block text-sm font-medium mb-2 text-gray-300">Role</label>
+                <select value={editRole} onChange={(e) => setEditRole(e.target.value)} className="input w-full bg-black/20">
+                  <option value="reseller">Reseller (Limited Access)</option>
+                  <option value="manager">Manager (Admin Access)</option>
+                </select>
+                <p className="text-[11px] text-gray-500 mt-1.5">
+                  {editRole === 'reseller' ? 'Resellers can only generate and manage licenses they created.' : 'Managers can see all licenses and change app settings.'}
+                </p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-3 text-gray-300">Permissions</label>
+                <PermissionCheckboxes perms={editPermissions} toggle={toggleEditPermission} currentRole={editRole} />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-3 text-gray-300">Assigned Applications</label>
+                <div className="space-y-2.5 bg-black/20 p-3 rounded-xl border border-white/5 max-h-40 overflow-y-auto">
+                  {applications.map((app: any) => (
+                    <label key={app._id} className="flex items-center gap-3 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={editAppIds.includes(app._id)} 
+                        onChange={() => toggleEditApp(app._id)} 
+                        className="rounded border-white/20 bg-black/50 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0" 
+                      />
+                      <span className="text-sm text-gray-300">{app.name}</span>
+                      {originalAppIds.includes(app._id) && <span className="text-[10px] text-gray-600">(current)</span>}
                     </label>
                   ))}
                 </div>
-                <p className="text-[10px] text-gray-500 mt-2 italic">Unchecking an application will remove the member from that application.</p>
+                <p className="text-[11px] text-gray-500 mt-1.5">Check/uncheck to add or remove this member from your applications.</p>
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Role</label>
-                  <select value={editRole} onChange={(e) => setEditRole(e.target.value)} className="input w-full">
-                    <option value="reseller">Reseller</option>
-                    <option value="manager">Manager</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Permissions</label>
-                  <div className="space-y-2 pt-1">
-                    {availablePermissions.map(p => (
-                      <label key={p.id} className="flex items-center gap-2 cursor-pointer group">
-                        <input
-                          type="checkbox"
-                          checked={editPermissions.includes(p.id)}
-                          onChange={() => toggleEditPermission(p.id)}
-                          className="w-4 h-4 accent-primary-500"
-                        />
-                        <span className="text-xs text-gray-300 group-hover:text-white transition-colors">{p.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <button onClick={() => setShowEditModal(false)} className="btn btn-secondary flex-1">Cancel</button>
-                <button onClick={handleEditMember} disabled={saving} className="btn btn-primary flex-1">
+              
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => setShowEditModal(false)} className="btn bg-white/5 hover:bg-white/10 text-white flex-1 border border-white/10">Cancel</button>
+                <button onClick={handleEditMember} disabled={saving} className="btn btn-primary flex-1 disabled:opacity-50">
                   {saving ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
