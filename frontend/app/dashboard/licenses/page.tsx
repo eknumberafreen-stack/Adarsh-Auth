@@ -282,9 +282,6 @@ export default function Licenses() {
                     <th className="text-left px-4 py-3 text-gray-400 font-medium">Expiry</th>
                     <th className="text-left px-4 py-3 text-gray-400 font-medium">Used By</th>
                     <th className="text-left px-4 py-3 text-gray-400 font-medium">Note</th>
-                    {selectedApp?.team?.length > 1 && (
-                      <th className="text-left px-4 py-3 text-gray-400 font-medium">Created By</th>
-                    )}
                     <th className="text-left px-4 py-3 text-gray-400 font-medium">Created</th>
                     <th className="px-4 py-3" />
                   </tr>
@@ -308,15 +305,6 @@ export default function Licenses() {
                         {license.usedBy?.username || '—'}
                       </td>
                       <td className="px-4 py-3 text-gray-400 text-xs">{license.note || '—'}</td>
-                      {selectedApp?.team?.length > 1 && (
-                        <td className="px-4 py-3 text-gray-400 text-xs">
-                          {license.createdBy?.username ? (
-                            <span className="text-primary-400 font-medium">{license.createdBy.username}</span>
-                          ) : (
-                            <span className="text-gray-500 italic">Owner</span>
-                          )}
-                        </td>
-                      )}
                       <td className="px-4 py-3 text-gray-400 text-xs">
                         {new Date(license.createdAt).toLocaleDateString()}
                       </td>
