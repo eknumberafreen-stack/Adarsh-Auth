@@ -17,10 +17,7 @@ const errorHandler = (err, req, res, next) => {
   // Don't expose internal errors in production
   if (process.env.NODE_ENV === 'production') {
     return res.status(err.statusCode || 500).json({
-      error: 'An error occurred',
-      message: err.message,
-      stack: err.stack,
-      details: err
+      error: 'An error occurred'
     });
   }
 

@@ -90,15 +90,10 @@ router.get('/', passport.authenticate('google', {
 router.get('/callback',
   passport.authenticate('google', { session: false, failureRedirect: `${FRONTEND_URL}/login?error=google_failed` }),
   async (req, res) => {
-  try {
-    console.log('🔴 Google callback invoked');
-    console.log('query:', req.query);
-    console.log('user (from passport):', req.user);
-    const user = req.user;
-    if (!user) {
-      console.warn('⚠️ No user after Google auth');
-      return res.redirect(`${FRONTEND_URL}/login?error=google_failed`);
-    }    const accessToken = jwt.sign(
+    try {
+      const user = req.user;
+
+      const accessToken = jwt.sign(
         { userId: user._id, email: user.email },
         process.env.JWT_ACCESS_SECRET,
         { expiresIn: process.env.JWT_ACCESS_EXPIRY || '15m' }
