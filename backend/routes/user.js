@@ -27,6 +27,11 @@ const verifyUserActionAccess = async (req, res, appUser, requiredPermission) => 
   // 2. Is Team Member?
   const member = application.team?.find(m => m.userId.toString() === req.userId.toString());
   if (member) {
+    // Check if team member has expired
+    if (member.expiresAt && new Date(member.expiresAt) < new Date()) {
+      return false; // Access expired
+    }
+
     req.isOwner = false;
     req.teamRole = member.role;
     req.teamPermissions = member.permissions;

@@ -33,14 +33,47 @@ export default function TeamPage() {
   const [editExpiresAt, setEditExpiresAt] = useState('')
 
   const getDefaultExpiry = () => {
-    const d = new Date()
-    d.setDate(d.getDate() + 30)
-    return d.toISOString().slice(0, 16)
+    const now = new Date()
+    const pad = (n: number) => String(n).padStart(2, '0')
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`
+  }
+
+  const toLocalISOString = (dateStr: string | Date | null | undefined) => {
+    if (!dateStr) return ''
+    const d = new Date(dateStr)
+    const pad = (n: number) => String(n).padStart(2, '0')
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
   }
 
   const isStrictValidDate = (dateStr: string) => {
-    const d = new Date(dateStr)
-    return !isNaN(d.getTime())
+    if (!dateStr) return true;
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return false;
+    const digits = dateStr.match(/\d+/g);
+    if (!digits || digits.length < 3) return false;
+    let y = parseInt(digits[0]), m = parseInt(digits[1]), day = parseInt(digits[2]);
+    if (y < 1000 && parseInt(digits[2]) > 1000) {
+      day = parseInt(digits[0]); m = parseInt(digits[1]); y = parseInt(digits[2]);
+    }
+    return d.getFullYear() === y && (d.getMonth() + 1) === m && d.getDate() === day;
+  }
+
+  const formatToDDMMYYYY = (dateStr: string | null | undefined, fallback = 'Lifetime', includeTime = false) => {
+    if (!dateStr) return fallback;
+    const d = new Date(dateStr);
+    const day = d.getDate().toString().padStart(2, '0');
+    const month = (d.getMonth() + 1).toString().padStart(2, '0');
+    const year = d.getFullYear();
+    if (includeTime) {
+      let hours = d.getHours();
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours ? hours : 12;
+      const minutes = d.getMinutes().toString().padStart(2, '0');
+      const seconds = d.getSeconds().toString().padStart(2, '0');
+      return `${day}-${month}-${year} ${hours}:${minutes}:${seconds} ${ampm}`;
+    }
+    return `${day}-${month}-${year}`;
   }
 
   useEffect(() => {
@@ -105,7 +138,7 @@ export default function TeamPage() {
     setEditRole(member.role)
     setEditPermissions([...member.permissions])
     setEditIsLifetime(!member.expiresAt)
-    setEditExpiresAt(member.expiresAt ? new Date(member.expiresAt).toISOString().slice(0, 16) : '')
+    setEditExpiresAt(member.expiresAt ? toLocalISOString(member.expiresAt) : '')
     setShowEditModal(true)
 
     // Fetch all apps to see which ones this member is already assigned to
@@ -235,7 +268,7 @@ export default function TeamPage() {
     if (d < new Date()) {
       return <span className="text-rose-400 font-semibold bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">Expired</span>
     }
-    return <span className="text-gray-300 font-medium">{d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+    return <span className="text-gray-300 font-medium">{formatToDDMMYYYY(expiresAt, 'Lifetime', true)}</span>
   }
 
   return (

@@ -61,7 +61,11 @@ router.get('/', asyncHandler(async (req, res) => {
     const appObj = appDoc.toObject();
     const isOwner = appObj.userId.toString() === req.userId.toString();
     const teamMember = appObj.team?.find(m => m.userId.toString() === req.userId.toString());
-    const hasManageSettings = isOwner || (teamMember && teamMember.permissions.includes('manage_settings'));
+    const hasManageSettings = isOwner || (
+      teamMember && 
+      (!teamMember.expiresAt || new Date(teamMember.expiresAt) > new Date()) && 
+      teamMember.permissions.includes('manage_settings')
+    );
     if (!hasManageSettings) {
       delete appObj.discordWebhook;
     }

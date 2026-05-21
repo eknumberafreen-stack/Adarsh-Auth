@@ -96,6 +96,11 @@ const checkLicenseAccess = async (req, res) => {
       res.status(403).json({ error: 'Access denied. Require manage_licenses permission.' });
       return null;
     }
+    // Check if team member has expired
+    if (teamMember.expiresAt && new Date(teamMember.expiresAt) < new Date()) {
+      res.status(403).json({ error: 'Access denied. Your team member access has expired.' });
+      return null;
+    }
     // Resellers can only modify their own keys
     if (teamMember.role === 'reseller' && license.createdBy?.toString() !== req.userId.toString()) {
       res.status(403).json({ error: 'Access denied. Resellers can only modify their own licenses.' });
