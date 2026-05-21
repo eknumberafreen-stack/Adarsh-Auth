@@ -1,35 +1,15 @@
 const nodemailer = require('nodemailer');
+const https = require('https');
 
 const sendOTPEmail = async (email, otp) => {
+  const apiKey = process.env.BREVO_API_KEY;
   const host = process.env.SMTP_HOST || 'smtp-relay.brevo.com';
   const port = parseInt(process.env.SMTP_PORT) || 587;
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASSWORD;
   const from = process.env.SMTP_FROM || `"Adarsh Auth Security" <${user}>`;
 
-  console.log(`📧 Attempting to send OTP email to: ${email}`);
-  console.log(`📧 SMTP Config → Host: ${host}, Port: ${port}, User: ${user ? user : 'NOT SET'}`);
-
-  if (!user || !pass) {
-    console.warn('⚠️ SMTP credentials not set. Email not sent. OTP:', otp);
-    return false;
-  }
-
-  const transporter = nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465, // true for 465, false for other ports
-    auth: {
-      user,
-      pass
-    }
-  });
-
-  const mailOptions = {
-    from,
-    to: email,
-    subject: `🔒 ${otp} is your Adarsh Auth password reset code`,
-    html: `
+  const emailHtml = `
       <!DOCTYPE html>
       <html>
       <head>
@@ -135,7 +115,92 @@ const sendOTPEmail = async (email, otp) => {
         </div>
       </body>
       </html>
-    `
+  `;
+
+  console.log(`📧 Attempting to send OTP email to: ${email}`);
+
+  // 1. If Brevo API Key is configured, use Brevo HTTP REST API (Bypasses Railway's SMTP block)
+  if (apiKey) {
+    console.log('📧 Sending via Brevo HTTP REST API (Port 443)...');
+    try {
+      let senderEmail = user || 'ac17fd001@smtp-brevo.com';
+      let senderName = 'Adarsh Auth Security';
+      
+      const match = from.match(/^(?:"?([^"]*)"?\s)?(?:<([^>]+)>)$/);
+      if (match) {
+        senderName = match[1] || senderName;
+        senderEmail = match[2] || senderEmail;
+      }
+
+      const postData = JSON.stringify({
+        sender: { name: senderName, email: senderEmail },
+        to: [{ email: email }],
+        subject: `🔒 ${otp} is your Adarsh Auth password reset code`,
+        htmlContent: emailHtml
+      });
+
+      const result = await new Promise((resolve, reject) => {
+        const options = {
+          hostname: 'api.brevo.com',
+          port: 443,
+          path: '/v3/smtp/email',
+          method: 'POST',
+          headers: {
+            'accept': 'application/json',
+            'api-key': apiKey,
+            'content-type': 'application/json',
+            'content-length': Buffer.byteLength(postData)
+          }
+        };
+
+        const req = https.request(options, (res) => {
+          let body = '';
+          res.on('data', (chunk) => body += chunk);
+          res.on('end', () => {
+            if (res.statusCode >= 200 && res.statusCode < 300) {
+              resolve(JSON.parse(body));
+            } else {
+              reject(new Error(`Brevo HTTP API returned status ${res.statusCode}: ${body}`));
+            }
+          });
+        });
+
+        req.on('error', (e) => reject(e));
+        req.write(postData);
+        req.end();
+      });
+
+      console.log('✅ OTP Email successfully sent via Brevo HTTP API! MessageId:', result.messageId);
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to send OTP Email via Brevo HTTP API. Error:', error.message);
+      console.log('📧 Falling back to SMTP...');
+    }
+  }
+
+  // 2. Standard SMTP Fallback
+  console.log(`📧 SMTP Config → Host: ${host}, Port: ${port}, User: ${user ? user : 'NOT SET'}`);
+
+  if (!user || !pass) {
+    console.warn('⚠️ SMTP credentials not set. Email not sent. OTP:', otp);
+    return false;
+  }
+
+  const transporter = nodemailer.createTransport({
+    host,
+    port,
+    secure: port === 465,
+    auth: {
+      user,
+      pass
+    }
+  });
+
+  const mailOptions = {
+    from,
+    to: email,
+    subject: `🔒 ${otp} is your Adarsh Auth password reset code`,
+    html: emailHtml
   };
 
   try {
