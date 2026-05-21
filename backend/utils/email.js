@@ -119,7 +119,58 @@ const sendOTPEmail = async (email, otp) => {
 
   console.log(`📧 Attempting to send OTP email to: ${email}`);
 
-  // 1. If Brevo API Key is configured, use Brevo HTTP REST API (Bypasses Railway's SMTP block)
+  // 1. If Resend API Key is configured, use Resend HTTP REST API (Bypasses Railway's SMTP block)
+  const resendKey = process.env.RESEND_API_KEY;
+  if (resendKey) {
+    console.log('📧 Sending via Resend HTTP REST API (Port 443)...');
+    try {
+      const resendFrom = process.env.RESEND_FROM || 'Adarsh Auth Security <onboarding@resend.dev>';
+      const postData = JSON.stringify({
+        from: resendFrom,
+        to: [email],
+        subject: `🔒 ${otp} is your Adarsh Auth password reset code`,
+        html: emailHtml
+      });
+
+      const result = await new Promise((resolve, reject) => {
+        const options = {
+          hostname: 'api.resend.com',
+          port: 443,
+          path: '/emails',
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${resendKey}`,
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(postData)
+          }
+        };
+
+        const req = https.request(options, (res) => {
+          let body = '';
+          res.on('data', (chunk) => body += chunk);
+          res.on('end', () => {
+            if (res.statusCode >= 200 && res.statusCode < 300) {
+              resolve(JSON.parse(body));
+            } else {
+              reject(new Error(`Resend API returned status ${res.statusCode}: ${body}`));
+            }
+          });
+        });
+
+        req.on('error', (e) => reject(e));
+        req.write(postData);
+        req.end();
+      });
+
+      console.log('✅ OTP Email successfully sent via Resend API! ID:', result.id);
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to send OTP Email via Resend API. Error:', error.message);
+      console.log('📧 Falling back to other providers...');
+    }
+  }
+
+  // 2. If Brevo API Key is configured, use Brevo HTTP REST API (Bypasses Railway's SMTP block)
   if (apiKey) {
     console.log('📧 Sending via Brevo HTTP REST API (Port 443)...');
     try {

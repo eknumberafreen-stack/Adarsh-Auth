@@ -342,7 +342,7 @@ router.post('/forgot-password', validate(schemas.forgotPassword), asyncHandler(a
   // Send the email
   const emailSent = await sendOTPEmail(normalizedEmail, otp);
   if (!emailSent) {
-    return res.status(500).json({ error: 'Failed to send OTP email. Please verify Gmail SMTP setup in .env' });
+    return res.status(500).json({ error: 'Failed to send OTP email. Please check your email service configuration.' });
   }
 
   res.json({ message: 'If that email is registered, we have sent a 6-digit verification code.' });
