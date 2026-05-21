@@ -65,6 +65,16 @@ function UserMenu({ user, onEdit, onBan, onPermanentBan, onUnban, onPause, onRes
   )
 }
 
+const getCreatorDisplay = (creator: any, appOwnerId?: string) => {
+  if (!creator) return 'Owner';
+  const creatorId = typeof creator === 'string' ? creator : creator._id;
+  if (appOwnerId && creatorId === appOwnerId) return 'Owner';
+  if (typeof creator === 'object') {
+    return creator.username || creator.email || 'Owner';
+  }
+  return 'Owner';
+};
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function Users() {
   const { applications, selectedApp, loadingApplications } = useAppStore()
@@ -445,7 +455,7 @@ export default function Users() {
                           {showCreatedBy && (
                             <td className="px-4 py-3">
                               <span className="px-2 py-0.5 rounded-full bg-white/5 text-gray-300 text-[11px] border border-white/10">
-                                {user.createdBy?.username || 'Owner'}
+                                {getCreatorDisplay(user.createdBy, selectedApp?.userId)}
                               </span>
                             </td>
                           )}

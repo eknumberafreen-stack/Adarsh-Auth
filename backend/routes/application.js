@@ -321,7 +321,10 @@ router.post('/:id/team', verifyAppAccess(), asyncHandler(async (req, res) => {
   // Check if already in team
   const existing = application.team.find(m => m.userId.toString() === userToAdd._id.toString());
   if (existing) {
-    return res.status(400).json({ error: 'User is already in the team.' });
+    existing.role = role || existing.role;
+    existing.permissions = permissions || existing.permissions;
+    await application.save();
+    return res.json({ message: 'Team member updated successfully', team: application.team });
   }
 
   application.team.push({
@@ -341,11 +344,26 @@ router.delete('/:id/team/:userId', verifyAppAccess(), asyncHandler(async (req, r
     return res.status(403).json({ error: 'Only the owner can manage the team.' });
   }
 
-  const application = req.application;
-  application.team = application.team.filter(m => m.userId.toString() !== req.params.userId);
-  
-  await application.save();
-  res.json({ message: 'Team member removed', team: application.team });
+  const { all } = req.query;
+  const userIdToRemove = req.params.userId;
+
+  if (all === 'true') {
+    // Remove the user from all applications owned by req.userId
+    await Application.updateMany(
+      { userId: req.userId },
+      { $pull: { team: { userId: userIdToRemove } } }
+    );
+    
+    // Fetch and return the updated team for the current application
+    const updatedApplication = await Application.findById(req.application._id);
+    res.json({ message: 'Team member removed from all applications', team: updatedApplication?.team || [] });
+  } else {
+    const application = req.application;
+    application.team = application.team.filter(m => m.userId.toString() !== userIdToRemove);
+    
+    await application.save();
+    res.json({ message: 'Team member removed', team: application.team });
+  }
 }));
 
 // Update team member permissions/role

@@ -144,10 +144,10 @@ export default function TeamPage() {
   // ── Remove Member ───────────────────────────────────────────────────────────
   const handleRemoveMember = async (userId: string) => {
     if (!selectedApp?._id) return
-    if (!confirm('Are you sure you want to remove this member?')) return
+    if (!confirm('Are you sure you want to remove this member and all their access to your applications?')) return
     try {
-      await api.delete(`/applications/${selectedApp._id}/team/${userId}`)
-      toast.success('Member removed')
+      await api.delete(`/applications/${selectedApp._id}/team/${userId}?all=true`)
+      toast.success('Member removed and all access revoked')
       loadApplication()
     } catch (e: any) {
       toast.error(e.response?.data?.error || 'Failed to remove member')

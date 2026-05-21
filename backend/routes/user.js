@@ -56,7 +56,7 @@ router.get('/application/:applicationId', verifyAppAccess(), asyncHandler(async 
   const [users, total] = await Promise.all([
     AppUser.find(filter)
       .select('-password')
-      .populate('createdBy', 'username')
+      .populate('createdBy', 'username email')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit),

@@ -66,6 +66,16 @@ function LicenseMenu({ license, onEdit, onPause, onRevoke, onBlacklist, onDelete
   )
 }
 
+const getCreatorDisplay = (creator: any, appOwnerId?: string) => {
+  if (!creator) return 'Owner';
+  const creatorId = typeof creator === 'string' ? creator : creator._id;
+  if (appOwnerId && creatorId === appOwnerId) return 'Owner';
+  if (typeof creator === 'object') {
+    return creator.username || creator.email || 'Owner';
+  }
+  return 'Owner';
+};
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function Licenses() {
   const { applications, selectedApp } = useAppStore()
@@ -314,7 +324,7 @@ export default function Licenses() {
                           {showCreatedBy && (
                             <td className="px-4 py-3">
                               <span className="px-2 py-0.5 rounded-full bg-white/5 text-gray-300 text-[11px] border border-white/10">
-                                {license.createdBy?.username || 'Owner'}
+                                {getCreatorDisplay(license.createdBy, selectedApp?.userId)}
                               </span>
                             </td>
                           )}
