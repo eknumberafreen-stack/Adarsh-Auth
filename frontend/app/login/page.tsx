@@ -18,6 +18,8 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [checkingSession, setCheckingSession] = useState(true)
+  const [verifyingBrowser, setVerifyingBrowser] = useState(false)
+  const [verificationStep, setVerificationStep] = useState(0) // 0 = idle, 1 = verifying, 2 = verified/redirecting
 
   useEffect(() => {
     let active = true
@@ -57,13 +59,26 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    setVerifyingBrowser(true)
+    setVerificationStep(1)
+
+    // Simulate proof of work puzzle solve time (1.2 seconds)
+    await new Promise(resolve => setTimeout(resolve, 1200))
+
     try {
       const response = await api.post('/auth/login', { email, password })
       const { user, accessToken, refreshToken } = response.data
+
+      // Verification successful!
+      setVerificationStep(2)
+      await new Promise(resolve => setTimeout(resolve, 800)) // Wait for the user to read the message
+
       setAuth({ id: user.id, email, username: user.username ?? null }, accessToken, refreshToken)
       toast.success('Welcome back')
       router.push('/dashboard')
     } catch (error: any) {
+      setVerifyingBrowser(false)
+      setVerificationStep(0)
       toast.error(error.response?.data?.error || 'Login failed')
     } finally {
       setLoading(false)
@@ -72,6 +87,51 @@ export default function Login() {
 
   if (!hasHydrated || checkingSession) {
     return <div className="min-h-screen bg-[#07070a]" />
+  }
+
+  if (verifyingBrowser) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#2b4c7e] relative overflow-hidden">
+        {/* Decorative background blur objects */}
+        <div className="absolute top-1/4 left-1/4 w-[30rem] h-[30rem] bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-1/4 right-1/4 w-[30rem] h-[30rem] bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+        
+        <div className="relative z-10 w-full max-w-[440px] p-9 rounded-2xl bg-[#0f1015] border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.5)] text-white text-center">
+          <h2 className="text-2xl font-bold mb-6 tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">
+            Adarsh Auth
+          </h2>
+          
+          <p className="text-lg font-semibold mb-1 text-white">Checking your browser...</p>
+          <p className="text-xs text-slate-400 mb-8">This process is automatic. Your browser will redirect shortly.</p>
+          
+          {/* Altcha simulator widget */}
+          <div className="flex items-center justify-between p-4 bg-black/40 border border-white/5 rounded-xl max-w-[320px] mx-auto mb-8 text-left shadow-inner">
+            <div className="flex items-center gap-3">
+              <div className="relative flex items-center justify-center">
+                {verificationStep === 1 ? (
+                  <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <div className="w-5 h-5 flex items-center justify-center bg-indigo-500 rounded text-white font-bold text-[11px]">✓</div>
+                )}
+              </div>
+              <span className="text-sm text-slate-300 font-semibold tracking-wide">
+                {verificationStep === 1 ? 'Verifying...' : 'Verified'}
+              </span>
+            </div>
+            <div className="text-right">
+              <p className="text-[9px] text-slate-500 uppercase tracking-widest font-bold">Protected by</p>
+              <p className="text-xs text-indigo-400 font-black tracking-tight">ALTCHA</p>
+            </div>
+          </div>
+
+          {verificationStep === 2 && (
+            <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-sm font-semibold animate-pulse">
+              ✓ Verification successful! Redirecting..
+            </div>
+          )}
+        </div>
+      </div>
+    )
   }
 
   if (accessToken) {
