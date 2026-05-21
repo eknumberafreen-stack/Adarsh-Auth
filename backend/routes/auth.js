@@ -34,20 +34,22 @@ const router = express.Router();
 router.get('/test-email', asyncHandler(async (req, res) => {
   const user = process.env.SMTP_USER;
   const apiKey = process.env.BREVO_API_KEY;
+  const resendKey = process.env.RESEND_API_KEY;
 
-  if (!user && !apiKey) {
+  if (!user && !apiKey && !resendKey) {
     return res.status(400).json({
-      error: 'Neither SMTP credentials nor Brevo API Key configured in environment variables.',
+      error: 'No email service credentials (SMTP, Brevo, or Resend) configured in environment variables.',
       envKeysPresent: {
         SMTP_USER: !!user,
-        BREVO_API_KEY: !!apiKey
+        BREVO_API_KEY: !!apiKey,
+        RESEND_API_KEY: !!resendKey
       }
     });
   }
 
   try {
     console.log('[Diagnostic] Attempting to send test email using sendOTPEmail...');
-    const targetEmail = user || 'adarshauth20@gmail.com';
+    const targetEmail = user || 'ninja05102007@gmail.com';
     const success = await sendOTPEmail(targetEmail, '123456');
     
     if (success) {
@@ -55,6 +57,7 @@ router.get('/test-email', asyncHandler(async (req, res) => {
         success: true,
         message: `Verification test email sent successfully to ${targetEmail}!`,
         configUsed: {
+          viaResendAPI: !!resendKey,
           viaBrevoAPI: !!apiKey,
           user: user,
           from: process.env.SMTP_FROM
@@ -65,6 +68,7 @@ router.get('/test-email', asyncHandler(async (req, res) => {
         success: false,
         error: 'Failed to send verification email. Check server logs for detailed error trace.',
         configUsed: {
+          viaResendAPI: !!resendKey,
           viaBrevoAPI: !!apiKey,
           user: user,
           from: process.env.SMTP_FROM
@@ -78,6 +82,7 @@ router.get('/test-email', asyncHandler(async (req, res) => {
       error: error.message,
       stack: error.stack,
       configUsed: {
+        viaResendAPI: !!resendKey,
         viaBrevoAPI: !!apiKey,
         user: user,
         from: process.env.SMTP_FROM
