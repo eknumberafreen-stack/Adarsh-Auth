@@ -30,6 +30,62 @@ function slowHash(salt, nonce) {
 
 const router = express.Router();
 
+// Debug route to test SMTP configuration and output the exact error to the client
+router.get('/test-email', asyncHandler(async (req, res) => {
+  const nodemailer = require('nodemailer');
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASSWORD;
+  const from = process.env.SMTP_FROM || `"Adarsh Auth Security" <${user}>`;
+
+  if (!user || !pass) {
+    return res.status(400).json({
+      error: 'SMTP credentials not configured in environment variables.',
+      envKeysPresent: {
+        SMTP_USER: !!user,
+        SMTP_PASSWORD: !!pass
+      }
+    });
+  }
+
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: { user, pass }
+  });
+
+  try {
+    console.log('[Diagnostic] Verifying connection...');
+    await transporter.verify();
+    
+    console.log('[Diagnostic] Sending test mail...');
+    const info = await transporter.sendMail({
+      from,
+      to: user,
+      subject: '🔒 Live SMTP Diagnostic Test',
+      text: 'If you received this, your production SMTP settings are working perfectly.'
+    });
+
+    return res.json({
+      success: true,
+      message: 'SMTP settings verified and test email sent successfully!',
+      info: {
+        messageId: info.messageId,
+        envelope: info.envelope
+      }
+    });
+  } catch (error) {
+    console.error('[Diagnostic Error]', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message,
+      stack: error.stack,
+      configUsed: {
+        user,
+        from
+      }
+    });
+  }
+}));
+
 // Generate tokens
 const generateTokens = (userId) => {
   const accessToken = jwt.sign(
