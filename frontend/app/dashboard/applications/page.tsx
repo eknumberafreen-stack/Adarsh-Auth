@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import api from '@/lib/api'
-import { useAppStore } from '@/lib/store'
+import { useAppStore, useAuthStore } from '@/lib/store'
 import toast from 'react-hot-toast'
 import {
   CheckIcon,
@@ -23,6 +23,7 @@ import {
 
 export default function Applications() {
   const { applications, setApplications, selectedApp, setSelectedApp, loadingApplications } = useAppStore()
+  const { user } = useAuthStore()
   const [loading, setLoading] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showRenameModal, setShowRenameModal] = useState(false)
@@ -381,8 +382,14 @@ export default function Applications() {
               </div>
             ) : (
               <>
-                {applications.map((app: any) => {
+                 {applications.map((app: any) => {
                   const isSelected = selectedApp?._id === app._id
+                  const isOwner = app.userId === user?.id
+                  const currentMember = app.team?.find((m: any) => {
+                    const mId = typeof m.userId === 'object' ? m.userId?._id : m.userId;
+                    return mId === user?.id;
+                  })
+                  const hasManageSettings = isOwner || !!currentMember?.permissions?.includes('manage_settings')
                   return (
                     <div
                       key={app._id}
@@ -395,7 +402,7 @@ export default function Applications() {
                       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                         <div>
                           <div className="flex flex-wrap items-center gap-3">
-                            <h3 className="text-xl font-bold text-white">{app.name}</h3>
+                             <h3 className="text-xl font-bold text-white">{app.name}</h3>
                             <span
                               className={`badge ${
                                 app.status === 'active'
@@ -423,25 +430,31 @@ export default function Applications() {
                             <CheckIcon className="h-4 w-4" />
                             {isSelected ? 'Selected' : 'Select'}
                           </button>
-                          <button
-                            onClick={() => {
-                              setRenameApp(app)
-                              setNewName(app.name)
-                              setShowRenameModal(true)
-                            }}
-                            className="btn btn-secondary px-3 py-2 text-xs"
-                          >
-                            <PencilIcon className="h-4 w-4" />
-                            Rename
-                          </button>
-                          <button onClick={() => toggleStatus(app)} className="btn btn-secondary px-3 py-2 text-xs">
-                            {app.status === 'active' ? <PauseIcon className="h-4 w-4" /> : <PlayIcon className="h-4 w-4" />}
-                            {app.status === 'active' ? 'Pause' : 'Resume'}
-                          </button>
-                          <button onClick={() => deleteApplication(app._id)} className="btn btn-danger px-3 py-2 text-xs">
-                            <TrashIcon className="h-4 w-4" />
-                            Delete
-                          </button>
+                          {hasManageSettings && (
+                            <button
+                              onClick={() => {
+                                setRenameApp(app)
+                                setNewName(app.name)
+                                setShowRenameModal(true)
+                              }}
+                              className="btn btn-secondary px-3 py-2 text-xs"
+                            >
+                              <PencilIcon className="h-4 w-4" />
+                              Rename
+                            </button>
+                          )}
+                          {hasManageSettings && (
+                            <button onClick={() => toggleStatus(app)} className="btn btn-secondary px-3 py-2 text-xs">
+                              {app.status === 'active' ? <PauseIcon className="h-4 w-4" /> : <PlayIcon className="h-4 w-4" />}
+                              {app.status === 'active' ? 'Pause' : 'Resume'}
+                            </button>
+                          )}
+                          {isOwner && (
+                            <button onClick={() => deleteApplication(app._id)} className="btn btn-danger px-3 py-2 text-xs">
+                              <TrashIcon className="h-4 w-4" />
+                              Delete
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>

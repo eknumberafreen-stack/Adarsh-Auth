@@ -22,8 +22,16 @@ import {
 export default function Settings() {
   const { user } = useAuthStore()
   const { applications, selectedApp, setSelectedApp } = useAppStore()
+  const [appData, setAppData] = useState<any>(null)
   const [activeTab, setActiveTab] = useState('app-config')
   const [loading, setLoading] = useState(false)
+
+  const isOwner = appData ? appData.userId === user?.id : selectedApp?.userId === user?.id
+  const currentMember = (appData || selectedApp)?.team?.find((m: any) => {
+    const mId = typeof m.userId === 'object' ? m.userId?._id : m.userId;
+    return mId === user?.id;
+  })
+  const hasManageSettings = isOwner || !!currentMember?.permissions?.includes('manage_settings')
 
   // App Config state
   const [appStatus, setAppStatus] = useState(true)
@@ -102,6 +110,7 @@ export default function Settings() {
     try {
       const res = await api.get(`/applications/${selectedApp._id}`)
       const app = res.data.application
+      setAppData(app)
       setAppStatus(app.status === 'active')
       setVersion(app.version)
       setNewVersion(app.version)
@@ -274,7 +283,8 @@ export default function Settings() {
               </div>
               <button
                 onClick={toggleAppStatus}
-                className={`relative w-12 h-6 rounded-full transition-all flex-shrink-0 ${
+                disabled={!hasManageSettings}
+                className={`relative w-12 h-6 rounded-full transition-all flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed ${
                   appStatus ? 'bg-primary-600' : 'bg-gray-600'
                 }`}
               >
@@ -294,7 +304,8 @@ export default function Settings() {
               </div>
               <button
                 onClick={() => setHwidLock(!hwidLock)}
-                className={`relative w-12 h-6 rounded-full transition-all flex-shrink-0 ${
+                disabled={!hasManageSettings}
+                className={`relative w-12 h-6 rounded-full transition-all flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed ${
                   hwidLock ? 'bg-primary-600' : 'bg-gray-600'
                 }`}
               >
@@ -314,7 +325,8 @@ export default function Settings() {
               </div>
               <button
                 onClick={toggleMaintenanceMode}
-                className={`relative w-12 h-6 rounded-full transition-all flex-shrink-0 ${
+                disabled={!hasManageSettings}
+                className={`relative w-12 h-6 rounded-full transition-all flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed ${
                   maintenanceMode ? 'bg-red-600' : 'bg-gray-600'
                 }`}
               >
@@ -328,20 +340,24 @@ export default function Settings() {
             <div className="p-4 bg-red-500/5 border border-red-500/20 rounded-xl">
               <p className="font-medium text-sm text-red-400 mb-3">Danger Zone</p>
               <div className="space-y-2">
-                <button
-                  onClick={regenerateSecret}
-                  className="w-full px-4 py-2 bg-orange-600/20 hover:bg-orange-600/30 border border-orange-500/30 text-orange-400 rounded-lg text-sm font-medium transition-all flex items-center gap-2"
-                >
-                  <KeyIcon className="w-4 h-4" />
-                  Regenerate App Secret
-                </button>
-                <button
-                  onClick={deleteApp}
-                  className="w-full px-4 py-2 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-400 rounded-lg text-sm font-medium transition-all flex items-center gap-2"
-                >
-                  <TrashIcon className="w-4 h-4" />
-                  Delete Application
-                </button>
+                {hasManageSettings && (
+                  <button
+                    onClick={regenerateSecret}
+                    className="w-full px-4 py-2 bg-orange-600/20 hover:bg-orange-600/30 border border-orange-500/30 text-orange-400 rounded-lg text-sm font-medium transition-all flex items-center gap-2"
+                  >
+                    <KeyIcon className="w-4 h-4" />
+                    Regenerate App Secret
+                  </button>
+                )}
+                {isOwner && (
+                  <button
+                    onClick={deleteApp}
+                    className="w-full px-4 py-2 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-400 rounded-lg text-sm font-medium transition-all flex items-center gap-2"
+                  >
+                    <TrashIcon className="w-4 h-4" />
+                    Delete Application
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -372,12 +388,14 @@ export default function Settings() {
               ) : (
                 <div className="flex items-center justify-between">
                   <span className="text-2xl font-bold">{version || '1.0'}</span>
-                  <button
-                    onClick={() => setEditingVersion(true)}
-                    className="p-2 hover:bg-dark-hover rounded-lg text-gray-400"
-                  >
-                    <PencilIcon className="w-4 h-4" />
-                  </button>
+                  {hasManageSettings && (
+                    <button
+                      onClick={() => setEditingVersion(true)}
+                      className="p-2 hover:bg-dark-hover rounded-lg text-gray-400"
+                    >
+                      <PencilIcon className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -386,12 +404,15 @@ export default function Settings() {
             <div className="p-4 bg-dark-bg rounded-xl border border-dark-border">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-xs text-gray-500 uppercase tracking-wider">Auto-Update Download Link</p>
-                <button onClick={saveVersion} className="text-[10px] text-primary-400 hover:underline">Save Link</button>
+                {hasManageSettings && (
+                  <button onClick={saveVersion} className="text-[10px] text-primary-400 hover:underline">Save Link</button>
+                )}
               </div>
               <input
                 type="text"
                 value={downloadUrl}
                 onChange={(e) => setDownloadUrl(e.target.value)}
+                readOnly={!hasManageSettings}
                 className="input text-sm"
                 placeholder="https://example.com/update.zip"
               />
@@ -446,40 +467,48 @@ export default function Settings() {
               Get real-time notifications in your Discord server when users login, register, fail login, or get banned.
             </p>
 
-            <div className="p-4 bg-dark-bg rounded-xl border border-dark-border space-y-3">
-              <label className="block text-sm font-medium text-gray-300">Webhook URL</label>
-              <input
-                type="text"
-                value={discordWebhook}
-                onChange={(e) => setDiscordWebhook(e.target.value)}
-                className="input text-sm font-mono"
-                placeholder="https://discord.com/api/webhooks/..."
-              />
-              <p className="text-xs text-gray-500">
-                Discord Server → Channel Settings → Integrations → Webhooks → New Webhook → Copy URL
-              </p>
-            </div>
+            {hasManageSettings ? (
+              <>
+                <div className="p-4 bg-dark-bg rounded-xl border border-dark-border space-y-3">
+                  <label className="block text-sm font-medium text-gray-300">Webhook URL</label>
+                  <input
+                    type="text"
+                    value={discordWebhook}
+                    onChange={(e) => setDiscordWebhook(e.target.value)}
+                    className="input text-sm font-mono"
+                    placeholder="https://discord.com/api/webhooks/..."
+                  />
+                  <p className="text-xs text-gray-500">
+                    Discord Server → Channel Settings → Integrations → Webhooks → New Webhook → Copy URL
+                  </p>
+                </div>
 
-            <div className="flex gap-3">
-              <button
-                onClick={saveWebhook}
-                disabled={webhookSaving}
-                className="btn btn-primary flex-1"
-              >
-                {webhookSaving ? 'Saving...' : '💾 Save Webhook'}
-              </button>
-              <button
-                onClick={testWebhook}
-                disabled={webhookTesting}
-                className="btn btn-secondary flex-1"
-              >
-                {webhookTesting ? 'Sending...' : '🧪 Test Webhook'}
-              </button>
-            </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={saveWebhook}
+                    disabled={webhookSaving}
+                    className="btn btn-primary flex-1"
+                  >
+                    {webhookSaving ? 'Saving...' : '💾 Save Webhook'}
+                  </button>
+                  <button
+                    onClick={testWebhook}
+                    disabled={webhookTesting}
+                    className="btn btn-secondary flex-1"
+                  >
+                    {webhookTesting ? 'Sending...' : '🧪 Test Webhook'}
+                  </button>
+                </div>
 
-            {discordWebhook && (
-              <div className="flex items-center gap-2 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
-                <span className="text-green-400 text-sm">✅ Webhook configured</span>
+                {discordWebhook && (
+                  <div className="flex items-center gap-2 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                    <span className="text-green-400 text-sm">✅ Webhook configured</span>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="p-6 rounded-xl border border-dashed border-white/10 text-center text-gray-400 text-sm">
+                🔒 Webhook URL is hidden. Requires <strong>Edit Application Settings</strong> permission.
               </div>
             )}
           </div>
@@ -645,13 +674,15 @@ export default function Settings() {
                 <ChatBubbleBottomCenterTextIcon className="w-5 h-5 text-primary-400" />
                 Alert Messages
               </h2>
-              <button
-                onClick={saveMessages}
-                disabled={messagesSaving}
-                className="btn btn-primary"
-              >
-                {messagesSaving ? 'Saving...' : '💾 Save Changes'}
-              </button>
+              {hasManageSettings && (
+                <button
+                  onClick={saveMessages}
+                  disabled={messagesSaving}
+                  className="btn btn-primary"
+                >
+                  {messagesSaving ? 'Saving...' : '💾 Save Changes'}
+                </button>
+              )}
             </div>
             <p className="text-sm text-gray-400">
               Customize the messages returned to your client app for various error scenarios.
@@ -679,8 +710,9 @@ export default function Settings() {
                     type="text"
                     value={customMessages[field.id] || ''}
                     onChange={(e) => setCustomMessages({ ...customMessages, [field.id]: e.target.value })}
+                    readOnly={!hasManageSettings}
                     className="input text-sm"
-                    placeholder={`Enter custom message for ${field.label}...`}
+                    placeholder={hasManageSettings ? `Enter custom message for ${field.label}...` : "No permission to edit"}
                   />
                   <p className="text-[10px] text-gray-500">{field.desc}</p>
                 </div>

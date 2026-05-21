@@ -38,7 +38,7 @@ router.get('/', asyncHandler(async (req, res) => {
     filter.$and.push({ name: { $regex: search, $options: 'i' } });
   }
 
-  const [applications, total] = await Promise.all([
+  const [applicationsRaw, total] = await Promise.all([
     Application.find(filter)
       .select('-appSecret')
       .sort({ createdAt: -1 })
@@ -46,6 +46,17 @@ router.get('/', asyncHandler(async (req, res) => {
       .limit(limit),
     Application.countDocuments(filter)
   ]);
+
+  const applications = applicationsRaw.map(appDoc => {
+    const appObj = appDoc.toObject();
+    const isOwner = appObj.userId.toString() === req.userId.toString();
+    const teamMember = appObj.team?.find(m => m.userId.toString() === req.userId.toString());
+    const hasManageSettings = isOwner || (teamMember && teamMember.permissions.includes('manage_settings'));
+    if (!hasManageSettings) {
+      delete appObj.discordWebhook;
+    }
+    return appObj;
+  });
 
   res.json({ 
     applications,
@@ -81,6 +92,16 @@ router.get('/:id', verifyAppAccess(), asyncHandler(async (req, res) => {
   // Security: only owner and managers can see appSecret
   if (!req.isOwner && req.teamRole !== 'manager') {
     delete application.appSecret;
+  }
+
+  // Security: only show webhook to owners and users with manage_settings permission
+  const hasManageSettings = req.isOwner || (application.team && application.team.some(m => {
+    const mId = typeof m.userId === 'object' ? m.userId?._id?.toString() : m.userId?.toString();
+    return mId === req.userId.toString() && m.permissions?.includes('manage_settings');
+  }));
+
+  if (!hasManageSettings) {
+    delete application.discordWebhook;
   }
 
   res.json({ application });

@@ -186,7 +186,7 @@ export default function TeamPage() {
       {currentRole === 'manager' && (
         <label className="flex items-center gap-3 cursor-pointer">
           <input type="checkbox" checked={perms.includes('manage_settings')} onChange={() => toggle('manage_settings')} className="rounded border-white/20 bg-black/50 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0" />
-          <span className="text-sm text-gray-300">Manage App Settings</span>
+          <span className="text-sm text-gray-300">Edit Application Settings</span>
         </label>
       )}
     </div>
