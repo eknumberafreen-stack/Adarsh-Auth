@@ -32,51 +32,45 @@ const router = express.Router();
 
 // Debug route to test SMTP configuration and output the exact error to the client
 router.get('/test-email', asyncHandler(async (req, res) => {
-  const nodemailer = require('nodemailer');
   const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASSWORD;
-  const from = process.env.SMTP_FROM || `"Adarsh Auth Security" <${user}>`;
+  const apiKey = process.env.BREVO_API_KEY;
 
-  if (!user || !pass) {
+  if (!user && !apiKey) {
     return res.status(400).json({
-      error: 'SMTP credentials not configured in environment variables.',
+      error: 'Neither SMTP credentials nor Brevo API Key configured in environment variables.',
       envKeysPresent: {
         SMTP_USER: !!user,
-        SMTP_PASSWORD: !!pass
+        BREVO_API_KEY: !!apiKey
       }
     });
   }
 
-  const host = process.env.SMTP_HOST || 'smtp-relay.brevo.com';
-  const port = parseInt(process.env.SMTP_PORT) || 587;
-
-  const transporter = nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465,
-    auth: { user, pass }
-  });
-
   try {
-    console.log('[Diagnostic] Verifying connection...');
-    await transporter.verify();
+    console.log('[Diagnostic] Attempting to send test email using sendOTPEmail...');
+    const targetEmail = user || 'adarshauth20@gmail.com';
+    const success = await sendOTPEmail(targetEmail, '123456');
     
-    console.log('[Diagnostic] Sending test mail...');
-    const info = await transporter.sendMail({
-      from,
-      to: user,
-      subject: '🔒 Live SMTP Diagnostic Test',
-      text: 'If you received this, your production SMTP settings are working perfectly.'
-    });
-
-    return res.json({
-      success: true,
-      message: 'SMTP settings verified and test email sent successfully!',
-      info: {
-        messageId: info.messageId,
-        envelope: info.envelope
-      }
-    });
+    if (success) {
+      return res.json({
+        success: true,
+        message: `Verification test email sent successfully to ${targetEmail}!`,
+        configUsed: {
+          viaBrevoAPI: !!apiKey,
+          user: user,
+          from: process.env.SMTP_FROM
+        }
+      });
+    } else {
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to send verification email. Check server logs for detailed error trace.',
+        configUsed: {
+          viaBrevoAPI: !!apiKey,
+          user: user,
+          from: process.env.SMTP_FROM
+        }
+      });
+    }
   } catch (error) {
     console.error('[Diagnostic Error]', error);
     return res.status(500).json({
@@ -84,8 +78,9 @@ router.get('/test-email', asyncHandler(async (req, res) => {
       error: error.message,
       stack: error.stack,
       configUsed: {
-        user,
-        from
+        viaBrevoAPI: !!apiKey,
+        user: user,
+        from: process.env.SMTP_FROM
       }
     });
   }
