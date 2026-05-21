@@ -91,6 +91,71 @@ router.get('/test-email', asyncHandler(async (req, res) => {
   }
 }));
 
+// Route to test Resend directly and output the exact HTTP status and API response body
+router.get('/test-resend-direct', asyncHandler(async (req, res) => {
+  const https = require('https');
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.RESEND_FROM || 'Adarsh Auth Security <onboarding@resend.dev>';
+  const to = req.query.to || 'ninja05102007@gmail.com';
+
+  if (!apiKey) {
+    return res.status(400).json({ error: 'RESEND_API_KEY is not set.' });
+  }
+
+  const postData = JSON.stringify({
+    from,
+    to: [to],
+    subject: '🔒 Resend Direct Diagnostic Test',
+    html: '<h3>Direct test from Adarsh Auth backend</h3>'
+  });
+
+  const options = {
+    hostname: 'api.resend.com',
+    port: 443,
+    path: '/emails',
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      'Content-Length': Buffer.byteLength(postData)
+    }
+  };
+
+  try {
+    const apiResponse = await new Promise((resolve, reject) => {
+      const reqApi = https.request(options, (resApi) => {
+        let body = '';
+        resApi.on('data', (chunk) => body += chunk);
+        resApi.on('end', () => {
+          resolve({
+            statusCode: resApi.statusCode,
+            body: body
+          });
+        });
+      });
+      reqApi.on('error', (e) => reject(e));
+      reqApi.write(postData);
+      reqApi.end();
+    });
+
+    return res.json({
+      success: apiResponse.statusCode >= 200 && apiResponse.statusCode < 300,
+      statusCode: apiResponse.statusCode,
+      responseBody: apiResponse.body ? JSON.parse(apiResponse.body) : null,
+      configUsed: {
+        from,
+        to,
+        apiKeyLength: apiKey.length
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+}));
+
 // Generate tokens
 const generateTokens = (userId) => {
   const accessToken = jwt.sign(
@@ -342,7 +407,7 @@ router.post('/forgot-password', validate(schemas.forgotPassword), asyncHandler(a
   // Send the email
   const emailSent = await sendOTPEmail(normalizedEmail, otp);
   if (!emailSent) {
-    return res.status(500).json({ error: 'Failed to send OTP email. Please check your email service configuration.' });
+    return res.status(500).json({ error: 'Failed to send verification email. Please check server logs or email configuration.' });
   }
 
   res.json({ message: 'If that email is registered, we have sent a 6-digit verification code.' });
