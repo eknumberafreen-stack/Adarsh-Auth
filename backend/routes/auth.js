@@ -7,6 +7,7 @@ const { validate, schemas } = require('../middleware/validation');
 const { authRateLimiter } = require('../middleware/rateLimiter');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { verifyToken } = require('../middleware/auth');
+const { sendOTPEmail } = require('../utils/email');
 
 // DJB2 Hash function
 function djb2Hash(str) {
@@ -256,6 +257,60 @@ router.patch('/username', verifyToken, validate(schemas.updateUsername), asyncHa
   await req.user.save();
 
   res.json({ user: { id: req.user._id, username: req.user.username } });
+}));
+
+// Forgot Password - Send OTP
+router.post('/forgot-password', validate(schemas.forgotPassword), asyncHandler(async (req, res) => {
+  const { email } = req.body;
+  const normalizedEmail = email.toLowerCase();
+
+  const user = await User.findOne({ email: normalizedEmail });
+  if (!user) {
+    // Return success message to prevent account enumeration but don't try to send email
+    return res.json({ message: 'If that email is registered, we have sent a 6-digit verification code.' });
+  }
+
+  // Generate 6-digit OTP code (100000 to 999999)
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+  // Save OTP to database with 10 minutes expiration
+  user.resetPasswordOTP = otp;
+  user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+  await user.save();
+
+  // Send the email
+  const emailSent = await sendOTPEmail(normalizedEmail, otp);
+  if (!emailSent) {
+    return res.status(500).json({ error: 'Failed to send OTP email. Please verify Gmail SMTP setup in .env' });
+  }
+
+  res.json({ message: 'If that email is registered, we have sent a 6-digit verification code.' });
+}));
+
+// Reset Password - Verify OTP & update password
+router.post('/reset-password', validate(schemas.resetPassword), asyncHandler(async (req, res) => {
+  const { email, code, password } = req.body;
+  const normalizedEmail = email.toLowerCase();
+
+  const user = await User.findOne({
+    email: normalizedEmail,
+    resetPasswordOTP: code,
+    resetPasswordExpires: { $gt: Date.now() }
+  });
+
+  if (!user) {
+    return res.status(400).json({ error: 'Invalid or expired verification code.' });
+  }
+
+  // Set the new password (pre-save hook will automatically hash it)
+  user.password = password;
+  
+  // Clear OTP fields
+  user.resetPasswordOTP = null;
+  user.resetPasswordExpires = null;
+  await user.save();
+
+  res.json({ message: 'Your password has been successfully reset.' });
 }));
 
 module.exports = router;

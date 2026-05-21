@@ -121,6 +121,19 @@ const schemas = {
 
   updateUsername: Joi.object({
     username: usernameRule.required()
+  }),
+
+  forgotPassword: Joi.object({
+    email: Joi.string().email().required()
+  }),
+
+  resetPassword: Joi.object({
+    email: Joi.string().email().required(),
+    code: Joi.string().length(6).pattern(/^[0-9]+$/).required().messages({
+      'string.pattern.base': 'OTP code must contain only numbers.',
+      'string.length': 'OTP code must be exactly 6 digits.'
+    }),
+    password: Joi.string().min(8).max(128).required()
   })
 };
 
