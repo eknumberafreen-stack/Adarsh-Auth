@@ -10,6 +10,25 @@ import { useAuthStore } from '@/lib/store'
 import toast from 'react-hot-toast'
 import ParticleField from '@/components/ParticleField'
 
+// DJB2 Hash function
+function djb2Hash(str: string): number {
+  let hash = 5381;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) + hash) + str.charCodeAt(i);
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return Math.abs(hash);
+}
+
+// Slow nested hashing for browser verification
+function slowHash(salt: string, nonce: string): number {
+  let val = salt + nonce;
+  for (let i = 0; i < 250; i++) {
+    val = djb2Hash(val).toString();
+  }
+  return djb2Hash(val);
+}
+
 export default function Login() {
   const router = useRouter()
   const { setAuth, accessToken, refreshToken, hasHydrated } = useAuthStore()
@@ -62,11 +81,53 @@ export default function Login() {
     setVerifyingBrowser(true)
     setVerificationStep(1)
 
-    // Simulate proof of work puzzle solve time (1.2 seconds)
-    await new Promise(resolve => setTimeout(resolve, 1200))
-
     try {
-      const response = await api.post('/auth/login', { email, password })
+      // 1. Fetch challenge from backend
+      const challengeRes = await api.get('/auth/challenge')
+      const { salt, difficulty, expiresAt, signature } = challengeRes.data
+
+      // 2. Solve challenge in background (asynchronously so UI does not freeze completely)
+      let nonce = 0
+      const startTime = Date.now()
+
+      const solveChallenge = (): Promise<number> => {
+        return new Promise((resolve) => {
+          const chunk = () => {
+            for (let i = 0; i < 500; i++) {
+              const hashVal = slowHash(salt, nonce.toString())
+              if (hashVal % difficulty === 0) {
+                resolve(nonce)
+                return
+              }
+              nonce++
+            }
+            // Yield execution back to event loop to keep loader animation smooth
+            setTimeout(chunk, 0)
+          }
+          chunk()
+        })
+      }
+
+      const solvedNonce = await solveChallenge()
+
+      // Enforce minimum 1.2 second animation for keyauth aesthetic feel
+      const elapsed = Date.now() - startTime
+      if (elapsed < 1200) {
+        await new Promise(resolve => setTimeout(resolve, 1200 - elapsed))
+      }
+
+      // 3. Submit credentials along with solved challenge
+      const response = await api.post('/auth/login', {
+        email,
+        password,
+        challenge: {
+          nonce: solvedNonce,
+          salt,
+          difficulty,
+          expiresAt,
+          signature
+        }
+      })
       const { user, accessToken, refreshToken } = response.data
 
       // Verification successful!

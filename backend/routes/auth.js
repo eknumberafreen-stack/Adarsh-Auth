@@ -1,11 +1,31 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const User = require('../models/User');
 const SubscriptionPlan = require('../models/SubscriptionPlan');
 const { validate, schemas } = require('../middleware/validation');
 const { authRateLimiter } = require('../middleware/rateLimiter');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { verifyToken } = require('../middleware/auth');
+
+// DJB2 Hash function
+function djb2Hash(str) {
+  let hash = 5381;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) + hash) + str.charCodeAt(i);
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return Math.abs(hash);
+}
+
+// Slow nested hashing for browser verification
+function slowHash(salt, nonce) {
+  let val = salt + nonce;
+  for (let i = 0; i < 250; i++) {
+    val = djb2Hash(val).toString();
+  }
+  return djb2Hash(val);
+}
 
 const router = express.Router();
 
@@ -73,9 +93,52 @@ router.post('/register', authRateLimiter, validate(schemas.register), asyncHandl
   });
 }));
 
+// Browser Verification Challenge Generator
+router.get('/challenge', asyncHandler(async (req, res) => {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const difficulty = 5000; // Average of 5000 PoW iterations
+  const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes validity
+  
+  // Signature containing variables signed with access secret
+  const expectedData = `${salt}:${difficulty}:${expiresAt}`;
+  const signature = crypto.createHmac('sha256', process.env.JWT_ACCESS_SECRET || 'fallback-secret')
+    .update(expectedData)
+    .digest('hex');
+
+  res.json({ salt, difficulty, expiresAt, signature });
+}));
+
 // Login
 router.post('/login', authRateLimiter, validate(schemas.login), asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, challenge } = req.body;
+
+  // 1. Verify Browser Challenge
+  if (!challenge) {
+    return res.status(400).json({ error: 'Browser verification challenge is required' });
+  }
+
+  const { nonce, salt, difficulty, expiresAt, signature } = challenge;
+
+  // Verify challenge expiration
+  if (Date.now() > expiresAt) {
+    return res.status(400).json({ error: 'Browser verification challenge has expired. Please try again.' });
+  }
+
+  // Verify challenge signature
+  const expectedData = `${salt}:${difficulty}:${expiresAt}`;
+  const expectedSignature = crypto.createHmac('sha256', process.env.JWT_ACCESS_SECRET || 'fallback-secret')
+    .update(expectedData)
+    .digest('hex');
+
+  if (signature !== expectedSignature) {
+    return res.status(400).json({ error: 'Invalid browser verification challenge signature.' });
+  }
+
+  // Verify challenge solution (proof of work)
+  const computedHash = slowHash(salt, nonce.toString());
+  if (computedHash % difficulty !== 0) {
+    return res.status(400).json({ error: 'Invalid browser verification challenge solution.' });
+  }
 
   // Find user
   const user = await User.findOne({ email });
