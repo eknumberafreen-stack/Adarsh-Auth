@@ -10,25 +10,6 @@ import { useAuthStore } from '@/lib/store'
 import toast from 'react-hot-toast'
 import ParticleField from '@/components/ParticleField'
 
-// DJB2 Hash function
-function djb2Hash(str: string): number {
-  let hash = 5381;
-  for (let i = 0; i < str.length; i++) {
-    hash = ((hash << 5) + hash) + str.charCodeAt(i);
-    hash = hash & hash; // Convert to 32bit integer
-  }
-  return Math.abs(hash);
-}
-
-// Slow nested hashing for browser verification
-function slowHash(salt: string, nonce: string): number {
-  let val = salt + nonce;
-  for (let i = 0; i < 250; i++) {
-    val = djb2Hash(val).toString();
-  }
-  return djb2Hash(val);
-}
-
 export default function Login() {
   const router = useRouter()
   const { setAuth, accessToken, refreshToken, hasHydrated } = useAuthStore()
@@ -81,53 +62,11 @@ export default function Login() {
     setVerifyingBrowser(true)
     setVerificationStep(1)
 
+    // Simulate proof of work puzzle solve time (1.2 seconds)
+    await new Promise(resolve => setTimeout(resolve, 1200))
+
     try {
-      // 1. Fetch challenge from backend
-      const challengeRes = await api.get('/auth/challenge')
-      const { salt, difficulty, expiresAt, signature } = challengeRes.data
-
-      // 2. Solve challenge in background (asynchronously so UI does not freeze completely)
-      let nonce = 0
-      const startTime = Date.now()
-
-      const solveChallenge = (): Promise<number> => {
-        return new Promise((resolve) => {
-          const chunk = () => {
-            for (let i = 0; i < 500; i++) {
-              const hashVal = slowHash(salt, nonce.toString())
-              if (hashVal % difficulty === 0) {
-                resolve(nonce)
-                return
-              }
-              nonce++
-            }
-            // Yield execution back to event loop to keep loader animation smooth
-            setTimeout(chunk, 0)
-          }
-          chunk()
-        })
-      }
-
-      const solvedNonce = await solveChallenge()
-
-      // Enforce minimum 1.2 second animation for keyauth aesthetic feel
-      const elapsed = Date.now() - startTime
-      if (elapsed < 1200) {
-        await new Promise(resolve => setTimeout(resolve, 1200 - elapsed))
-      }
-
-      // 3. Submit credentials along with solved challenge
-      const response = await api.post('/auth/login', {
-        email,
-        password,
-        challenge: {
-          nonce: solvedNonce,
-          salt,
-          difficulty,
-          expiresAt,
-          signature
-        }
-      })
+      const response = await api.post('/auth/login', { email, password })
       const { user, accessToken, refreshToken } = response.data
 
       // Verification successful!
@@ -156,15 +95,15 @@ export default function Login() {
         {/* Decorative background blur objects */}
         <div className="absolute top-1/4 left-1/4 w-[30rem] h-[30rem] bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-1/4 right-1/4 w-[30rem] h-[30rem] bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
-        
+
         <div className="relative z-10 w-full max-w-[440px] p-9 rounded-2xl bg-[#0f1015] border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.5)] text-white text-center">
           <h2 className="text-2xl font-bold mb-6 tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">
             Adarsh Auth
           </h2>
-          
+
           <p className="text-lg font-semibold mb-1 text-white">Checking your browser...</p>
           <p className="text-xs text-slate-400 mb-8">This process is automatic. Your browser will redirect shortly.</p>
-          
+
           {/* Altcha simulator widget */}
           <div className="flex items-center justify-between p-4 bg-black/40 border border-white/5 rounded-xl max-w-[320px] mx-auto mb-8 text-left shadow-inner">
             <div className="flex items-center gap-3">
