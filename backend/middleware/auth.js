@@ -82,6 +82,11 @@ const verifyAppAccess = (requiredPermission) => {
         return res.status(403).json({ error: 'Access denied. You do not own this app and are not on the team.' });
       }
 
+      // Check if team member access has expired
+      if (teamMember.expiresAt && new Date(teamMember.expiresAt) < new Date()) {
+        return res.status(403).json({ error: 'Access denied. Your team member access has expired.' });
+      }
+
       // Check if they have the required permission
       if (requiredPermission && !teamMember.permissions.includes(requiredPermission)) {
         return res.status(403).json({ error: `Access denied. Requires '${requiredPermission}' permission.` });

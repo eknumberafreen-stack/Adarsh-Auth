@@ -6,7 +6,8 @@ const teamMemberSchema = new mongoose.Schema({
   role: { type: String, enum: ['manager', 'reseller', 'developer'], default: 'reseller' },
   permissions: [{ type: String, enum: ['manage_licenses', 'manage_users', 'manage_settings', 'view_logs'] }],
   addedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
-  addedAt: { type: Date, default: Date.now }
+  addedAt: { type: Date, default: Date.now },
+  expiresAt: { type: Date, default: null }
 });
 
 const applicationSchema = new mongoose.Schema({

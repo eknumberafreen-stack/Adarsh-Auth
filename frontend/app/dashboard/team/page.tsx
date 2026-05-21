@@ -18,6 +18,8 @@ export default function TeamPage() {
   const [role, setRole] = useState('reseller')
   const [permissions, setPermissions] = useState<string[]>(['manage_licenses'])
   const [inviteAppIds, setInviteAppIds] = useState<string[]>([])
+  const [isLifetime, setIsLifetime] = useState(true)
+  const [expiresAt, setExpiresAt] = useState('')
 
   // Edit modal
   const [showEditModal, setShowEditModal] = useState(false)
@@ -27,6 +29,19 @@ export default function TeamPage() {
   const [saving, setSaving] = useState(false)
   const [editAppIds, setEditAppIds] = useState<string[]>([])
   const [originalAppIds, setOriginalAppIds] = useState<string[]>([])
+  const [editIsLifetime, setEditIsLifetime] = useState(true)
+  const [editExpiresAt, setEditExpiresAt] = useState('')
+
+  const getDefaultExpiry = () => {
+    const d = new Date()
+    d.setDate(d.getDate() + 30)
+    return d.toISOString().slice(0, 16)
+  }
+
+  const isStrictValidDate = (dateStr: string) => {
+    const d = new Date(dateStr)
+    return !isNaN(d.getTime())
+  }
 
   useEffect(() => {
     if (selectedApp?._id) loadApplication()
@@ -37,6 +52,8 @@ export default function TeamPage() {
     setEmail('')
     setRole('reseller')
     setPermissions(['manage_licenses'])
+    setIsLifetime(true)
+    setExpiresAt('')
     setShowAddModal(true)
   }
 
@@ -57,10 +74,18 @@ export default function TeamPage() {
   const handleAddMember = async () => {
     if (!email) return toast.error('Enter an email')
     if (inviteAppIds.length === 0) return toast.error('Select at least one application')
+    
+    const expiryPayload = isLifetime ? null : expiresAt
+    if (!isLifetime) {
+      if (!expiresAt) return toast.error('Please specify an expiration date')
+      if (!isStrictValidDate(expiresAt)) return toast.error('Invalid expiration date')
+      if (new Date(expiresAt) <= new Date()) return toast.error('Expiration date must be in the future')
+    }
+
     setSaving(true)
     try {
       const promises = inviteAppIds.map(appId => 
-        api.post(`/applications/${appId}/team`, { email, role, permissions })
+        api.post(`/applications/${appId}/team`, { email, role, permissions, expiresAt: expiryPayload })
       )
       await Promise.all(promises)
       
@@ -79,6 +104,8 @@ export default function TeamPage() {
     setEditTarget(member)
     setEditRole(member.role)
     setEditPermissions([...member.permissions])
+    setEditIsLifetime(!member.expiresAt)
+    setEditExpiresAt(member.expiresAt ? new Date(member.expiresAt).toISOString().slice(0, 16) : '')
     setShowEditModal(true)
 
     // Fetch all apps to see which ones this member is already assigned to
@@ -99,12 +126,21 @@ export default function TeamPage() {
 
   const handleEditMember = async () => {
     if (!selectedApp?._id) return
+
+    const expiryPayload = editIsLifetime ? null : editExpiresAt
+    if (!editIsLifetime) {
+      if (!editExpiresAt) return toast.error('Please specify an expiration date')
+      if (!isStrictValidDate(editExpiresAt)) return toast.error('Invalid expiration date')
+      if (new Date(editExpiresAt) <= new Date()) return toast.error('Expiration date must be in the future')
+    }
+
     setSaving(true)
     try {
-      // 1. Update role/permissions on current app
+      // 1. Update role/permissions/expiresAt on current app
       await api.patch(`/applications/${selectedApp._id}/team/${editTarget.userId}`, {
         role: editRole,
-        permissions: editPermissions
+        permissions: editPermissions,
+        expiresAt: expiryPayload
       })
 
       // 2. Add to newly checked apps
@@ -114,7 +150,8 @@ export default function TeamPage() {
           await api.post(`/applications/${appId}/team`, {
             email: editTarget.userEmail,
             role: editRole,
-            permissions: editPermissions
+            permissions: editPermissions,
+            expiresAt: expiryPayload
           })
         } catch (e: any) {
           toast.error(e.response?.data?.error || 'Failed to add to an app')
@@ -192,6 +229,15 @@ export default function TeamPage() {
     </div>
   )
 
+  const formatExpiry = (expiresAt: string | null) => {
+    if (!expiresAt) return <span className="text-emerald-400 font-medium">Lifetime</span>
+    const d = new Date(expiresAt)
+    if (d < new Date()) {
+      return <span className="text-rose-400 font-semibold bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">Expired</span>
+    }
+    return <span className="text-gray-300 font-medium">{d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+  }
+
   return (
     <div>
       {/* Header */}
@@ -238,6 +284,7 @@ export default function TeamPage() {
                         <th className="text-left px-4 py-4 text-gray-400 font-medium">Role</th>
                         <th className="text-left px-4 py-4 text-gray-400 font-medium">Permissions</th>
                         <th className="text-left px-4 py-4 text-gray-400 font-medium">Added By</th>
+                        <th className="text-left px-4 py-4 text-gray-400 font-medium">Expiry</th>
                         <th className="text-left px-4 py-4 text-gray-400 font-medium">Added</th>
                         <th className="px-4 py-4 text-right">Actions</th>
                       </tr>
@@ -269,6 +316,9 @@ export default function TeamPage() {
                             <span className="px-2 py-0.5 rounded-full bg-white/5 text-gray-300 text-[11px] border border-white/10">
                               {member.addedByName || 'Owner'}
                             </span>
+                          </td>
+                          <td className="px-4 py-3 text-xs">
+                            {formatExpiry(member.expiresAt)}
                           </td>
                           <td className="px-4 py-3 text-gray-500 text-xs">
                             {new Date(member.addedAt).toLocaleDateString()}
@@ -343,6 +393,33 @@ export default function TeamPage() {
               </div>
 
               <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-300">Expiry Date</label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isLifetime}
+                      onChange={(e) => {
+                        setIsLifetime(e.target.checked)
+                        if (e.target.checked) setExpiresAt('')
+                        else setExpiresAt(getDefaultExpiry())
+                      }}
+                      className="rounded border-white/20 bg-black/50 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0 w-3.5 h-3.5"
+                    />
+                    <span className="text-xs text-gray-400">Lifetime Access</span>
+                  </label>
+                </div>
+                {!isLifetime && (
+                  <input
+                    type="datetime-local"
+                    value={expiresAt}
+                    onChange={(e) => setExpiresAt(e.target.value)}
+                    className="input w-full bg-black/20 text-sm"
+                  />
+                )}
+              </div>
+
+              <div>
                 <label className="block text-sm font-medium mb-3 text-gray-300">Assign to Applications</label>
                 <div className="space-y-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
                   {applications.map((app: any) => (
@@ -398,6 +475,33 @@ export default function TeamPage() {
               <div>
                 <label className="block text-sm font-medium mb-3 text-gray-300">Permissions</label>
                 <PermissionCheckboxes perms={editPermissions} toggle={toggleEditPermission} currentRole={editRole} />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-300">Expiry Date</label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editIsLifetime}
+                      onChange={(e) => {
+                        setEditIsLifetime(e.target.checked)
+                        if (e.target.checked) setEditExpiresAt('')
+                        else setEditExpiresAt(getDefaultExpiry())
+                      }}
+                      className="rounded border-white/20 bg-black/50 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0 w-3.5 h-3.5"
+                    />
+                    <span className="text-xs text-gray-400">Lifetime Access</span>
+                  </label>
+                </div>
+                {!editIsLifetime && (
+                  <input
+                    type="datetime-local"
+                    value={editExpiresAt}
+                    onChange={(e) => setEditExpiresAt(e.target.value)}
+                    className="input w-full bg-black/20 text-sm"
+                  />
+                )}
               </div>
 
               <div>

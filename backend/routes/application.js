@@ -28,7 +28,17 @@ router.get('/', asyncHandler(async (req, res) => {
       {
         $or: [
           { userId: req.userId },
-          { 'team.userId': req.userId }
+          {
+            team: {
+              $elemMatch: {
+                userId: req.userId,
+                $or: [
+                  { expiresAt: null },
+                  { expiresAt: { $gt: new Date() } }
+                ]
+              }
+            }
+          }
         ]
       }
     ]
@@ -323,8 +333,15 @@ router.post('/:id/team', verifyAppAccess(), asyncHandler(async (req, res) => {
     return res.status(403).json({ error: 'Team Management is a paid feature. Please upgrade your plan to invite team members.' });
   }
 
-  const { email, role, permissions } = req.body;
+  const { email, role, permissions, expiresAt } = req.body;
   if (!email) return res.status(400).json({ error: 'Email is required' });
+
+  // Validate expiresAt if provided
+  if (expiresAt) {
+    const d = new Date(expiresAt);
+    if (isNaN(d.getTime())) return res.status(400).json({ error: 'Invalid expiration date' });
+    if (d <= new Date()) return res.status(400).json({ error: 'Expiration date must be in the future' });
+  }
 
   // Find user by email
   const userToAdd = await User.findOne({ email });
@@ -344,6 +361,7 @@ router.post('/:id/team', verifyAppAccess(), asyncHandler(async (req, res) => {
   if (existing) {
     existing.role = role || existing.role;
     existing.permissions = permissions || existing.permissions;
+    existing.expiresAt = expiresAt !== undefined ? (expiresAt ? new Date(expiresAt) : null) : existing.expiresAt;
     await application.save();
     return res.json({ message: 'Team member updated successfully', team: application.team });
   }
@@ -352,7 +370,8 @@ router.post('/:id/team', verifyAppAccess(), asyncHandler(async (req, res) => {
     userId: userToAdd._id,
     role: role || 'reseller',
     permissions: permissions || ['manage_licenses'],
-    addedBy: req.userId
+    addedBy: req.userId,
+    expiresAt: expiresAt ? new Date(expiresAt) : null
   });
 
   await application.save();
@@ -400,6 +419,16 @@ router.patch('/:id/team/:userId', verifyAppAccess(), asyncHandler(async (req, re
 
   if (req.body.role) member.role = req.body.role;
   if (req.body.permissions) member.permissions = req.body.permissions;
+  if (req.body.expiresAt !== undefined) {
+    if (req.body.expiresAt) {
+      const d = new Date(req.body.expiresAt);
+      if (isNaN(d.getTime())) return res.status(400).json({ error: 'Invalid expiration date' });
+      if (d <= new Date()) return res.status(400).json({ error: 'Expiration date must be in the future' });
+      member.expiresAt = d;
+    } else {
+      member.expiresAt = null;
+    }
+  }
 
   await application.save();
   res.json({ message: 'Team member updated', team: application.team });
