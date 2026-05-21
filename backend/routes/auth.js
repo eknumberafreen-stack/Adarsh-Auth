@@ -47,8 +47,13 @@ router.get('/test-email', asyncHandler(async (req, res) => {
     });
   }
 
+  const host = process.env.SMTP_HOST || 'smtp-relay.brevo.com';
+  const port = parseInt(process.env.SMTP_PORT) || 587;
+
   const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host,
+    port,
+    secure: port === 465,
     auth: { user, pass }
   });
 
