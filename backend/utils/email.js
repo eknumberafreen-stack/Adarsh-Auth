@@ -1,20 +1,24 @@
 const nodemailer = require('nodemailer');
 
 const sendOTPEmail = async (email, otp) => {
+  const host = process.env.SMTP_HOST || 'smtp-relay.brevo.com';
+  const port = parseInt(process.env.SMTP_PORT) || 587;
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASSWORD;
   const from = process.env.SMTP_FROM || `"Adarsh Auth Security" <${user}>`;
 
   console.log(`📧 Attempting to send OTP email to: ${email}`);
-  console.log(`📧 SMTP User: ${user ? user : 'NOT SET'}`);
+  console.log(`📧 SMTP Config → Host: ${host}, Port: ${port}, User: ${user ? user : 'NOT SET'}`);
 
   if (!user || !pass) {
-    console.warn('⚠️ SMTP credentials not set in .env. Email not sent. OTP:', otp);
+    console.warn('⚠️ SMTP credentials not set. Email not sent. OTP:', otp);
     return false;
   }
 
   const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host,
+    port,
+    secure: port === 465, // true for 465, false for other ports
     auth: {
       user,
       pass
