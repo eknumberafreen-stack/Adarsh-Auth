@@ -270,13 +270,13 @@ router.post('/login', authRateLimiter, validate(schemas.login), asyncHandler(asy
   // Find user
   const user = await User.findOne({ email });
   if (!user) {
-    return res.status(401).json({ error: 'Invalid credentials' });
+    return res.status(401).json({ error: 'Email address not found.' });
   }
 
   // Verify password
   const isMatch = await user.comparePassword(password);
   if (!isMatch) {
-    return res.status(401).json({ error: 'Invalid credentials' });
+    return res.status(401).json({ error: 'Incorrect password.' });
   }
 
   // Update last login
