@@ -51,7 +51,7 @@ router.get('/test-email', asyncHandler(async (req, res) => {
     console.log('[Diagnostic] Attempting to send test email using sendOTPEmail...');
     const targetEmail = user || 'ninja05102007@gmail.com';
     const success = await sendOTPEmail(targetEmail, '123456');
-
+    
     if (success) {
       return res.json({
         success: true,
@@ -225,7 +225,7 @@ router.get('/challenge', asyncHandler(async (req, res) => {
   const salt = crypto.randomBytes(16).toString('hex');
   const difficulty = 5000; // Average of 5000 PoW iterations
   const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes validity
-
+  
   // Signature containing variables signed with access secret
   const expectedData = `${salt}:${difficulty}:${expiresAt}`;
   const signature = crypto.createHmac('sha256', process.env.JWT_ACCESS_SECRET || 'fallback-secret')
@@ -267,10 +267,10 @@ router.post('/login', authRateLimiter, validate(schemas.login), asyncHandler(asy
     return res.status(400).json({ error: 'Invalid browser verification challenge solution.' });
   }
 
-  // Find use
+  // Find user
   const user = await User.findOne({ email });
   if (!user) {
-    return res.status(401).json({ error: 'Email address not found.' });
+    return res.status(401).json({ error: 'Incorrect email or username.' });
   }
 
   // Verify password
@@ -311,7 +311,7 @@ router.post('/refresh', asyncHandler(async (req, res) => {
 
   try {
     const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
-
+    
     const user = await User.findById(decoded.userId);
     if (!user || user.refreshToken !== refreshToken) {
       return res.status(401).json({ error: 'Invalid refresh token' });
@@ -430,7 +430,7 @@ router.post('/reset-password', validate(schemas.resetPassword), asyncHandler(asy
 
   // Set the new password (pre-save hook will automatically hash it)
   user.password = password;
-
+  
   // Clear OTP fields
   user.resetPasswordOTP = null;
   user.resetPasswordExpires = null;
