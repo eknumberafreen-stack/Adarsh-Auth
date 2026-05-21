@@ -82,6 +82,7 @@ interface Application {
   _id: string
   name: string
   ownerId: string
+  userId?: string
   appSecret: string
 
   version: string
