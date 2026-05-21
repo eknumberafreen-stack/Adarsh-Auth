@@ -2,10 +2,13 @@ const nodemailer = require('nodemailer');
 
 const sendOTPEmail = async (email, otp) => {
   const host = process.env.SMTP_HOST || 'smtp.gmail.com';
-  const port = parseInt(process.env.SMTP_PORT) || 465;
+  const port = parseInt(process.env.SMTP_PORT) || 587;
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASSWORD;
   const from = process.env.SMTP_FROM || `"Adarsh Auth Security" <${user}>`;
+
+  console.log(`📧 Attempting to send OTP email to: ${email}`);
+  console.log(`📧 SMTP Config → host: ${host}, port: ${port}, user: ${user ? user : 'NOT SET'}`);
 
   if (!user || !pass) {
     console.warn('⚠️ SMTP credentials not set in .env. Email not sent. OTP:', otp);
@@ -15,10 +18,16 @@ const sendOTPEmail = async (email, otp) => {
   const transporter = nodemailer.createTransport({
     host,
     port,
-    secure: port === 465,
+    secure: false, // use STARTTLS on port 587 (works on Railway/cloud servers)
     auth: {
       user,
       pass
+    },
+    connectionTimeout: 10000, // 10 seconds
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
+    tls: {
+      rejectUnauthorized: false // allow self-signed certs
     }
   });
 
