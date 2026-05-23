@@ -392,8 +392,7 @@ router.post('/forgot-password', validate(schemas.forgotPassword), asyncHandler(a
 
   const user = await User.findOne({ email: normalizedEmail });
   if (!user) {
-    // Return success message to prevent account enumeration but don't try to send email
-    return res.json({ message: 'If that email is registered, we have sent a 6-digit verification code.' });
+    return res.status(404).json({ error: 'This email is not registered.' });
   }
 
   // Generate 6-digit OTP code (100000 to 999999)
