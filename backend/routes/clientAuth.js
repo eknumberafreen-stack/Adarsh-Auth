@@ -196,6 +196,12 @@ router.post('/register',
 
     const sessionToken = await createSession(user._id, req.application._id, hwid, ip);
 
+    // Invalidate plan usage cache
+    try {
+      const redis = getRedisClient();
+      await redis.del(`plan:usage:${req.application.userId}`);
+    } catch (_) {}
+
     await AuditLog.create({
       applicationId: req.application._id,
       userId: user._id,
@@ -496,6 +502,12 @@ router.post('/license',
     await License.findByIdAndUpdate(license._id, { usedBy: user._id, expiryDate });
 
     const sessionToken = await createSession(user._id, req.application._id, hwid, ip);
+
+    // Invalidate plan usage cache
+    try {
+      const redis = getRedisClient();
+      await redis.del(`plan:usage:${req.application.userId}`);
+    } catch (_) {}
 
     sendDiscordWebhook(req.application.discordWebhook,
       registerEmbed(autoUsername, ip, hwid, req.application.name, key));

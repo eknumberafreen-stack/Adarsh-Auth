@@ -43,6 +43,13 @@ router.post('/generate',
     licenses.push(license)
   }
 
+  // Invalidate plan usage cache
+  try {
+    const { getRedisClient } = require('../config/redis');
+    const redis = getRedisClient();
+    await redis.del(`plan:usage:${req.userId}`);
+  } catch (_) {}
+
   res.status(201).json({
     message: `${licenses.length} license(s) generated successfully`,
     licenses
@@ -175,7 +182,19 @@ router.patch('/:id', asyncHandler(async (req, res) => {
 router.delete('/:id', asyncHandler(async (req, res) => {
   const license = await checkLicenseAccess(req, res);
   if (!license) return;
+
+  const ownerId = license.applicationId?.userId;
   await License.deleteOne({ _id: license._id });
+
+  // Invalidate plan usage cache
+  if (ownerId) {
+    try {
+      const { getRedisClient } = require('../config/redis');
+      const redis = getRedisClient();
+      await redis.del(`plan:usage:${ownerId}`);
+    } catch (_) {}
+  }
+
   res.json({ message: 'License deleted successfully' });
 }));
 

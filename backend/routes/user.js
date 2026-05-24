@@ -129,6 +129,12 @@ router.post('/create',
     application.userCount = await AppUser.countDocuments({ applicationId });
     await application.save();
 
+    // Invalidate plan usage cache
+    try {
+      const redis = getRedisClient();
+      await redis.del(`plan:usage:${application.userId}`);
+    } catch (_) {}
+
     res.status(201).json({ message: 'User created successfully', user });
   }));
 
@@ -305,10 +311,18 @@ router.delete('/:id', asyncHandler(async (req, res) => {
   const hasAccess = await verifyUserActionAccess(req, res, user, 'manage_users');
   if (!hasAccess) return res.status(403).json({ error: 'Access denied: You need manage_users permission.' });
 
+  const ownerId = user.applicationId?.userId;
   await Promise.all([
     AppUser.deleteOne({ _id: user._id }),
     Session.deleteMany({ userId: user._id })
   ]);
+
+  if (ownerId) {
+    try {
+      const redis = getRedisClient();
+      await redis.del(`plan:usage:${ownerId}`);
+    } catch (_) {}
+  }
 
   res.json({ message: 'User deleted successfully' });
 }));
