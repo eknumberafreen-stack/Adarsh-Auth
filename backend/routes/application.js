@@ -137,6 +137,13 @@ router.post('/', validate(schemas.createApplication), checkPlanLimit('applicatio
     team: [] // starts empty
   });
 
+  // Invalidate plan usage cache so billing page reflects immediately
+  try {
+    const { getRedisClient } = require('../config/redis');
+    const redis = getRedisClient();
+    await redis.del(`plan:usage:${req.userId}`);
+  } catch (_) {}
+
   res.status(201).json({
     message: 'Application created successfully',
     application
@@ -288,6 +295,12 @@ router.delete('/:id', verifyAppAccess(), asyncHandler(async (req, res) => {
     })(),
     Application.deleteOne({ _id: application._id })
   ]);
+
+  // Invalidate plan usage cache so billing page reflects immediately
+  try {
+    const redis2 = getRedisClient();
+    await redis2.del(`plan:usage:${req.userId}`);
+  } catch (_) {}
 
   res.json({ message: 'Application deleted successfully' });
 }));

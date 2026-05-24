@@ -1,11 +1,13 @@
 const User = require('../models/User');
 const Application = require('../models/Application');
+const AppUser = require('../models/AppUser');
+const License = require('../models/License');
 const SubscriptionPlan = require('../models/SubscriptionPlan');
 const { getRedisClient } = require('../config/redis');
 
 /**
- * Retrieves a user's current plan and application usage.
- * Results are cached in Redis under key `plan:usage:{userId}` with a 60-second TTL.
+ * Retrieves a user's current plan and real-time resource usage.
+ * Results are cached in Redis under key `plan:usage:{userId}` with a 30-second TTL.
  * Falls back to MongoDB if Redis is unavailable.
  *
  * @param {string|import('mongoose').Types.ObjectId} userId - The user's MongoDB ObjectId
@@ -25,10 +27,10 @@ async function getUserPlanWithUsage(userId) {
     // Redis unavailable — fall through to MongoDB
   }
 
-  // 2. Fetch from MongoDB
-  const [user, applicationCount] = await Promise.all([
+  // 2. Fetch user and their applications
+  const [user, applications] = await Promise.all([
     User.findById(userId).populate('plan'),
-    Application.countDocuments({ userId })
+    Application.find({ userId }).select('_id').lean()
   ]);
 
   // 3. Resolve plan — fall back to free plan if user.plan is null
@@ -37,11 +39,26 @@ async function getUserPlanWithUsage(userId) {
     plan = await SubscriptionPlan.findOne({ name: 'free' });
   }
 
-  // 4. Build response shape
+  const applicationCount = applications.length;
+  const appIds = applications.map(a => a._id);
+
+  // 4. Count total users and licenses across ALL the user's applications
+  let totalUserCount = 0;
+  let totalLicenseCount = 0;
+
+  if (appIds.length > 0) {
+    [totalUserCount, totalLicenseCount] = await Promise.all([
+      AppUser.countDocuments({ applicationId: { $in: appIds } }),
+      License.countDocuments({ applicationId: { $in: appIds } })
+    ]);
+  }
+
+  // 5. Build response shape — limits are strictly bound to the user's current plan
   const result = {
     plan: {
       name: plan.name,
       displayName: plan.displayName,
+      price: plan.price,
       limits: {
         maxApplications: plan.limits.maxApplications,
         maxUsersPerApp: plan.limits.maxUsersPerApp,
@@ -54,14 +71,22 @@ async function getUserPlanWithUsage(userId) {
       applications: {
         current: applicationCount,
         limit: plan.limits.maxApplications
+      },
+      totalUsers: {
+        current: totalUserCount,
+        limit: plan.limits.maxUsersPerApp === -1 ? -1 : plan.limits.maxUsersPerApp * applicationCount
+      },
+      totalLicenses: {
+        current: totalLicenseCount,
+        limit: plan.limits.maxLicensesPerApp === -1 ? -1 : plan.limits.maxLicensesPerApp * applicationCount
       }
     }
   };
 
-  // 5. Cache the result in Redis (TTL 60s), silently ignore failures
+  // 6. Cache the result in Redis (TTL 30s for near-real-time), silently ignore failures
   try {
     const redis = getRedisClient();
-    await redis.setEx(cacheKey, 60, JSON.stringify(result));
+    await redis.setEx(cacheKey, 30, JSON.stringify(result));
   } catch (_err) {
     // Redis unavailable — continue without caching
   }
