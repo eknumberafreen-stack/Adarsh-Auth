@@ -51,7 +51,7 @@ const pricingPlans = [
   },
   {
     name: 'Pro Monthly',
-    price: '₹1',
+    price: '₹150',
     suffix: '/month',
     features: ['25 applications', '1,000 users per app', '500 licenses per app', 'Discord webhooks', 'Priority Support'],
     tone: 'border-indigo-400/20 bg-indigo-400/10',
@@ -65,7 +65,7 @@ const pricingPlans = [
   },
   {
     name: 'Enterprise Monthly',
-    price: '₹1',
+    price: '₹250',
     suffix: '/month',
     features: ['Unlimited applications', 'Unlimited users per app', 'Unlimited licenses per app', 'Discord Webhooks', 'Priority Support', 'Custom Integrations'],
     tone: 'border-slate-300/20 bg-slate-300/10',

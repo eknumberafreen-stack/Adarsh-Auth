@@ -28,7 +28,7 @@ const defaultPlans = [
   {
     name: 'pro_monthly',
     displayName: 'Pro Monthly',
-    price: 1.205, // ~1 INR (for testing)
+    price: 181, // ~150 INR (at 83 rate)
     limits: {
       maxApplications: 25,
       maxUsersPerApp: 1000,
@@ -69,7 +69,7 @@ const defaultPlans = [
   {
     name: 'enterprise_monthly',
     displayName: 'Enterprise Monthly',
-    price: 1.205, // ~1 INR (for testing)
+    price: 301, // ~250 INR (at 83 rate)
     limits: {
       maxApplications: -1,
       maxUsersPerApp: -1,
