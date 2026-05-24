@@ -184,7 +184,11 @@ export default function PaymentsAdminPage() {
 
                       {/* Screenshot */}
                       <td className="px-4 py-3.5">
-                        {p.screenshotUrl ? (
+                        {p.screenshotUrl === 'CASHFREE' ? (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-semibold">
+                            Cashfree Auto
+                          </span>
+                        ) : p.screenshotUrl ? (
                           <a href={p.screenshotUrl} target="_blank" rel="noopener noreferrer"
                             className="text-xs text-indigo-400 hover:text-indigo-300 underline">
                             View

@@ -213,4 +213,224 @@ router.post('/admin/:id/reject', verifyToken, verifyOwner, asyncHandler(async (r
   });
 }));
 
+// ── USER: Cashfree Create Order ────────────────────────────────
+router.post('/cashfree/create-order', verifyToken, asyncHandler(async (req, res) => {
+  const { planId } = req.body;
+
+  if (!planId) {
+    return res.status(400).json({ error: 'planId is required' });
+  }
+
+  // Check plan exists
+  const plan = await SubscriptionPlan.findOne({ _id: planId, isActive: true });
+  if (!plan) {
+    return res.status(404).json({ error: 'Plan not found or inactive' });
+  }
+
+  const clientId = process.env.CASHFREE_CLIENT_ID;
+  const clientSecret = process.env.CASHFREE_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    return res.status(500).json({ 
+      error: 'Cashfree Gateway is not configured by the administrator yet.' 
+    });
+  }
+
+  // Calculate price: plan.price is in USD cents. Let's convert to INR
+  if (plan.price === 0) {
+    return res.status(400).json({ error: 'Free plans do not require payment.' });
+  }
+
+  const dollars = plan.price / 100;
+  const conversionRate = parseFloat(process.env.CASHFREE_CONVERSION_RATE || '83');
+  const inrAmount = parseFloat((dollars * conversionRate).toFixed(2));
+
+  // Generate unique order ID
+  const orderId = `cf_${plan.name}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+  // Prepare Cashfree API call
+  const isProd = process.env.CASHFREE_ENV === 'production';
+  const cashfreeUrl = isProd 
+    ? 'https://api.cashfree.com/pg/orders' 
+    : 'https://sandbox.cashfree.com/pg/orders';
+
+  const payload = {
+    order_id: orderId,
+    order_amount: inrAmount,
+    order_currency: 'INR',
+    customer_details: {
+      customer_id: req.userId.toString(),
+      customer_email: req.user.email || 'customer@example.com',
+      customer_phone: '9999999999' // 10 digit fallback required by cashfree
+    },
+    order_meta: {
+      return_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard/pay/callback?order_id={order_id}`
+    }
+  };
+
+  try {
+    const response = await fetch(cashfreeUrl, {
+      method: 'POST',
+      headers: {
+        'x-client-id': clientId,
+        'x-client-secret': clientSecret,
+        'x-api-version': '2023-08-01',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const responseData = await response.json();
+
+    if (!response.ok) {
+      console.error('Cashfree order creation failed:', responseData);
+      return res.status(response.status).json({ 
+        error: responseData.message || 'Failed to create payment order with Cashfree' 
+      });
+    }
+
+    // Create a pending Payment record in MongoDB
+    await Payment.create({
+      userId: req.userId,
+      planId: plan._id,
+      amount: plan.price, // original USD cents amount
+      transactionId: orderId, // use the order ID as transaction ID
+      screenshotUrl: 'CASHFREE', // sentinel flag
+      status: 'pending'
+    });
+
+    res.status(201).json({
+      message: 'Cashfree order created successfully',
+      orderId,
+      paymentSessionId: responseData.payment_session_id,
+      orderAmount: inrAmount,
+      currency: 'INR',
+      cashfreeEnv: process.env.CASHFREE_ENV || 'sandbox'
+    });
+  } catch (error) {
+    console.error('Cashfree Create Order Error:', error);
+    res.status(500).json({ error: 'Failed to initiate Cashfree payment.' });
+  }
+}));
+
+// ── USER: Cashfree Verify Payment ──────────────────────────────
+router.post('/cashfree/verify-order', verifyToken, asyncHandler(async (req, res) => {
+  const { orderId } = req.body;
+
+  if (!orderId) {
+    return res.status(400).json({ error: 'orderId is required' });
+  }
+
+  // Find payment record
+  const payment = await Payment.findOne({ transactionId: orderId, userId: req.userId }).populate('planId');
+  if (!payment) {
+    return res.status(404).json({ error: 'Payment order record not found' });
+  }
+
+  // If already approved, return success
+  if (payment.status === 'approved') {
+    return res.json({
+      success: true,
+      message: 'Payment is already verified and active.',
+      status: 'approved'
+    });
+  }
+
+  const clientId = process.env.CASHFREE_CLIENT_ID;
+  const clientSecret = process.env.CASHFREE_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    return res.status(500).json({ error: 'Cashfree Gateway is not configured.' });
+  }
+
+  // Prepare Cashfree API call
+  const isProd = process.env.CASHFREE_ENV === 'production';
+  const cashfreeUrl = isProd 
+    ? `https://api.cashfree.com/pg/orders/${orderId}` 
+    : `https://sandbox.cashfree.com/pg/orders/${orderId}`;
+
+  try {
+    const response = await fetch(cashfreeUrl, {
+      method: 'GET',
+      headers: {
+        'x-client-id': clientId,
+        'x-client-secret': clientSecret,
+        'x-api-version': '2023-08-01',
+        'accept': 'application/json'
+      }
+    });
+
+    const orderData = await response.json();
+
+    if (!response.ok) {
+      console.error('Cashfree verification call failed:', orderData);
+      return res.status(response.status).json({ 
+        error: orderData.message || 'Failed to verify payment status with Cashfree' 
+      });
+    }
+
+    if (orderData.order_status === 'PAID') {
+      // Payment successful! Let's approve the payment and activate the plan
+      const plan = payment.planId;
+      if (!plan) return res.status(404).json({ error: 'Plan details not found' });
+
+      const user = await User.findById(payment.userId);
+      if (!user) return res.status(404).json({ error: 'User not found' });
+
+      // Update User Plan
+      user.plan = plan._id;
+      user.planAssignedAt = new Date();
+      await user.save();
+
+      // Update Payment status
+      payment.status = 'approved';
+      payment.reviewedBy = 'CASHFREE_PG_AUTO';
+      payment.reviewedAt = new Date();
+      await payment.save();
+
+      // Invalidate Redis plan cache
+      try {
+        const redis = getRedisClient();
+        await redis.del(`plan:${user._id}`);
+        await redis.del(`plan:usage:${user._id}`);
+      } catch (_) {}
+
+      // Log to Audit Log
+      try {
+        await AuditLog.create({
+          applicationId: null,
+          action: 'suspicious_activity',
+          ip: req.ip,
+          severity: 'info',
+          details: {
+            event: 'payment_approved_cashfree',
+            paymentId: payment._id,
+            userId: user._id,
+            userEmail: user.email,
+            planName: plan.name,
+            transactionId: orderId,
+            approvedBy: 'CASHFREE_PG_AUTO'
+          }
+        });
+      } catch (_) {}
+
+      return res.json({
+        success: true,
+        message: `Payment successful! Your ${plan.displayName} plan is now active.`,
+        status: 'approved'
+      });
+    } else {
+      // Not paid (failed, expired, or active/pending)
+      return res.json({
+        success: false,
+        message: `Payment is not completed. Status: ${orderData.order_status}`,
+        status: orderData.order_status
+      });
+    }
+  } catch (error) {
+    console.error('Cashfree Verification Error:', error);
+    res.status(500).json({ error: 'Failed to verify payment status.' });
+  }
+}));
+
 module.exports = router;
