@@ -14,11 +14,15 @@ const License = require('../models/License');
  *
  * Preconditions:
  *   - req.userId is set (verifyToken has already run)
- *   - For 'usersPerApp' and 'licensesPerApp', req.params.id contains the application _id
+ *   - For 'usersPerApp' and 'licensesPerApp', the applicationId is resolved from
+ *     req.params.applicationId, req.body.applicationId, or req.params.id
  */
 const checkPlanLimit = (resource) => {
   return async (req, res, next) => {
     try {
+      // Resolve applicationId from all possible sources
+      const applicationId = req.params.applicationId || req.body.applicationId || req.params.id;
+
       const cacheKey = `plan:${req.userId}`;
       let plan = null;
 
@@ -38,8 +42,8 @@ const checkPlanLimit = (resource) => {
         // If this is a per-app resource and the user is a team member, use the APP OWNER's plan
         let planUserId = req.userId;
 
-        if (resource !== 'applications' && req.params.id) {
-          const app = await Application.findById(req.params.id);
+        if (resource !== 'applications' && applicationId) {
+          const app = await Application.findById(applicationId);
           if (app && app.userId.toString() !== req.userId.toString()) {
             // Current user is a team member — use the owner's plan
             planUserId = app.userId;
@@ -81,22 +85,31 @@ const checkPlanLimit = (resource) => {
       // 3. Determine limit and current count based on resource
       let limit;
       let current;
+      let requestedCount = 1; // How many items the user wants to create
 
       if (resource === 'applications') {
         limit = plan.limits.maxApplications;
         current = await Application.countDocuments({ userId: req.userId });
       } else if (resource === 'usersPerApp') {
         limit = plan.limits.maxUsersPerApp;
-        current = await AppUser.countDocuments({ applicationId: req.params.id });
+        if (!applicationId) {
+          return res.status(400).json({ error: 'Application ID is required for user limit check' });
+        }
+        current = await AppUser.countDocuments({ applicationId });
       } else if (resource === 'licensesPerApp') {
         limit = plan.limits.maxLicensesPerApp;
-        current = await License.countDocuments({ applicationId: req.params.id });
+        if (!applicationId) {
+          return res.status(400).json({ error: 'Application ID is required for license limit check' });
+        }
+        current = await License.countDocuments({ applicationId });
+        // Account for batch generation — user might request multiple licenses at once
+        requestedCount = parseInt(req.body.count) || 1;
       } else {
         // Unknown resource — let the request through rather than blocking it
         return next();
       }
 
-      // 4. Enforce limit
+      // 4. Enforce limit (-1 means unlimited)
       if (limit === -1) {
         return next();
       }
@@ -109,6 +122,20 @@ const checkPlanLimit = (resource) => {
           limit,
           plan: plan.name,
           upgradeRequired: true,
+        });
+      }
+
+      // 5. Check if batch creation would exceed the limit
+      if (current + requestedCount > limit) {
+        const remaining = limit - current;
+        return res.status(403).json({
+          error: `Cannot create ${requestedCount} ${resource}. Only ${remaining} remaining in your plan.`,
+          resource,
+          current,
+          limit,
+          remaining,
+          plan: plan.name,
+          upgradeRequired: remaining <= 0,
         });
       }
 

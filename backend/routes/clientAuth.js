@@ -173,6 +173,18 @@ router.post('/register',
       return fail(req, res, 400, 'usernameTaken', 'Username already taken');
     }
 
+    // Enforce plan user limit
+    const owner = await require('../models/User').findById(req.application.userId).populate('plan');
+    const ownerPlan = owner?.plan || await require('../models/SubscriptionPlan').findOne({ name: 'free' });
+    if (ownerPlan && ownerPlan.limits.maxUsersPerApp !== -1) {
+      const currentUsers = await AppUser.countDocuments({ applicationId: req.application._id });
+      if (currentUsers >= ownerPlan.limits.maxUsersPerApp) {
+        // Rollback license usage
+        await License.findByIdAndUpdate(license._id, { used: false, usedAt: null });
+        return fail(req, res, 403, 'invalidCreds', 'This application has reached its maximum user limit.');
+      }
+    }
+
     // Calculate expiry
     const expiryDate = license.expiryUnit !== 'lifetime' && license.expiryDuration
       ? License.calcExpiry(license.expiryUnit, license.expiryDuration)
@@ -477,6 +489,16 @@ router.post('/license',
     const existing = await AppUser.findOne({ username: autoUsername, applicationId: req.application._id });
     if (existing) {
       return fail(req, res, 400, 'usernameTaken', 'License already in use');
+    }
+
+    // Enforce plan user limit
+    const owner2 = await require('../models/User').findById(req.application.userId).populate('plan');
+    const ownerPlan2 = owner2?.plan || await require('../models/SubscriptionPlan').findOne({ name: 'free' });
+    if (ownerPlan2 && ownerPlan2.limits.maxUsersPerApp !== -1) {
+      const currentUsers2 = await AppUser.countDocuments({ applicationId: req.application._id });
+      if (currentUsers2 >= ownerPlan2.limits.maxUsersPerApp) {
+        return fail(req, res, 403, 'invalidCreds', 'This application has reached its maximum user limit.');
+      }
     }
 
     // Mark license used atomically
