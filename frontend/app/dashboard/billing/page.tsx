@@ -49,9 +49,9 @@ function formatLimit(value: number): string {
 function formatPrice(cents: number, planName?: string): string {
   if (cents === 0) return 'Free'
   const dollars = cents / 100
-  const display = dollars % 1 === 0 ? dollars.toFixed(0) : dollars.toFixed(1)
-  const suffix = planName === 'yearly' ? '/year' : '/month'
-  return '$' + display + suffix
+  const inrAmount = Math.round(dollars * 83)
+  const suffix = planName?.endsWith('_yearly') ? '/year' : '/month'
+  return '₹' + inrAmount + suffix
 }
 
 function UsageBar({
@@ -106,6 +106,7 @@ export default function BillingPage() {
   const [myPlan, setMyPlan] = useState<MyPlanResponse | null>(null)
   const [allPlans, setAllPlans] = useState<Plan[]>([])
   const [loading, setLoading] = useState(true)
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly')
 
   useEffect(() => {
     const load = async () => {
@@ -316,9 +317,36 @@ export default function BillingPage() {
       {/* Upgrade Plans Grid */}
       {allPlans.length > 0 && (
         <div>
-          <h2 className="text-sm font-semibold text-white mb-3">Upgrade Your Plan</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {allPlans.filter(p => p.name !== 'free').map((plan) => {
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <h2 className="text-sm font-semibold text-white">Upgrade Your Plan</h2>
+            <div className="inline-flex bg-white/[0.02] border border-white/[0.06] rounded-xl p-1 w-fit">
+              <button
+                type="button"
+                onClick={() => setBillingCycle('monthly')}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                  billingCycle === 'monthly'
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
+                    : 'text-gray-500 hover:text-gray-300'
+                }`}
+              >
+                Monthly
+              </button>
+              <button
+                type="button"
+                onClick={() => setBillingCycle('yearly')}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                  billingCycle === 'yearly'
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
+                    : 'text-gray-500 hover:text-gray-300'
+                }`}
+              >
+                Yearly (Save ~16%)
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto">
+            {allPlans.filter(p => p.name !== 'free' && p.name.endsWith(`_${billingCycle}`)).map((plan) => {
               const isCurrent = plan.name === currentPlan?.name
               return (
                 <div key={plan._id} className={`bg-white/[0.02] border rounded-xl p-5 flex flex-col gap-4 ${isCurrent ? 'border-indigo-500/30' : 'border-white/[0.06]'}`}>
@@ -354,6 +382,25 @@ export default function BillingPage() {
               )
             })}
           </div>
+
+          {allPlans.some(p => p.name === 'tester') && (
+            <div className="mt-6 p-4 rounded-xl border border-dashed border-indigo-500/30 bg-indigo-500/5 max-w-3xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div>
+                <p className="font-bold text-white flex items-center gap-1.5 text-sm">
+                  <span>🛠️</span> Tester Plan
+                </p>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  A temporary ₹10 plan designed specifically to verify your Cashfree credentials and integration.
+                </p>
+              </div>
+              <button
+                onClick={() => router.push(`/dashboard/pay?planId=${allPlans.find(p => p.name === 'tester')?._id}`)}
+                className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-all whitespace-nowrap"
+              >
+                Pay ₹10 for Testing
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

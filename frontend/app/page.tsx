@@ -44,31 +44,31 @@ const dashboardItems = [
 const pricingPlans = [
   {
     name: 'Free',
-    price: '0',
+    price: '₹0',
     suffix: '/month',
     features: ['5 applications', '100 users per app', '50 licenses per app', 'Authentication dashboard access'],
     tone: 'border-white/10 bg-white/[0.03]',
   },
   {
-    name: 'Pro',
-    price: '1.6',
+    name: 'Pro Monthly',
+    price: '₹150',
     suffix: '/month',
-    features: ['25 applications', '1,000 users per app', '500 licenses per app', 'Discord webhooks'],
+    features: ['25 applications', '1,000 users per app', '500 licenses per app', 'Discord webhooks', 'Priority Support'],
     tone: 'border-indigo-400/20 bg-indigo-400/10',
   },
   {
-    name: 'Enterprise',
-    price: '3',
-    suffix: '/month',
-    features: ['Unlimited applications', 'Unlimited users per app', 'Unlimited licenses per app', 'Priority support'],
-    tone: 'border-slate-300/20 bg-slate-300/10',
+    name: 'Pro Yearly',
+    price: '₹1500',
+    suffix: '/year',
+    features: ['25 applications', '1,000 users per app', '500 licenses per app', 'Discord webhooks', 'Priority Support', 'Yearly Savings'],
+    tone: 'border-violet-400/20 bg-violet-400/10',
   },
   {
-    name: 'Yearly',
-    price: '26.5',
-    suffix: '/year',
-    features: ['Unlimited applications', 'Unlimited users per app', 'Unlimited licenses per app', '1 year access'],
-    tone: 'border-violet-400/20 bg-violet-400/10',
+    name: 'Enterprise Monthly',
+    price: '₹250',
+    suffix: '/month',
+    features: ['Unlimited applications', 'Unlimited users per app', 'Unlimited licenses per app', 'Discord Webhooks', 'Priority Support', 'Custom Integrations'],
+    tone: 'border-slate-300/20 bg-slate-300/10',
   },
 ]
 
@@ -255,7 +255,7 @@ export default function Home() {
               <div key={plan.name} className={`rounded-3xl border p-6 ${plan.tone}`}>
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">{plan.name}</p>
                 <div className="mt-5 flex items-end gap-2">
-                  <span className="text-4xl font-bold text-white">${plan.price}</span>
+                  <span className="text-4xl font-bold text-white">{plan.price}</span>
                   <span className="pb-1 text-sm text-slate-400">{plan.suffix}</span>
                 </div>
 

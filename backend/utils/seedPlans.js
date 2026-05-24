@@ -26,9 +26,9 @@ const defaultPlans = [
     isActive: true,
   },
   {
-    name: 'pro',
-    displayName: 'Pro',
-    price: 160,
+    name: 'pro_monthly',
+    displayName: 'Pro Monthly',
+    price: 181, // ~150 INR (at 83 rate)
     limits: {
       maxApplications: 25,
       maxUsersPerApp: 1000,
@@ -46,9 +46,30 @@ const defaultPlans = [
     isActive: true,
   },
   {
-    name: 'enterprise',
-    displayName: 'Enterprise',
-    price: 300,
+    name: 'pro_yearly',
+    displayName: 'Pro Yearly',
+    price: 1807, // ~1500 INR (10 months value!)
+    limits: {
+      maxApplications: 25,
+      maxUsersPerApp: 1000,
+      maxLicensesPerApp: 500,
+      maxApiCallsPerDay: 50000,
+    },
+    features: [
+      '25 applications',
+      '1,000 users/app',
+      '500 licenses/app',
+      '50,000 API calls/day',
+      'Discord Webhooks',
+      'Priority Support',
+      'Yearly Savings',
+    ],
+    isActive: true,
+  },
+  {
+    name: 'enterprise_monthly',
+    displayName: 'Enterprise Monthly',
+    price: 301, // ~250 INR (at 83 rate)
     limits: {
       maxApplications: -1,
       maxUsersPerApp: -1,
@@ -67,9 +88,9 @@ const defaultPlans = [
     isActive: true,
   },
   {
-    name: 'yearly',
-    displayName: 'Yearly',
-    price: 2650,
+    name: 'enterprise_yearly',
+    displayName: 'Enterprise Yearly',
+    price: 3012, // ~2500 INR (10 months value!)
     limits: {
       maxApplications: -1,
       maxUsersPerApp: -1,
@@ -84,8 +105,23 @@ const defaultPlans = [
       'Discord Webhooks',
       'Priority Support',
       'Custom Integrations',
-      '1 Year Access',
-      'Best Value',
+      'Yearly Savings',
+    ],
+    isActive: true,
+  },
+  {
+    name: 'tester',
+    displayName: 'Tester Plan',
+    price: 12, // ~10 INR (at 83 rate)
+    limits: {
+      maxApplications: 1,
+      maxUsersPerApp: 10,
+      maxLicensesPerApp: 5,
+      maxApiCallsPerDay: 100,
+    },
+    features: [
+      'Cashfree Test plan',
+      'Refundable / Temp plan',
     ],
     isActive: true,
   },
