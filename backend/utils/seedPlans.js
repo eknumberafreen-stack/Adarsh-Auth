@@ -109,22 +109,6 @@ const defaultPlans = [
     ],
     isActive: true,
   },
-  {
-    name: 'tester',
-    displayName: 'Tester Plan',
-    price: 12, // ~10 INR (at 83 rate)
-    limits: {
-      maxApplications: 1,
-      maxUsersPerApp: 10,
-      maxLicensesPerApp: 5,
-      maxApiCallsPerDay: 100,
-    },
-    features: [
-      'Cashfree Test plan',
-      'Refundable / Temp plan',
-    ],
-    isActive: true,
-  },
 ];
 
 /**

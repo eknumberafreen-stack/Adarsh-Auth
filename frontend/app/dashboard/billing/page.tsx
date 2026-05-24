@@ -382,25 +382,6 @@ export default function BillingPage() {
               )
             })}
           </div>
-
-          {allPlans.some(p => p.name === 'tester') && (
-            <div className="mt-6 p-4 rounded-xl border border-dashed border-indigo-500/30 bg-indigo-500/5 max-w-3xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div>
-                <p className="font-bold text-white flex items-center gap-1.5 text-sm">
-                  <span>🛠️</span> Tester Plan
-                </p>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  A temporary ₹10 plan designed specifically to verify your Cashfree credentials and integration.
-                </p>
-              </div>
-              <button
-                onClick={() => router.push(`/dashboard/pay?planId=${allPlans.find(p => p.name === 'tester')?._id}`)}
-                className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-all whitespace-nowrap"
-              >
-                Pay ₹10 for Testing
-              </button>
-            </div>
-          )}
         </div>
       )}
     </div>
