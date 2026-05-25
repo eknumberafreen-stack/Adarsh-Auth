@@ -590,8 +590,65 @@ router.post('/heartbeat',
   asyncHandler(async (req, res) => {
     const redis = getRedisClient();
     const key = `sess:${req.sessionToken}`;
+
+    // Check force close flag in Redis session
+    const forceClose = req.session.forceClose === 'true';
+    if (forceClose) {
+      await redis.del(key);
+      await redis.del(`user_sess:${req.session.userId}:${req.application._id}`);
+      return res.sendSigned({ success: true, message: 'OK', forceClose: true });
+    }
+
     await redis.hSet(key, 'lastHeartbeat', Date.now().toString());
-    res.sendSigned({ success: true, message: 'OK' });
+
+    // Check client offset version & status
+    const doc = await RuntimeValues.findOne({ applicationId: req.application._id });
+    let offsetVersion = 0;
+    let offsetStatus = 'valid';
+
+    if (!doc || doc.revoked) {
+      offsetStatus = 'revoked';
+    } else {
+      offsetVersion = doc.offsetVersion || 1;
+      
+      if (doc.offsetExpiresAt && doc.offsetExpiresAt < Date.now()) {
+        offsetStatus = 'revoked';
+      }
+
+      const clientOffsetVersion = req.clientBody.offsetVersion;
+      if (offsetStatus !== 'revoked' && clientOffsetVersion !== undefined && clientOffsetVersion !== null) {
+        const clientVerNum = parseInt(clientOffsetVersion, 10);
+        if (clientVerNum !== offsetVersion) {
+          offsetStatus = 'refresh_required';
+        }
+      }
+    }
+
+    const clientOffsetVersion = req.clientBody.offsetVersion;
+    if (clientOffsetVersion !== undefined && clientOffsetVersion !== null) {
+      if (offsetStatus === 'refresh_required' || offsetStatus === 'revoked') {
+        await AuditLog.create({
+          applicationId: req.application._id,
+          userId: req.sessionUser._id,
+          action: 'offset_refresh_triggered',
+          ip: req.clientIp,
+          severity: 'info',
+          details: {
+            status: offsetStatus,
+            clientVersion: clientOffsetVersion,
+            serverVersion: offsetVersion
+          }
+        });
+      }
+    }
+
+    res.sendSigned({ 
+      success: true, 
+      message: 'OK',
+      forceClose: false,
+      offsetVersion,
+      offsetStatus
+    });
   })
 );
 // ─── POST /api/client/values ──────────────────────────────────────────────────
@@ -611,10 +668,22 @@ router.post('/values',
 
     const doc = await RuntimeValues.findOne({ applicationId: req.application._id });
 
-    if (!doc) {
+    if (!doc || doc.revoked) {
       return res.sendSigned({
         success: true,
-        message: 'No runtime values configured',
+        message: 'No runtime values configured or values revoked',
+        offsetVersion: 0,
+        offsetExpiresAt: null,
+        values: {}
+      });
+    }
+
+    if (doc.offsetExpiresAt && doc.offsetExpiresAt < Date.now()) {
+      return res.sendSigned({
+        success: true,
+        message: 'Runtime values have expired',
+        offsetVersion: 0,
+        offsetExpiresAt: doc.offsetExpiresAt,
         values: {}
       });
     }
@@ -622,6 +691,8 @@ router.post('/values',
     return res.sendSigned({
       success: true,
       message: 'Values retrieved',
+      offsetVersion: doc.offsetVersion || 1,
+      offsetExpiresAt: doc.offsetExpiresAt || null,
       values: doc.toClientPayload()
     });
   })

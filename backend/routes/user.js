@@ -303,6 +303,43 @@ router.post('/:id/reset-hwid', asyncHandler(async (req, res) => {
   res.json({ message: 'HWID reset successfully' });
 }));
 
+// ─── Force Close Active Session ──────────────────────────────────────────────
+router.post('/:id/force-close', asyncHandler(async (req, res) => {
+  const user = await AppUser.findById(req.params.id).populate('applicationId');
+  if (!user) return res.status(404).json({ error: 'User not found' });
+
+  const hasAccess = await verifyUserActionAccess(req, res, user, 'manage_users');
+  if (!hasAccess) return res.status(403).json({ error: 'Access denied: You need manage_users permission.' });
+
+  const redis = getRedisClient();
+  const userKey = `user_sess:${user._id}:${user.applicationId._id}`;
+  const sessionToken = await redis.get(userKey);
+  
+  if (sessionToken) {
+    const sessionKey = `sess:${sessionToken}`;
+    
+    // Check if session is still alive in Redis before applying force close flag
+    // This prevents creating a zombie hash without a TTL.
+    const exists = await redis.exists(sessionKey);
+    if (exists) {
+      await redis.hSet(sessionKey, 'forceClose', 'true');
+      
+      await AuditLog.create({
+        applicationId: user.applicationId._id,
+        userId: user._id,
+        action: 'force_close_requested',
+        ip: req.ip || req.connection.remoteAddress,
+        severity: 'warning',
+        details: { requestedBy: req.userId }
+      });
+      
+      return res.json({ message: 'Force close signal sent to active session' });
+    }
+  }
+
+  res.status(400).json({ error: 'No active session found for this user' });
+}));
+
 // ─── Delete user ──────────────────────────────────────────────────────────────
 router.delete('/:id', asyncHandler(async (req, res) => {
   const user = await AppUser.findById(req.params.id).populate('applicationId');

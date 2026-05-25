@@ -7,7 +7,7 @@ import toast from 'react-hot-toast'
 import { PlusIcon, EyeIcon, EyeSlashIcon, XMarkIcon, EllipsisVerticalIcon } from '@heroicons/react/24/outline'
 
 // ── 3-dot dropdown per user row ───────────────────────────────────────────────
-function UserMenu({ user, onEdit, onBan, onPermanentBan, onUnban, onPause, onResetHwid, onDelete }: any) {
+function UserMenu({ user, onEdit, onBan, onPermanentBan, onUnban, onPause, onResetHwid, onDelete, onForceClose }: any) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -43,6 +43,9 @@ function UserMenu({ user, onEdit, onBan, onPermanentBan, onUnban, onPause, onRes
           </button>
           <button onClick={() => { setOpen(false); onResetHwid(user._id) }} className="w-full text-left px-4 py-2.5 text-sm text-blue-400 hover:bg-blue-500/10 transition-colors flex items-center gap-2">
             <span>🔄</span> Reset HWID
+          </button>
+          <button onClick={() => { setOpen(false); onForceClose(user._id) }} className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors flex items-center gap-2">
+            <span>💥</span> Crash it
           </button>
           {user.banned ? (
             <button onClick={() => { setOpen(false); onUnban(user._id) }} className="w-full text-left px-4 py-2.5 text-sm text-green-400 hover:bg-green-500/10 transition-colors flex items-center gap-2">
@@ -408,6 +411,26 @@ export default function Users() {
     })
   }
 
+  const forceCloseUser = async (id: string) => {
+    setConfirmModal({
+      show: true,
+      title: 'Crash User App?',
+      message: 'Are you sure you want to force-close this user\'s running executable? This will terminate their active session.',
+      type: 'danger',
+      confirmText: 'Crash It',
+      onConfirm: async () => {
+        try {
+          await api.post(`/users/${id}/force-close`)
+          toast.success('Force-close command sent to client')
+          loadUsers()
+        } catch (e: any) {
+          toast.error(e.response?.data?.error || 'Failed to send force-close command')
+        }
+        setConfirmModal(prev => ({ ...prev, show: false }))
+      }
+    })
+  }
+
   const deleteUser = async (id: string) => {
     setConfirmModal({
       show: true,
@@ -583,6 +606,7 @@ export default function Users() {
                               onPause={pauseUser}
                               onResetHwid={resetHwid}
                               onDelete={deleteUser}
+                              onForceClose={forceCloseUser}
                             />
                           </td>
                         </tr>

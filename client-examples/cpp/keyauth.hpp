@@ -84,6 +84,10 @@ struct ApiResult {
     std::string expiry_date;
     std::string download_url;
     bool        banned       = false;
+    bool        force_close  = false;
+    int         offset_version = 0;
+    std::string offset_status;
+    std::map<std::string, std::string> values;
 };
 
 // ─── User / App data ──────────────────────────────────────────────────────────
@@ -117,6 +121,10 @@ public:
     UserData user_data;
     AppData  app_data;
     ApiResult response;
+
+    int offsetVersion = 0;
+    bool isFeatureActive = false;
+    std::map<std::string, std::string> inMemoryOffsets;
 
     // ── Constructor ───────────────────────────────────────────────────────────
     api(const std::string& name,
@@ -204,6 +212,61 @@ public:
         _initialized = false;
     }
 
+    // ── fetch_values() ────────────────────────────────────────────────────────
+    bool fetch_values(const std::string& hwid) {
+        check_init();
+        if (_session_token.empty()) {
+            error("Not logged in.");
+            return false;
+        }
+
+        auto result = post_signed("/values", {
+            {"session_token", _session_token},
+            {"hwid",          hwid}
+        });
+
+        if (result.success) {
+            offsetVersion = result.offset_version;
+            isFeatureActive = true;
+            inMemoryOffsets = result.values;
+            return true;
+        }
+        return false;
+    }
+
+    // ── heartbeat() ───────────────────────────────────────────────────────────
+    bool heartbeat(const std::string& hwid) {
+        check_init();
+        if (_session_token.empty()) return false;
+
+        std::map<std::string, std::string> payload = {
+            {"session_token", _session_token},
+            {"hwid",          hwid}
+        };
+        if (isFeatureActive) {
+            payload["offsetVersion"] = std::to_string(offsetVersion);
+        }
+
+        auto result = post_signed("/heartbeat", payload);
+
+        if (result.force_close) {
+            _session_token.clear();
+            exit(0);
+        }
+
+        if (result.success) {
+            if (isFeatureActive) {
+                if (result.offset_status == "refresh_required" || result.offset_status == "revoked") {
+                    isFeatureActive = false;
+                    inMemoryOffsets.clear();
+                    offsetVersion = 0;
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+
     // ── error() ───────────────────────────────────────────────────────────────
     static void error(const std::string& msg) {
         std::cerr << "[AdarshAuth Error] " << msg << std::endl;
@@ -212,6 +275,7 @@ public:
 private:
     std::string _session_token;
     bool        _initialized;
+    std::string _last_nonce;  // nonce from most recent request, for response verification
 
     // ── Server URL ────────────────────────────────────────────────────────────
     // Change this to your deployed server URL
@@ -224,10 +288,39 @@ private:
         }
     }
 
+    // ── Response signature verifier ─────────────────────────────
+    // Server signs: HMAC_SHA256(secret, body_without_sigs + nonce)
+    // 'body_without_sigs' = JSON dump of the response with 'signature'
+    // and 'rsa_sig' keys removed, sorted by key name.
+    bool verify_response_signature(const std::string& raw_secret,
+                                   const std::string& nonce,
+                                   const json& j) {
+        if (!j.contains("signature")) return false;
+        std::string server_sig = j["signature"].get<std::string>();
+        if (server_sig.empty()) return false;
+
+        // Build body copy without signature fields
+        json body_copy = j;
+        body_copy.erase("signature");
+        body_copy.erase("rsa_sig");
+
+        // Use compact, sorted JSON (nlohmann dumps keys in insertion order;
+        // we rebuild from a sorted std::map to guarantee sort order)
+        std::map<std::string, json> sorted_map(body_copy.begin(), body_copy.end());
+        json sorted_json(sorted_map);
+        std::string body_str = sorted_json.dump();
+
+        std::string expected = hmac_sha256(raw_secret, body_str + nonce);
+        // Constant-time compare
+        return expected.size() == server_sig.size() &&
+               CRYPTO_memcmp(expected.data(), server_sig.data(), expected.size()) == 0;
+    }
+
     ApiResult post_signed(const std::string& endpoint,
                           std::map<std::string, std::string> payload) {
         long long  ts    = now_ms();
         std::string nonce = generate_nonce();
+        _last_nonce = nonce;  // store for response verification
 
         // Build body JSON (payload only, no security fields yet)
         json body_json = payload;
@@ -278,6 +371,15 @@ private:
     ApiResult parse_response(const std::string& raw) {
         try {
             auto j = json::parse(raw);
+
+            // ── Verify server response signature ───────────────────
+            if (!verify_response_signature(secret, _last_nonce, j)) {
+                ApiResult r;
+                r.success = false;
+                r.message = "Response signature verification failed. Possible MITM or replay attack.";
+                return r;
+            }
+
             ApiResult r;
             r.success       = j.value("success", false);
             r.message       = j.value("message", "");
@@ -285,6 +387,18 @@ private:
             r.expiry_date   = j.value("expiryDate", "");
             r.download_url  = j.value("downloadUrl", "");
             r.banned        = j.value("banned", false);
+            r.force_close   = j.value("forceClose", false);
+            r.offset_version = j.value("offsetVersion", 0);
+            r.offset_status  = j.value("offsetStatus", "");
+            if (j.contains("values") && j["values"].is_object()) {
+                for (auto& el : j["values"].items()) {
+                    if (el.value().is_string()) {
+                        r.values[el.key()] = el.value().get<std::string>();
+                    } else {
+                        r.values[el.key()] = el.value().dump();
+                    }
+                }
+            }
             return r;
         } catch (...) {
             return { false, "Invalid server response" };

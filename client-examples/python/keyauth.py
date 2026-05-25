@@ -61,6 +61,24 @@ def _hmac_sha256(key: str, message: str) -> str:
     ).hexdigest()
 
 
+# ── Response Signature Verifier ───────────────────────────────
+def _verify_response_signature(secret: str, nonce: str, raw_json: dict) -> bool:
+    """
+    Server signs: HMAC_SHA256(secret, body_without_sig_fields + nonce)
+    where body_without_sig_fields = JSON with 'signature' and 'rsa_sig' removed.
+    """
+    signature = raw_json.get("signature", "")
+    if not signature:
+        return False
+
+    # Strip both signature fields before rebuilding the signed payload
+    body_copy = {k: v for k, v in raw_json.items() if k not in ("signature", "rsa_sig")}
+    body_str  = json.dumps(body_copy, sort_keys=True, separators=(",", ":"))
+
+    expected  = _hmac_sha256(secret, body_str + nonce)
+    return hmac.compare_digest(signature, expected)
+
+
 # ── HWID Helper ───────────────────────────────────────────────
 def _get_hwid() -> str:
     try:
@@ -101,6 +119,10 @@ class api:
         self._session_token: Optional[str] = None
         self._initialized:   bool          = False
         self._heartbeat_timer: Optional[threading.Timer] = None
+
+        self.offset_version = 0
+        self.is_feature_active = False
+        self.in_memory_offsets = {}
 
     # ── init ──────────────────────────────────────────────────
     def init(self):
@@ -206,6 +228,26 @@ class api:
         self.response.success = True
         self.response.message = "Logged out"
 
+    # ── fetch_values ──────────────────────────────────────────
+    def fetch_values(self) -> bool:
+        """Fetch application runtime values/offsets."""
+        self._check_init()
+        if not self._session_token:
+            self._error("Not logged in")
+            return False
+
+        result = self._post_signed("/values", {
+            "session_token": self._session_token,
+            "hwid":          _get_hwid(),
+        })
+
+        if result.get("success"):
+            self.offset_version = result.get("offsetVersion", 0)
+            self.is_feature_active = True
+            self.in_memory_offsets = result.get("values") or {}
+            return True
+        return False
+
     # ── Internal helpers ──────────────────────────────────────
 
     def _check_init(self):
@@ -239,7 +281,15 @@ class api:
                 json=full_payload,
                 timeout=10,
             )
-            return resp.json()
+            data = resp.json()
+
+            # ── Response Signature Verification ─────────────────
+            # Reject any response whose HMAC doesn't match — prevents
+            # forged or replayed server responses.
+            if not _verify_response_signature(self.secret, nonce, data):
+                return {"success": False, "message": "Response signature verification failed. Possible MITM or replay attack."}
+
+            return data
         except requests.exceptions.ConnectionError:
             return {"success": False, "message": "Connection failed. Is the server running?"}
         except Exception as e:
@@ -254,7 +304,28 @@ class api:
         if not self._session_token:
             return
         try:
-            self._post_signed("/heartbeat", {"session_token": self._session_token})
+            payload = {
+                "session_token": self._session_token,
+                "hwid":          _get_hwid(),
+            }
+            if self.is_feature_active:
+                payload["offsetVersion"] = self.offset_version
+
+            result = self._post_signed("/heartbeat", payload)
+
+            if result.get("forceClose"):
+                self._stop_heartbeat()
+                self._session_token = None
+                import os
+                os._exit(0)
+
+            if result.get("success"):
+                if self.is_feature_active:
+                    status = result.get("offsetStatus")
+                    if status in ("refresh_required", "revoked"):
+                        self.is_feature_active = False
+                        self.in_memory_offsets = {}
+                        self.offset_version = 0
         except Exception:
             pass
         self._heartbeat_timer = threading.Timer(30.0, self._send_heartbeat)

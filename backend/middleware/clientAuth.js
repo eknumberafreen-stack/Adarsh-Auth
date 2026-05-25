@@ -64,11 +64,26 @@ const fail = async (req, res, statusCode = 401, messageKey = null, defaultMessag
   return res.status(statusCode).json({ success: false, message });
 };
 
+/** Recursively sort object keys alphabetically */
+const sortObjectKeys = (obj) => {
+  if (obj === null || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(sortObjectKeys);
+  const sorted = {};
+  Object.keys(obj).sort().forEach(key => {
+    sorted[key] = sortObjectKeys(obj[key]);
+  });
+  return sorted;
+};
+
 /** Sign the response for the client to verify (RSA Asymmetric) */
 const signResponse = (res, data, secret, nonce) => {
   if (!secret || !nonce) return res.json(data);
   
-  const bodyStr = JSON.stringify(data);
+  // Normalize (handles Dates, ObjectIds, undefined) and sort keys
+  const plainData = JSON.parse(JSON.stringify(data));
+  const sortedData = sortObjectKeys(plainData);
+  
+  const bodyStr = JSON.stringify(sortedData);
   const payload = bodyStr + nonce;
 
   // HMAC (Symmetric) - Keeping for legacy support or double-layer
@@ -83,7 +98,7 @@ const signResponse = (res, data, secret, nonce) => {
   }
 
   return res.json({ 
-      ...data, 
+      ...sortedData, 
       signature: hmacSignature, // Old client expects this
       rsa_sig: rsaSignature      // New client will use this
   });
