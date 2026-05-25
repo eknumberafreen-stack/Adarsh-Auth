@@ -412,6 +412,12 @@ export default function BillingPage() {
                 (plan.name === 'pro_yearly' && currentPlan?.name === 'pro' && billingCycle === 'yearly') ||
                 (plan.name === 'enterprise_monthly' && isLegacyEnterprise && billingCycle === 'monthly') ||
                 (plan.name === 'enterprise_yearly' && isLegacyEnterprise && billingCycle === 'yearly');
+
+              // Check if user is on Enterprise and target is Pro
+              const isUserEnterprise = currentPlan?.name.startsWith('enterprise') || isLegacyEnterprise;
+              const isTargetPro = plan.name.startsWith('pro');
+              const isDowngradeDisabled = isUserEnterprise && isTargetPro;
+
               return (
                 <div key={plan._id} className={`bg-white/[0.02] border rounded-xl p-5 flex flex-col gap-4 ${isCurrent ? 'border-indigo-500/30' : 'border-white/[0.06]'}`}>
                   <div>
@@ -432,6 +438,10 @@ export default function BillingPage() {
                   {isCurrent ? (
                     <div className="w-full py-2.5 rounded-lg bg-white/[0.04] border border-white/[0.07] text-gray-500 text-xs font-medium text-center">
                       Active Plan
+                    </div>
+                  ) : isDowngradeDisabled ? (
+                    <div className="w-full py-2.5 rounded-lg bg-white/[0.01] border border-white/[0.04] text-gray-600 text-xs font-medium text-center cursor-not-allowed">
+                      Enterprise Active
                     </div>
                   ) : (
                     <button
