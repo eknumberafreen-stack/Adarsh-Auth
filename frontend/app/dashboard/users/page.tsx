@@ -471,7 +471,7 @@ export default function Users() {
           ) : (
             <div className="card overflow-visible p-0 relative">
               {(() => {
-                const showCreatedBy = selectedApp?.team?.length > 0 || users.some(u => u.createdBy)
+                const showCreatedBy = !!(selectedApp?.team && selectedApp.team.length > 0)
                 return (
                   <table className="w-full text-sm">
                     <thead>
@@ -499,6 +499,7 @@ export default function Users() {
                         {showCreatedBy && (
                           <th className="text-left px-4 py-3 text-gray-400 font-medium">Created By</th>
                         )}
+                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Created</th>
                         <th className="text-left px-4 py-3 text-gray-400 font-medium">HWID Affected</th>
                         <th className="px-4 py-3" />
                       </tr>
@@ -552,8 +553,8 @@ export default function Users() {
                           <td className="px-4 py-3 text-gray-400 text-xs">{user.lastIp || 'N/A'}</td>
                           <td className="px-4 py-3 text-gray-400 text-xs">
                             {user.paused 
-                              ? formatToDDMMYYYY(user.pausedExpiry, 'Lifetime', false)
-                              : formatToDDMMYYYY(user.expiryDate, 'Lifetime', false)}
+                              ? formatToDDMMYYYY(user.pausedExpiry, 'Lifetime', true)
+                              : formatToDDMMYYYY(user.expiryDate, 'Lifetime', true)}
                           </td>
                           {showCreatedBy && (
                             <td className="px-4 py-3">
@@ -562,6 +563,9 @@ export default function Users() {
                               </span>
                             </td>
                           )}
+                          <td className="px-4 py-3 text-gray-400 text-xs">
+                            {formatToDDMMYYYY(user.createdAt, 'N/A', true)}
+                          </td>
                           <td className="px-4 py-3 text-gray-400 text-xs">
                             {user.hwidAffected ? (
                               <span className="text-indigo-400 font-medium">Yes</span>

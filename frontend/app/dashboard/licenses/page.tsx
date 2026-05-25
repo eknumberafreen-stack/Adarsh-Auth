@@ -76,6 +76,25 @@ const getCreatorDisplay = (creator: any, appOwnerId?: string) => {
   return 'Owner';
 };
 
+const formatToDDMMYYYY = (dateStr: string | null | undefined, fallback = 'Never', includeTime = false) => {
+  if (!dateStr) return fallback;
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return fallback;
+  const day = d.getDate().toString().padStart(2, '0');
+  const month = (d.getMonth() + 1).toString().padStart(2, '0');
+  const year = d.getFullYear();
+  if (includeTime) {
+    let hours = d.getHours();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    const minutes = d.getMinutes().toString().padStart(2, '0');
+    const seconds = d.getSeconds().toString().padStart(2, '0');
+    return `${day}-${month}-${year} ${hours}:${minutes}:${seconds} ${ampm}`;
+  }
+  return `${day}-${month}-${year}`;
+};
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function Licenses() {
   const { applications, selectedApp } = useAppStore()
@@ -363,7 +382,7 @@ export default function Licenses() {
           ) : (
             <div className="card overflow-visible p-0 relative">
               {(() => {
-                const showCreatedBy = licenses.some(l => l.createdBy)
+                const showCreatedBy = !!(selectedApp?.team && selectedApp.team.length > 0)
                 return (
                   <table className="w-full text-sm">
                     <thead>
@@ -435,7 +454,7 @@ export default function Licenses() {
                             </td>
                           )}
                           <td className="px-4 py-3 text-gray-400 text-xs">
-                            {new Date(license.createdAt).toLocaleDateString()}
+                            {formatToDDMMYYYY(license.createdAt, 'N/A', true)}
                           </td>
                           <td className="px-4 py-3">
                             <LicenseMenu
