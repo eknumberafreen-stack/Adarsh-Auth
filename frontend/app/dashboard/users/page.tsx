@@ -28,11 +28,18 @@ function UserMenu({ user, onEdit, onBan, onPermanentBan, onUnban, onPause, onRes
         <EllipsisVerticalIcon className="w-5 h-5" />
       </button>
 
-      {open && (
+      {open && (() => {
+        const rect = ref.current?.getBoundingClientRect();
+        const menuHeight = 320; // approximate max height of the dropdown
+        const spaceBelow = window.innerHeight - (rect?.bottom ?? 0);
+        const showAbove = spaceBelow < menuHeight && (rect?.top ?? 0) > menuHeight;
+        return (
         <div className="fixed mt-1 w-44 bg-[#1a1a24] border border-dark-border rounded-xl shadow-2xl z-[9999] overflow-hidden py-1"
           style={{
-            top: ref.current ? ref.current.getBoundingClientRect().bottom + window.scrollY + 4 : 0,
-            right: window.innerWidth - (ref.current ? ref.current.getBoundingClientRect().right : 0)
+            ...(showAbove
+              ? { bottom: window.innerHeight - (rect?.top ?? 0) + 4 }
+              : { top: (rect?.bottom ?? 0) + 4 }),
+            right: window.innerWidth - (rect?.right ?? 0)
           }}
         >
           <button onClick={() => { setOpen(false); onEdit(user) }} className="w-full text-left px-4 py-2.5 text-sm text-gray-200 hover:bg-dark-hover transition-colors flex items-center gap-2">
@@ -63,7 +70,8 @@ function UserMenu({ user, onEdit, onBan, onPermanentBan, onUnban, onPause, onRes
             <span>🗑️</span> Delete
           </button>
         </div>
-      )}
+        );
+      })()}
     </div>
   )
 }
