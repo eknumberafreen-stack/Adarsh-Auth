@@ -3,7 +3,6 @@ const Session = require('../models/Session');
 const Application = require('../models/Application');
 const { verifyToken, verifyAppAccess } = require('../middleware/auth');
 const { asyncHandler } = require('../middleware/errorHandler');
-const { getRedisClient } = require('../config/redis');
 
 const router = express.Router();
 
@@ -66,12 +65,7 @@ router.delete('/:id', asyncHandler(async (req, res) => {
 
   await Session.deleteOne({ _id: session._id });
 
-  // Clean up Redis session entries
-  const redis = getRedisClient();
-  if (session.sessionToken) await redis.del(`sess:${session.sessionToken}`);
-  if (session.userId && session.applicationId) {
-    await redis.del(`user_sess:${session.userId}:${session.applicationId}`);
-  }
+  res.json({ message: 'Session terminated successfully' });
 }));
 
 // Terminate all sessions for application
@@ -79,16 +73,6 @@ router.delete('/application/:applicationId/all', verifyAppAccess('manage_users')
   const { applicationId } = req.params;
 
   const result = await Session.deleteMany({ applicationId });
-
-  // Clean up Redis sessions for the application
-  const redis = getRedisClient();
-  const keys = await redis.keys('sess:*');
-  for (const key of keys) {
-    const sess = await redis.hGetAll(key);
-    if (sess && sess.applicationId === applicationId) {
-      await redis.del(key);
-    }
-  }
 
   res.json({
     message: 'All sessions terminated successfully',

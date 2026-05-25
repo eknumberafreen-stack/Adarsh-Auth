@@ -11,7 +11,6 @@
 
 const AppUser = require('../models/AppUser');
 const AuditLog = require('../models/AuditLog');
-const Session = require('../models/Session');
 const { getRedisClient } = require('../config/redis');
 
 const HEARTBEAT_TIMEOUT_MS = 60_000; // 60 seconds — client must heartbeat every ~20s
@@ -26,7 +25,7 @@ const requireSession = async (req, res, next) => {
     const { session_token, hwid } = req.clientBody || req.body;
 
     if (!session_token || !hwid) {
-      return res.status(401).json({ success: false, message: 'Session invalid or HWID missing' });
+      return res.status(401).json({ success: false, message: 'Request failed' });
     }
 
     // ── Load session from Redis ──────────────────────────────────────────────
@@ -36,22 +35,18 @@ const requireSession = async (req, res, next) => {
 
     if (!session || Object.keys(session).length === 0) {
       await randomDelay();
-      // Ensure we delete any stale DB session
-      await Session.deleteOne({ sessionToken: session_token });
-      return res.status(401).json({ success: false, message: 'Session invalid' });
+      return res.status(401).json({ success: false, message: 'Request failed' });
     }
 
     // Check application binding
     if (!req.application || session.applicationId !== req.application._id.toString()) {
-      await Session.deleteOne({ sessionToken: session_token });
-      return res.status(401).json({ success: false, message: 'Session invalid' });
+      return res.status(401).json({ success: false, message: 'Request failed' });
     }
 
     // ── Heartbeat timeout check ───────────────────────────────────────────────
     const timeSinceHeartbeat = Date.now() - parseInt(session.lastHeartbeat);
     if (timeSinceHeartbeat > HEARTBEAT_TIMEOUT_MS) {
       await redis.del(key);
-      await Session.deleteOne({ sessionToken: session_token });
       await AuditLog.create({
         applicationId: req.application._id,
         userId: session.userId,
@@ -74,7 +69,7 @@ const requireSession = async (req, res, next) => {
         details: { expected: session.hwid, received: hwid }
       });
       await randomDelay();
-      return res.status(403).json({ success: false, message: 'Session HWID invalid' });
+      return res.status(403).json({ success: false, message: 'Request failed' });
     }
 
     // ── IP soft check (log only, do not block) ────────────────────────────────
@@ -93,8 +88,7 @@ const requireSession = async (req, res, next) => {
     const user = await AppUser.findById(session.userId);
     if (!user || !user.isActive()) {
       await redis.del(key);
-      await Session.deleteOne({ sessionToken: session_token });
-      return res.status(403).json({ success: false, message: 'Session account is not active' });
+      return res.status(403).json({ success: false, message: 'Account is not active' });
     }
 
     req.sessionToken = session_token;
