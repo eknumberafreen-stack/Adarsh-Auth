@@ -220,85 +220,124 @@ export default function BillingPage() {
       )}
 
       {/* Plan Comparison Table */}
-      {allPlans.length > 0 && (
-        <div>
-          <h2 className="text-sm font-semibold text-white mb-3">Available Plans</h2>
-          <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-white/[0.06]">
-                    <th className="text-left px-5 py-3 text-xs text-gray-500 uppercase tracking-wider font-medium w-1/3">
-                      Feature
-                    </th>
-                    {allPlans.map((plan) => (
-                      <th
-                        key={plan._id}
-                        className={`px-5 py-3 text-center text-xs uppercase tracking-wider font-medium ${
-                          plan.name === currentPlan?.name
-                            ? 'text-indigo-300'
-                            : 'text-gray-500'
-                        }`}
-                      >
-                        <div className="flex flex-col items-center gap-1">
-                          <span>{plan.displayName}</span>
-                          {plan.name === currentPlan?.name && (
-                            <span className="px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-[10px] normal-case font-normal">
-                              Current
-                            </span>
-                          )}
-                        </div>
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {/* Price row */}
-                  <tr className="border-b border-white/[0.04]">
-                    <td className="px-5 py-3 text-gray-400">Price</td>
-                    {allPlans.map((plan) => (
-                      <td
-                        key={plan._id}
-                        className={`px-5 py-3 text-center font-semibold ${
-                          plan.name === currentPlan?.name ? 'text-indigo-300' : 'text-white'
-                        }`}
-                      >
-                        {formatPrice(plan.price, plan.name)}
-                      </td>
-                    ))}
-                  </tr>
+      {allPlans.length > 0 && (() => {
+        const isProCurrent = currentPlan?.name === 'pro' || currentPlan?.name?.startsWith('pro');
+        const isEntCurrent = currentPlan?.name === 'enterprise' || currentPlan?.name === 'enterprice' || currentPlan?.name === 'yearly' || currentPlan?.name?.startsWith('enterprise');
+        const isFreeCurrent = currentPlan?.name === 'free' || (!isProCurrent && !isEntCurrent);
 
-                  {/* Limits rows */}
-                  {[
-                    { label: 'Applications', key: 'maxApplications' as keyof PlanLimits },
-                    { label: 'Users / App', key: 'maxUsersPerApp' as keyof PlanLimits },
-                    { label: 'Licenses / App', key: 'maxLicensesPerApp' as keyof PlanLimits },
-                    { label: 'API Calls / Day', key: 'maxApiCallsPerDay' as keyof PlanLimits },
-                  ].map((row) => (
-                    <tr key={row.key} className="border-b border-white/[0.04]">
-                      <td className="px-5 py-3 text-gray-400">{row.label}</td>
-                      {allPlans.map((plan) => (
-                        <td
-                          key={plan._id}
-                          className={`px-5 py-3 text-center ${
-                            plan.name === currentPlan?.name ? 'text-indigo-200' : 'text-gray-300'
+        const comparisonPlans = [
+          {
+            name: 'free',
+            displayName: 'Free',
+            price: 'Free',
+            limits: { apps: '5', users: '100 / App', licenses: '50 / App', apis: '5,000 / Day' },
+            features: { webhooks: false, support: 'Community', custom: false },
+            isCurrent: isFreeCurrent
+          },
+          {
+            name: 'pro',
+            displayName: 'Pro',
+            price: billingCycle === 'monthly' ? '₹150 / mo' : '₹1,500 / yr',
+            limits: { apps: '25', users: '1,000 / App', licenses: '1,000 / App', apis: '50,000 / Day' },
+            features: { webhooks: true, support: 'Priority', custom: false },
+            isCurrent: isProCurrent
+          },
+          {
+            name: 'enterprise',
+            displayName: 'Enterprise',
+            price: billingCycle === 'monthly' ? '₹250 / mo' : '₹2,500 / yr',
+            limits: { apps: 'Unlimited', users: 'Unlimited', licenses: 'Unlimited', apis: 'Unlimited' },
+            features: { webhooks: true, support: 'Priority (24/7)', custom: true },
+            isCurrent: isEntCurrent
+          }
+        ];
+
+        return (
+          <div>
+            <h2 className="text-sm font-semibold text-white mb-3">Available Plans</h2>
+            <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-white/[0.06]">
+                      <th className="text-left px-5 py-3 text-xs text-gray-500 uppercase tracking-wider font-medium w-1/4">
+                        Feature
+                      </th>
+                      {comparisonPlans.map((col) => (
+                        <th
+                          key={col.name}
+                          className={`px-5 py-3 text-center text-xs uppercase tracking-wider font-medium ${
+                            col.isCurrent ? 'text-indigo-300' : 'text-gray-500'
                           }`}
                         >
-                          {formatLimit(plan.limits[row.key])}
+                          <div className="flex flex-col items-center gap-1">
+                            <span>{col.displayName}</span>
+                            {col.isCurrent && (
+                              <span className="px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-[10px] normal-case font-normal">
+                                Current Plan
+                              </span>
+                            )}
+                          </div>
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {/* Price Row */}
+                    <tr className="border-b border-white/[0.04]">
+                      <td className="px-5 py-3 text-gray-400">Price</td>
+                      {comparisonPlans.map((col) => (
+                        <td
+                          key={col.name}
+                          className={`px-5 py-3 text-center font-semibold ${
+                            col.isCurrent ? 'text-indigo-300' : 'text-white'
+                          }`}
+                        >
+                          {col.price}
                         </td>
                       ))}
                     </tr>
-                  ))}
 
-                  {/* Features rows */}
-                  {Array.from(
-                    new Set(allPlans.flatMap((p) => p.features))
-                  ).map((feature) => (
-                    <tr key={feature} className="border-b border-white/[0.04] last:border-0">
-                      <td className="px-5 py-3 text-gray-400">{feature}</td>
-                      {allPlans.map((plan) => (
-                        <td key={plan._id} className="px-5 py-3 text-center">
-                          {plan.features.includes(feature) ? (
+                    {/* Limits Rows */}
+                    <tr className="border-b border-white/[0.04]">
+                      <td className="px-5 py-3 text-gray-400">Applications Limit</td>
+                      {comparisonPlans.map((col) => (
+                        <td key={col.name} className={`px-5 py-3 text-center ${col.isCurrent ? 'text-indigo-200' : 'text-gray-300'}`}>
+                          {col.limits.apps}
+                        </td>
+                      ))}
+                    </tr>
+                    <tr className="border-b border-white/[0.04]">
+                      <td className="px-5 py-3 text-gray-400">Users Per Application</td>
+                      {comparisonPlans.map((col) => (
+                        <td key={col.name} className={`px-5 py-3 text-center ${col.isCurrent ? 'text-indigo-200' : 'text-gray-300'}`}>
+                          {col.limits.users}
+                        </td>
+                      ))}
+                    </tr>
+                    <tr className="border-b border-white/[0.04]">
+                      <td className="px-5 py-3 text-gray-400">Licenses Per Application</td>
+                      {comparisonPlans.map((col) => (
+                        <td key={col.name} className={`px-5 py-3 text-center ${col.isCurrent ? 'text-indigo-200' : 'text-gray-300'}`}>
+                          {col.limits.licenses}
+                        </td>
+                      ))}
+                    </tr>
+                    <tr className="border-b border-white/[0.04]">
+                      <td className="px-5 py-3 text-gray-400">API Calls Daily Limit</td>
+                      {comparisonPlans.map((col) => (
+                        <td key={col.name} className={`px-5 py-3 text-center ${col.isCurrent ? 'text-indigo-200' : 'text-gray-300'}`}>
+                          {col.limits.apis}
+                        </td>
+                      ))}
+                    </tr>
+
+                    {/* Features Rows */}
+                    <tr className="border-b border-white/[0.04]">
+                      <td className="px-5 py-3 text-gray-400">Discord Webhooks</td>
+                      {comparisonPlans.map((col) => (
+                        <td key={col.name} className="px-5 py-3 text-center">
+                          {col.features.webhooks ? (
                             <CheckIcon className="w-4 h-4 text-emerald-400 mx-auto" />
                           ) : (
                             <span className="text-gray-600">—</span>
@@ -306,13 +345,33 @@ export default function BillingPage() {
                         </td>
                       ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                    <tr className="border-b border-white/[0.04]">
+                      <td className="px-5 py-3 text-gray-400">Customer Support</td>
+                      {comparisonPlans.map((col) => (
+                        <td key={col.name} className={`px-5 py-3 text-center ${col.isCurrent ? 'text-indigo-200' : 'text-gray-400'}`}>
+                          {col.features.support}
+                        </td>
+                      ))}
+                    </tr>
+                    <tr className="border-b border-white/[0.04] last:border-0">
+                      <td className="px-5 py-3 text-gray-400">Custom Integrations</td>
+                      {comparisonPlans.map((col) => (
+                        <td key={col.name} className="px-5 py-3 text-center">
+                          {col.features.custom ? (
+                            <CheckIcon className="w-4 h-4 text-emerald-400 mx-auto" />
+                          ) : (
+                            <span className="text-gray-600">—</span>
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Upgrade Plans Grid */}
       {allPlans.length > 0 && (
@@ -347,13 +406,18 @@ export default function BillingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto">
             {allPlans.filter(p => p.name !== 'free' && p.name.endsWith(`_${billingCycle}`)).map((plan) => {
-              const isCurrent = plan.name === currentPlan?.name
+              const isLegacyEnterprise = currentPlan?.name === 'enterprise' || currentPlan?.name === 'enterprice' || currentPlan?.name === 'yearly';
+              const isCurrent = plan.name === currentPlan?.name ||
+                (plan.name === 'pro_monthly' && currentPlan?.name === 'pro' && billingCycle === 'monthly') ||
+                (plan.name === 'pro_yearly' && currentPlan?.name === 'pro' && billingCycle === 'yearly') ||
+                (plan.name === 'enterprise_monthly' && isLegacyEnterprise && billingCycle === 'monthly') ||
+                (plan.name === 'enterprise_yearly' && isLegacyEnterprise && billingCycle === 'yearly');
               return (
                 <div key={plan._id} className={`bg-white/[0.02] border rounded-xl p-5 flex flex-col gap-4 ${isCurrent ? 'border-indigo-500/30' : 'border-white/[0.06]'}`}>
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <p className="font-bold text-white">{plan.displayName}</p>
-                      {isCurrent && <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300">Current</span>}
+                      {isCurrent && <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300">Current Plan</span>}
                     </div>
                     <p className="text-xl font-black text-indigo-300">{formatPrice(plan.price, plan.name)}</p>
                   </div>

@@ -134,7 +134,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       .then((res) => {
         const plan = res.data?.plan
         if (plan) {
-          setPlanName(plan.name ?? 'free')
+          let name = (plan.name ?? 'free').toLowerCase()
+          if (name.startsWith('pro')) {
+            name = 'pro'
+          } else if (name.startsWith('enterprise') || name === 'yearly' || name === 'enterprice') {
+            name = 'enterprise'
+          }
+          setPlanName(name)
           setPlanDisplay(plan.displayName ?? 'Free')
         }
       })
