@@ -344,14 +344,6 @@ export default function Licenses() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Licenses</h1>
         <div className="flex items-center gap-3">
-          {licenses.length > 0 && (
-            <button 
-              onClick={handleDeleteAllLicenses} 
-              className="px-4 py-2.5 bg-red-600/10 hover:bg-red-600/20 border border-red-500/20 hover:border-red-500/40 text-red-400 rounded-xl text-sm font-semibold transition-all flex items-center gap-2"
-            >
-              🗑️ Delete All Licenses
-            </button>
-          )}
           <button onClick={() => setShowGenerateModal(true)} className="btn btn-primary flex items-center gap-2 py-2.5" disabled={!selectedApp?._id}>
             <PlusIcon className="w-4 h-4" /> Generate Licenses
           </button>
@@ -465,7 +457,7 @@ export default function Licenses() {
 
               {/* Bulk Controls Panel */}
               {selectedLicenseIds.length > 0 && (
-                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-[#101018]/90 backdrop-blur-md border border-primary-500/30 px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-6 z-[999] animate-in slide-in-from-bottom-4 duration-300">
+                <div className="fixed bottom-16 left-1/2 -translate-x-1/2 bg-[#101018]/95 backdrop-blur-xl border border-primary-500/30 px-6 py-3.5 rounded-2xl shadow-2xl flex items-center gap-4 z-[999]">
                   <div className="text-sm font-semibold text-gray-300">
                     Selected: <span className="text-primary-400 font-mono">{selectedLicenseIds.length}</span> keys
                   </div>

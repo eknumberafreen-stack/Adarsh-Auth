@@ -445,14 +445,7 @@ export default function Users() {
                 className="w-64 pl-10 pr-4 py-2.5 bg-dark-bg border border-dark-border rounded-xl text-sm focus:outline-none focus:border-primary-500/50 transition-all placeholder-gray-500"
               />
             </div>
-            {users.length > 0 && (
-              <button 
-                onClick={handleDeleteAllUsers} 
-                className="px-4 py-2.5 bg-red-600/10 hover:bg-red-600/20 border border-red-500/20 hover:border-red-500/40 text-red-400 rounded-xl text-sm font-semibold transition-all flex items-center gap-2"
-              >
-                🗑️ Delete All Users
-              </button>
-            )}
+
             <button onClick={() => setShowCreateModal(true)} className="btn btn-primary flex items-center gap-2 py-2.5">
               <PlusIcon className="w-4 h-4" /> Create User
             </button>
@@ -597,7 +590,7 @@ export default function Users() {
 
               {/* Bulk Controls Panel */}
               {selectedUserIds.length > 0 && (
-                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-[#101018]/90 backdrop-blur-md border border-primary-500/30 px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-6 z-[999] animate-in slide-in-from-bottom-4 duration-300">
+                <div className="fixed bottom-16 left-1/2 -translate-x-1/2 bg-[#101018]/95 backdrop-blur-xl border border-primary-500/30 px-6 py-3.5 rounded-2xl shadow-2xl flex items-center gap-4 z-[999]">
                   <div className="text-sm font-semibold text-gray-300">
                     Selected: <span className="text-primary-400 font-mono">{selectedUserIds.length}</span> users
                   </div>
@@ -607,7 +600,7 @@ export default function Users() {
                       onClick={() => handleBulkAction('ban')}
                       className="px-4 py-2 bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/20 text-yellow-400 text-xs font-bold rounded-xl transition-all"
                     >
-                      🚫 Soft Ban
+                      🚫 Ban
                     </button>
                     <button 
                       onClick={() => handleBulkAction('unban')}
