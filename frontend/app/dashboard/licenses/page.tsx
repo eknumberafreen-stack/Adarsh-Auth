@@ -114,6 +114,8 @@ export default function Licenses() {
     confirmText: 'Confirm'
   })
 
+  const [selectedLicenseIds, setSelectedLicenseIds] = useState<string[]>([])
+
   useEffect(() => { 
     if (selectedApp?._id) {
       setCurrentPage(1)
@@ -129,6 +131,7 @@ export default function Licenses() {
       setLicenses(res.data.licenses)
       setTotalPages(res.data.pagination.pages)
       setTotalLicenses(res.data.pagination.total)
+      setSelectedLicenseIds([]) // reset selections
     } catch { toast.error('Failed to load licenses') }
     finally { setLoading(false) }
   }
@@ -137,6 +140,79 @@ export default function Licenses() {
     if (newPage < 1 || newPage > totalPages) return
     setCurrentPage(newPage)
     loadLicenses(newPage)
+  }
+
+  const handleBulkAction = async (action: 'revoke' | 'unrevoke' | 'pause' | 'unpause' | 'delete') => {
+    if (selectedLicenseIds.length === 0) return toast.error('No licenses selected')
+
+    const execute = async () => {
+      try {
+        await api.post('/licenses/bulk-action', {
+          licenseIds: selectedLicenseIds,
+          action,
+          applicationId: selectedApp._id
+        })
+        toast.success(`Bulk action '${action}' successfully completed on ${selectedLicenseIds.length} license(s).`)
+        setSelectedLicenseIds([])
+        loadLicenses()
+      } catch (e: any) {
+        toast.error(e.response?.data?.error || 'Bulk action failed')
+      }
+      setConfirmModal(prev => ({ ...prev, show: false }))
+    }
+
+    if (action === 'delete') {
+      setConfirmModal({
+        show: true,
+        title: 'Bulk Delete Keys?',
+        message: `Are you sure you want to permanently delete all ${selectedLicenseIds.length} selected license keys? This is irreversible!`,
+        type: 'danger',
+        confirmText: 'Delete Selected',
+        onConfirm: execute
+      })
+    } else if (action === 'revoke') {
+      setConfirmModal({
+        show: true,
+        title: 'Bulk Ban/Revoke Keys?',
+        message: `Are you sure you want to revoke all ${selectedLicenseIds.length} selected license keys?`,
+        type: 'warning',
+        confirmText: 'Revoke Selected',
+        onConfirm: execute
+      })
+    } else {
+      execute()
+    }
+  }
+
+  const handleBulkCopyKeys = () => {
+    if (selectedLicenseIds.length === 0) return toast.error('No licenses selected')
+    const selectedKeys = licenses
+      .filter(l => selectedLicenseIds.includes(l._id))
+      .map(l => l.key)
+      .join('\n')
+    
+    navigator.clipboard.writeText(selectedKeys)
+    toast.success(`Copied ${selectedLicenseIds.length} key(s) to clipboard!`)
+  }
+
+  const handleDeleteAllLicenses = async () => {
+    setConfirmModal({
+      show: true,
+      title: 'DELETE ALL LICENSES?',
+      message: `DANGER: Are you sure you want to delete ALL licenses for "${selectedApp.name}"? This will permanently delete all keys. This cannot be undone!`,
+      type: 'danger',
+      confirmText: 'DELETE ALL',
+      onConfirm: async () => {
+        try {
+          await api.delete(`/licenses/application/${selectedApp._id}/all`)
+          toast.success('All application licenses successfully deleted.')
+          loadLicenses()
+        } catch (e: any) {
+          toast.error(e.response?.data?.error || 'Failed to delete all licenses')
+        }
+        setConfirmModal(prev => ({ ...prev, show: false }))
+      }
+    })
   }
 
   // ── Actions ────────────────────────────────────────────────────────────────
@@ -267,9 +343,19 @@ export default function Licenses() {
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Licenses</h1>
-        <button onClick={() => setShowGenerateModal(true)} className="btn btn-primary flex items-center gap-2" disabled={!selectedApp?._id}>
-          <PlusIcon className="w-4 h-4" /> Generate Licenses
-        </button>
+        <div className="flex items-center gap-3">
+          {licenses.length > 0 && (
+            <button 
+              onClick={handleDeleteAllLicenses} 
+              className="px-4 py-2.5 bg-red-600/10 hover:bg-red-600/20 border border-red-500/20 hover:border-red-500/40 text-red-400 rounded-xl text-sm font-semibold transition-all flex items-center gap-2"
+            >
+              🗑️ Delete All Licenses
+            </button>
+          )}
+          <button onClick={() => setShowGenerateModal(true)} className="btn btn-primary flex items-center gap-2 py-2.5" disabled={!selectedApp?._id}>
+            <PlusIcon className="w-4 h-4" /> Generate Licenses
+          </button>
+        </div>
       </div>
 
       {applications.length === 0 ? (
@@ -283,13 +369,27 @@ export default function Licenses() {
           ) : licenses.length === 0 ? (
             <div className="text-center py-12 text-gray-400">No licenses yet. Generate your first one!</div>
           ) : (
-            <div className="card overflow-visible p-0">
+            <div className="card overflow-visible p-0 relative">
               {(() => {
                 const showCreatedBy = licenses.some(l => l.createdBy)
                 return (
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-dark-border">
+                        <th className="px-4 py-3 text-left w-10">
+                          <input 
+                            type="checkbox"
+                            checked={licenses.length > 0 && selectedLicenseIds.length === licenses.length}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedLicenseIds(licenses.map(l => l._id))
+                              } else {
+                                setSelectedLicenseIds([])
+                              }
+                            }}
+                            className="w-4 h-4 rounded border-dark-border bg-dark-bg text-primary-600 accent-primary-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                          />
+                        </th>
                         <th className="text-left px-4 py-3 text-gray-400 font-medium">License Key</th>
                         <th className="text-left px-4 py-3 text-gray-400 font-medium">Status</th>
                         <th className="text-left px-4 py-3 text-gray-400 font-medium">Expiry</th>
@@ -304,7 +404,21 @@ export default function Licenses() {
                     </thead>
                     <tbody>
                       {licenses.map((license: any) => (
-                        <tr key={license._id} className="border-b border-dark-border/50 hover:bg-dark-hover/30 transition-colors">
+                        <tr key={license._id} className={`border-b border-dark-border/50 hover:bg-dark-hover/30 transition-colors ${selectedLicenseIds.includes(license._id) ? 'bg-primary-950/10' : ''}`}>
+                          <td className="px-4 py-3 w-10">
+                            <input 
+                              type="checkbox"
+                              checked={selectedLicenseIds.includes(license._id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedLicenseIds([...selectedLicenseIds, license._id])
+                                } else {
+                                  setSelectedLicenseIds(selectedLicenseIds.filter(id => id !== license._id))
+                                }
+                              }}
+                              className="w-4 h-4 rounded border-dark-border bg-dark-bg text-primary-600 accent-primary-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                            />
+                          </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
                               <code className="font-mono text-xs text-gray-300 truncate max-w-[180px]">{license.key}</code>
@@ -348,6 +462,61 @@ export default function Licenses() {
                   </table>
                 )
               })()}
+
+              {/* Bulk Controls Panel */}
+              {selectedLicenseIds.length > 0 && (
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-[#101018]/90 backdrop-blur-md border border-primary-500/30 px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-6 z-[999] animate-in slide-in-from-bottom-4 duration-300">
+                  <div className="text-sm font-semibold text-gray-300">
+                    Selected: <span className="text-primary-400 font-mono">{selectedLicenseIds.length}</span> keys
+                  </div>
+                  <div className="h-6 w-px bg-dark-border" />
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={handleBulkCopyKeys}
+                      className="px-4 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-indigo-400 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5"
+                    >
+                      📋 Copy Keys
+                    </button>
+                    <button 
+                      onClick={() => handleBulkAction('revoke')}
+                      className="px-4 py-2 bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/20 text-yellow-400 text-xs font-bold rounded-xl transition-all"
+                    >
+                      🚫 Revoke
+                    </button>
+                    <button 
+                      onClick={() => handleBulkAction('unrevoke')}
+                      className="px-4 py-2 bg-green-500/10 hover:bg-green-500/20 border border-green-500/20 text-green-400 text-xs font-bold rounded-xl transition-all"
+                    >
+                      ✅ Unrevoke
+                    </button>
+                    <button 
+                      onClick={() => handleBulkAction('pause')}
+                      className="px-4 py-2 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-purple-400 text-xs font-bold rounded-xl transition-all"
+                    >
+                      ⏸️ Pause
+                    </button>
+                    <button 
+                      onClick={() => handleBulkAction('unpause')}
+                      className="px-4 py-2 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 text-blue-400 text-xs font-bold rounded-xl transition-all"
+                    >
+                      ▶️ Play
+                    </button>
+                    <button 
+                      onClick={() => handleBulkAction('delete')}
+                      className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 text-xs font-bold rounded-xl transition-all"
+                    >
+                      🗑️ Delete
+                    </button>
+                  </div>
+                  <div className="h-6 w-px bg-dark-border" />
+                  <button 
+                    onClick={() => setSelectedLicenseIds([])}
+                    className="text-xs font-bold text-gray-500 hover:text-gray-300 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
 
               {/* Pagination Controls */}
               {totalPages > 1 && (

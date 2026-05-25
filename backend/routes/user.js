@@ -327,6 +327,98 @@ router.delete('/:id', asyncHandler(async (req, res) => {
   res.json({ message: 'User deleted successfully' });
 }));
 
+// Delete all users for an application (OWNER/MANAGER ONLY)
+router.delete('/application/:applicationId/all', verifyAppAccess('manage_users'), asyncHandler(async (req, res) => {
+  const application = req.application;
+  const usersToClear = await AppUser.find({ applicationId: application._id }).select('_id');
+  const ids = usersToClear.map(u => u._id);
+
+  await Promise.all([
+    AppUser.deleteMany({ applicationId: application._id }),
+    Session.deleteMany({ userId: { $in: ids } })
+  ]);
+
+  // Invalidate Redis plan usage cache
+  try {
+    const redis = getRedisClient();
+    await redis.del(`plan:usage:${application.userId}`);
+  } catch (_) {}
+
+  res.json({ message: 'All application users deleted successfully' });
+}));
+
+// Bulk action on users (OWNER/MANAGER ONLY)
+router.post('/bulk-action', asyncHandler(async (req, res) => {
+  const { userIds, action, applicationId } = req.body;
+  if (!userIds || !Array.isArray(userIds) || userIds.length === 0 || !applicationId) {
+    return res.status(400).json({ error: 'userIds, action, and applicationId are required' });
+  }
+
+  // Verify access manually since we need to check permission for this application
+  const app = await Application.findById(applicationId);
+  if (!app) return res.status(404).json({ error: 'Application not found' });
+
+  const isOwner = app.userId.toString() === req.userId.toString();
+  const teamMember = app.team?.find(m => m.userId.toString() === req.userId.toString());
+  if (!isOwner) {
+    if (!teamMember || !teamMember.permissions.includes('manage_users')) {
+      return res.status(403).json({ error: 'Access denied: Requires manage_users permission.' });
+    }
+  }
+
+  if (action === 'delete') {
+    await Promise.all([
+      AppUser.deleteMany({ _id: { $in: userIds }, applicationId }),
+      Session.deleteMany({ userId: { $in: userIds } })
+    ]);
+  } else if (action === 'ban') {
+    const { reason = 'Bulk ban', banMessage = '' } = req.body;
+    await AppUser.updateMany(
+      { _id: { $in: userIds }, applicationId },
+      { $set: { banned: true, bannedAt: new Date(), banReason: reason, banMessage: banMessage || null } }
+    );
+    await Session.deleteMany({ userId: { $in: userIds } });
+  } else if (action === 'unban') {
+    await AppUser.updateMany(
+      { _id: { $in: userIds }, applicationId },
+      { $set: { banned: false, bannedAt: null, banReason: null, banMessage: null } }
+    );
+  } else if (action === 'pause') {
+    const usersToPause = await AppUser.find({ _id: { $in: userIds }, applicationId });
+    for (const u of usersToPause) {
+      u.paused = true;
+      u.pausedExpiry = u.expiryDate;
+      u.expiryDate = new Date(Date.now() - 1000);
+      await u.save();
+    }
+    await Session.deleteMany({ userId: { $in: userIds } });
+  } else if (action === 'unpause') {
+    const usersToUnpause = await AppUser.find({ _id: { $in: userIds }, applicationId });
+    for (const u of usersToUnpause) {
+      u.paused = false;
+      u.expiryDate = u.pausedExpiry;
+      u.pausedExpiry = null;
+      await u.save();
+    }
+  } else if (action === 'reset-hwid') {
+    const usersToReset = await AppUser.find({ _id: { $in: userIds }, applicationId });
+    for (const u of usersToReset) {
+      await u.resetHwid();
+    }
+    await Session.deleteMany({ userId: { $in: userIds } });
+  } else {
+    return res.status(400).json({ error: 'Invalid action' });
+  }
+
+  // Invalidate Redis plan usage cache
+  try {
+    const redis = getRedisClient();
+    await redis.del(`plan:usage:${app.userId}`);
+  } catch (_) {}
+
+  res.json({ message: `Bulk action '${action}' completed successfully` });
+}));
+
 // ─── IP Ban management ────────────────────────────────────────────────────────
 router.get('/ip-bans', asyncHandler(async (req, res) => {
   // Only owners should ideally view all IP bans, but for simplicity let's return it. 

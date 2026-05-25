@@ -32,13 +32,13 @@ const defaultPlans = [
     limits: {
       maxApplications: 25,
       maxUsersPerApp: 1000,
-      maxLicensesPerApp: 500,
+      maxLicensesPerApp: 1000,
       maxApiCallsPerDay: 50000,
     },
     features: [
       '25 applications',
       '1,000 users/app',
-      '500 licenses/app',
+      '1,000 licenses/app',
       '50,000 API calls/day',
       'Discord Webhooks',
       'Priority Support',
@@ -52,13 +52,13 @@ const defaultPlans = [
     limits: {
       maxApplications: 25,
       maxUsersPerApp: 1000,
-      maxLicensesPerApp: 500,
+      maxLicensesPerApp: 1000,
       maxApiCallsPerDay: 50000,
     },
     features: [
       '25 applications',
       '1,000 users/app',
-      '500 licenses/app',
+      '1,000 licenses/app',
       '50,000 API calls/day',
       'Discord Webhooks',
       'Priority Support',

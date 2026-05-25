@@ -198,4 +198,75 @@ router.delete('/:id', asyncHandler(async (req, res) => {
   res.json({ message: 'License deleted successfully' });
 }));
 
+// Delete all licenses for an application (OWNER/MANAGER ONLY)
+router.delete('/application/:applicationId/all', verifyAppAccess('manage_licenses'), asyncHandler(async (req, res) => {
+  const application = req.application;
+  
+  await License.deleteMany({ applicationId: application._id });
+
+  // Invalidate Redis plan usage cache
+  try {
+    const { getRedisClient } = require('../config/redis');
+    const redis = getRedisClient();
+    await redis.del(`plan:usage:${application.userId}`);
+  } catch (_) {}
+
+  res.json({ message: 'All application licenses deleted successfully' });
+}));
+
+// Bulk action on licenses (OWNER/MANAGER ONLY)
+router.post('/bulk-action', asyncHandler(async (req, res) => {
+  const { licenseIds, action, applicationId } = req.body;
+  if (!licenseIds || !Array.isArray(licenseIds) || licenseIds.length === 0 || !applicationId) {
+    return res.status(400).json({ error: 'licenseIds, action, and applicationId are required' });
+  }
+
+  // Verify access manually
+  const app = await Application.findById(applicationId);
+  if (!app) return res.status(404).json({ error: 'Application not found' });
+
+  const isOwner = app.userId.toString() === req.userId.toString();
+  const teamMember = app.team?.find(m => m.userId.toString() === req.userId.toString());
+  if (!isOwner) {
+    if (!teamMember || !teamMember.permissions.includes('manage_licenses')) {
+      return res.status(403).json({ error: 'Access denied: Requires manage_licenses permission.' });
+    }
+  }
+
+  if (action === 'delete') {
+    await License.deleteMany({ _id: { $in: licenseIds }, applicationId });
+  } else if (action === 'revoke') {
+    await License.updateMany(
+      { _id: { $in: licenseIds }, applicationId },
+      { $set: { revoked: true, revokedAt: new Date() } }
+    );
+  } else if (action === 'unrevoke') {
+    await License.updateMany(
+      { _id: { $in: licenseIds }, applicationId },
+      { $set: { revoked: false, revokedAt: null } }
+    );
+  } else if (action === 'pause') {
+    await License.updateMany(
+      { _id: { $in: licenseIds }, applicationId },
+      { $set: { paused: true } }
+    );
+  } else if (action === 'unpause') {
+    await License.updateMany(
+      { _id: { $in: licenseIds }, applicationId },
+      { $set: { paused: false } }
+    );
+  } else {
+    return res.status(400).json({ error: 'Invalid action' });
+  }
+
+  // Invalidate Redis plan usage cache
+  try {
+    const { getRedisClient } = require('../config/redis');
+    const redis = getRedisClient();
+    await redis.del(`plan:usage:${app.userId}`);
+  } catch (_) {}
+
+  res.json({ message: `Bulk action '${action}' completed successfully` });
+}));
+
 module.exports = router;
