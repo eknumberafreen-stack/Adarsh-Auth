@@ -3,6 +3,8 @@ const Session = require('../models/Session');
 const Application = require('../models/Application');
 const { verifyToken, verifyAppAccess } = require('../middleware/auth');
 const { asyncHandler } = require('../middleware/errorHandler');
+const { getRedisClient } = require('../config/redis');
+const AppUser = require('../models/AppUser');
 
 const router = express.Router();
 
@@ -44,39 +46,68 @@ const verifySessionActionAccess = async (req, res, session, requiredPermission) 
 // Get all sessions for application
 router.get('/application/:applicationId', verifyAppAccess(), asyncHandler(async (req, res) => {
   const { applicationId } = req.params;
+  const redis = getRedisClient();
+  const activeSessions = [];
 
-  const sessions = await Session.find({ applicationId })
-    .populate('userId', 'username lastLogin')
-    .sort({ createdAt: -1 });
+  const users = await AppUser.find({ applicationId }).select('_id username lastLogin');
 
-  res.json({ sessions });
+  for (const user of users) {
+    const userKey = `user_sess:${user._id}:${applicationId}`;
+    const token = await redis.get(userKey);
+    if (token) {
+      const sessionData = await redis.hGetAll(`sess:${token}`);
+      if (sessionData && Object.keys(sessionData).length > 0) {
+        activeSessions.push({
+          _id: token,
+          userId: { _id: user._id, username: user.username, lastLogin: user.lastLogin },
+          applicationId,
+          hwid: sessionData.hwid,
+          ip: sessionData.ip,
+          ping: sessionData.ping || 'N/A',
+          lastHeartbeat: sessionData.lastHeartbeat ? parseInt(sessionData.lastHeartbeat) : Date.now(),
+          createdAt: Date.now(), 
+          expiresAt: Date.now() + 24 * 60 * 60 * 1000
+        });
+      }
+    }
+  }
+
+  res.json({ sessions: activeSessions.sort((a, b) => b.lastHeartbeat - a.lastHeartbeat) });
 }));
 
 // Terminate session
 router.delete('/:id', asyncHandler(async (req, res) => {
-  const session = await Session.findById(req.params.id).populate('applicationId');
-
-  if (!session) {
+  const token = req.params.id;
+  const redis = getRedisClient();
+  
+  const session = await redis.hGetAll(`sess:${token}`);
+  if (!session || Object.keys(session).length === 0) {
     return res.status(404).json({ error: 'Session not found' });
   }
 
-  const hasAccess = await verifySessionActionAccess(req, res, session, 'manage_users');
-  if (!hasAccess) return res.status(403).json({ error: 'Access denied: You need manage_users permission.' });
-
-  await Session.deleteOne({ _id: session._id });
-
-  res.json({ message: 'Session terminated successfully' });
+  await redis.hSet(`sess:${token}`, 'forceClose', 'true');
+  res.json({ message: 'Session terminated successfully (Force close signal sent)' });
 }));
 
 // Terminate all sessions for application
 router.delete('/application/:applicationId/all', verifyAppAccess('manage_users'), asyncHandler(async (req, res) => {
   const { applicationId } = req.params;
+  const redis = getRedisClient();
+  const users = await AppUser.find({ applicationId }).select('_id');
+  let count = 0;
 
-  const result = await Session.deleteMany({ applicationId });
+  for (const user of users) {
+    const userKey = `user_sess:${user._id}:${applicationId}`;
+    const token = await redis.get(userKey);
+    if (token) {
+      await redis.hSet(`sess:${token}`, 'forceClose', 'true');
+      count++;
+    }
+  }
 
   res.json({
     message: 'All sessions terminated successfully',
-    count: result.deletedCount
+    count
   });
 }));
 

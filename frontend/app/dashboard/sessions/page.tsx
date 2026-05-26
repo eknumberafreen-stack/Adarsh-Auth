@@ -24,19 +24,21 @@ export default function Sessions() {
   useEffect(() => {
     if (selectedApp?._id) {
       loadSessions()
+      const interval = setInterval(() => loadSessions(true), 10000)
+      return () => clearInterval(interval)
     }
   }, [selectedApp?._id])
 
-  const loadSessions = async () => {
+  const loadSessions = async (background = false) => {
     if (!selectedApp?._id) return
-    setLoading(true)
+    if (!background) setLoading(true)
     try {
       const response = await api.get(`/sessions/application/${selectedApp._id}`)
       setSessions(response.data.sessions)
     } catch {
       toast.error('Failed to load sessions')
     } finally {
-      setLoading(false)
+      if (!background) setLoading(false)
     }
   }
 
@@ -155,7 +157,19 @@ export default function Sessions() {
                               <UserCircleIcon className="h-6 w-6" />
                             </div>
                             <div>
-                              <p className="text-lg font-bold text-white">{session.userId?.username || 'Unknown User'}</p>
+                              <div className="flex items-center gap-2">
+                                <p className="text-lg font-bold text-white">{session.userId?.username || 'Unknown User'}</p>
+                                {Date.now() - new Date(session.lastHeartbeat).getTime() < 45000 ? (
+                                  <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/20 text-[10px] font-bold text-green-400 uppercase tracking-wider">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                                    Live
+                                  </span>
+                                ) : (
+                                  <span className="px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/20 text-[10px] font-bold text-red-400 uppercase tracking-wider">
+                                    Offline
+                                  </span>
+                                )}
+                              </div>
                               <p className="text-sm text-slate-400">Application session record</p>
                             </div>
                           </div>
@@ -169,6 +183,7 @@ export default function Sessions() {
 
                       <div className="mt-5 grid gap-3">
                         {[
+                          { label: 'Ping', value: session.ping !== 'N/A' ? `${session.ping} ms` : 'N/A' },
                           { label: 'IP Address', value: session.ip },
                           { label: 'HWID', value: session.hwid },
                           { label: 'Last Heartbeat', value: new Date(session.lastHeartbeat).toLocaleString() },

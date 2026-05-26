@@ -557,7 +557,62 @@ router.post('/heartbeat',
     const redis = getRedisClient();
     const key = `sess:${req.sessionToken}`;
     await redis.hSet(key, 'lastHeartbeat', Date.now().toString());
+<<<<<<< HEAD
     res.sendSigned({ success: true, message: 'OK' });
+=======
+    if (req.clientBody.ping) {
+      await redis.hSet(key, 'ping', req.clientBody.ping.toString());
+    }
+
+    // Check client offset version & status
+    const doc = await RuntimeValues.findOne({ applicationId: req.application._id });
+    let offsetVersion = 0;
+    let offsetStatus = 'valid';
+
+    if (!doc || doc.revoked) {
+      offsetStatus = 'revoked';
+    } else {
+      offsetVersion = doc.offsetVersion || 1;
+      
+      if (doc.offsetExpiresAt && doc.offsetExpiresAt < Date.now()) {
+        offsetStatus = 'revoked';
+      }
+
+      const clientOffsetVersion = req.clientBody.offsetVersion;
+      if (offsetStatus !== 'revoked' && clientOffsetVersion !== undefined && clientOffsetVersion !== null) {
+        const clientVerNum = parseInt(clientOffsetVersion, 10);
+        if (clientVerNum !== offsetVersion) {
+          offsetStatus = 'refresh_required';
+        }
+      }
+    }
+
+    const clientOffsetVersion = req.clientBody.offsetVersion;
+    if (clientOffsetVersion !== undefined && clientOffsetVersion !== null) {
+      if (offsetStatus === 'refresh_required' || offsetStatus === 'revoked') {
+        await AuditLog.create({
+          applicationId: req.application._id,
+          userId: req.sessionUser._id,
+          action: 'offset_refresh_triggered',
+          ip: req.clientIp,
+          severity: 'info',
+          details: {
+            status: offsetStatus,
+            clientVersion: clientOffsetVersion,
+            serverVersion: offsetVersion
+          }
+        });
+      }
+    }
+
+    res.sendSigned({ 
+      success: true, 
+      message: 'OK',
+      forceClose: false,
+      offsetVersion,
+      offsetStatus
+    });
+>>>>>>> d381af0 (Auto-update)
   })
 );
 // ─── POST /api/client/values ──────────────────────────────────────────────────
