@@ -297,6 +297,26 @@ router.post('/:id/reset-hwid', asyncHandler(async (req, res) => {
   res.json({ message: 'HWID reset successfully' });
 }));
 
+// ─── Force Close User Executable ──────────────────────────────────────────────
+router.post('/:id/force-close', asyncHandler(async (req, res) => {
+  const user = await AppUser.findById(req.params.id).populate('applicationId');
+  if (!user) return res.status(404).json({ error: 'User not found' });
+
+  const hasAccess = await verifyUserActionAccess(req, res, user, 'manage_users');
+  if (!hasAccess) return res.status(403).json({ error: 'Access denied: You need manage_users permission.' });
+
+  const redis = require('../config/redis').getRedisClient();
+  const userKey = `user_sess:${user._id}:${user.applicationId._id}`;
+  const token = await redis.get(userKey);
+  
+  if (token) {
+    await redis.hSet(`sess:${token}`, 'forceClose', 'true');
+    return res.json({ message: 'Crash command sent successfully' });
+  }
+
+  res.status(404).json({ error: 'User is not currently online' });
+}));
+
 // ─── Delete user ──────────────────────────────────────────────────────────────
 router.delete('/:id', asyncHandler(async (req, res) => {
   const user = await AppUser.findById(req.params.id).populate('applicationId');
