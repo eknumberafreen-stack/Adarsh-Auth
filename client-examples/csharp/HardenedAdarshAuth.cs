@@ -60,11 +60,6 @@ namespace Keyauth
         public app_data_class   app_data   = new app_data_class();
         public response_class   response   = new response_class();
 
-        // ── Runtime Offset State ─────────────────────────────────────────────
-        public int offsetVersion = 0;
-        public bool isFeatureActive = false;
-        public Dictionary<string, string> inMemoryOffsets = new Dictionary<string, string>();
-
         // ── Native Imports for Hardening ─────────────────────────────────────
         [DllImport("kernel32.dll", SetLastError = true, ExactSpelling = true)]
         static extern bool CheckRemoteDebuggerPresent(IntPtr hProcess, ref bool isDebuggerPresent);
@@ -249,30 +244,6 @@ namespace Keyauth
             response.message = "Logged out";
         }
 
-        public bool fetchValues()
-        {
-            CheckInit();
-            if (string.IsNullOrEmpty(SessionToken))
-            {
-                error("Not logged in");
-                return false;
-            }
-            var payload = new Dictionary<string, object>
-            {
-                ["session_token"] = SessionToken,
-                ["hwid"]          = GetHWID()
-            };
-            var result = PostSigned("/values", payload);
-            if (result.success)
-            {
-                offsetVersion = result.offsetVersion;
-                isFeatureActive = true;
-                inMemoryOffsets = result.values ?? new Dictionary<string, string>();
-                return true;
-            }
-            return false;
-        }
-
         private void StartHeartbeat()
         {
             StopHeartbeat();
@@ -294,31 +265,10 @@ namespace Keyauth
                 string token = SessionToken;
                 if (string.IsNullOrEmpty(token)) return;
 
-                var payload = new Dictionary<string, object> { 
-                    ["session_token"] = token, 
-                    ["hwid"] = GetHWID() 
-                };
-                if (isFeatureActive) {
-                    payload["offsetVersion"] = offsetVersion;
-                }
-
+                var payload = new Dictionary<string, object> { ["session_token"] = token, ["hwid"] = GetHWID() };
                 var result = PostSigned("/heartbeat", payload);
                 
-                if (result.forceClose) {
-                    StopHeartbeat();
-                    SessionToken = null;
-                    Environment.Exit(0);
-                }
-
-                if (result.success) {
-                    if (isFeatureActive) {
-                        if (result.offsetStatus == "refresh_required" || result.offsetStatus == "revoked") {
-                            isFeatureActive = false;
-                            inMemoryOffsets.Clear();
-                            offsetVersion = 0;
-                        }
-                    }
-                } else {
+                if (!result.success) {
                     string msg = result.message?.ToLower() ?? "";
                     // Only terminate for confirmed invalid-session states from the backend.
                     // This prevents crashes due to temporary network lag or server downtime.
@@ -467,13 +417,18 @@ namespace Keyauth
                     string serverSig = sigProp.GetString();
 
                     // 2. Prepare data for verification
-                    // The server signs: JSON_WITHOUT_SIGNATURES + REQUEST_NONCE
-                    var responseData = new SortedDictionary<string, JsonElement>();
+                    // The server signs: JSON_WITHOUT_SIGNATURE + REQUEST_NONCE
+                    var responseData = new Dictionary<string, object>();
                     foreach (var prop in root.EnumerateObject())
                     {
-                        if (prop.Name != "signature" && prop.Name != "rsa_sig")
+                        if (prop.Name != "signature")
                         {
-                            responseData[prop.Name] = prop.Value;
+                            if (prop.Value.ValueKind == JsonValueKind.String) responseData[prop.Name] = prop.Value.GetString();
+                            else if (prop.Value.ValueKind == JsonValueKind.True) responseData[prop.Name] = true;
+                            else if (prop.Value.ValueKind == JsonValueKind.False) responseData[prop.Name] = false;
+                            else if (prop.Value.ValueKind == JsonValueKind.Number) responseData[prop.Name] = prop.Value.GetDouble();
+                            else if (prop.Value.ValueKind == JsonValueKind.Null) responseData[prop.Name] = null;
+                            else responseData[prop.Name] = prop.Value.GetRawText();
                         }
                     }
 
@@ -505,21 +460,8 @@ namespace Keyauth
                 createdate   = root.TryGetProperty("createdate",   out var cd) ? cd.GetString() : null,
                 lastlogin    = root.TryGetProperty("lastlogin",    out var ll) ? ll.GetString() : null,
                 subscription = root.TryGetProperty("subscription", out var sub)? sub.GetString(): null,
-                downloadUrl  = root.TryGetProperty("downloadUrl",  out var d)  ? d.GetString()  : null,
-                forceClose   = root.TryGetProperty("forceClose",   out var fc) && fc.GetBoolean(),
-                offsetVersion = root.TryGetProperty("offsetVersion", out var ov) ? ov.GetInt32() : 0,
-                offsetStatus = root.TryGetProperty("offsetStatus", out var os) ? os.GetString() : null
+                downloadUrl  = root.TryGetProperty("downloadUrl",  out var d)  ? d.GetString()  : null
             };
-            if (root.TryGetProperty("values", out var val) && val.ValueKind == JsonValueKind.Object) {
-                result.values = new Dictionary<string, string>();
-                foreach (var prop in val.EnumerateObject()) {
-                    if (prop.Value.ValueKind == JsonValueKind.String) {
-                        result.values[prop.Name] = prop.Value.GetString();
-                    } else {
-                        result.values[prop.Name] = prop.Value.GetRawText();
-                    }
-                }
-            }
             if (root.TryGetProperty("expiryDate", out var exp) && exp.ValueKind != JsonValueKind.Null) {
                 if (DateTime.TryParse(exp.GetString(), out var dt)) result.expiryDate = dt;
             }
@@ -555,10 +497,6 @@ namespace Keyauth
             public string    lastlogin    { get; set; }
             public string    subscription { get; set; }
             public string    downloadUrl  { get; set; }
-            public bool      forceClose   { get; set; }
-            public int       offsetVersion { get; set; }
-            public string    offsetStatus { get; set; }
-            public Dictionary<string, string> values { get; set; }
         }
 
         public class user_data_class {

@@ -173,18 +173,6 @@ router.post('/register',
       return fail(req, res, 400, 'usernameTaken', 'Username already taken');
     }
 
-    // Enforce plan user limit
-    const owner = await require('../models/User').findById(req.application.userId).populate('plan');
-    const ownerPlan = owner?.plan || await require('../models/SubscriptionPlan').findOne({ name: 'free' });
-    if (ownerPlan && ownerPlan.limits.maxUsersPerApp !== -1) {
-      const currentUsers = await AppUser.countDocuments({ applicationId: req.application._id });
-      if (currentUsers >= ownerPlan.limits.maxUsersPerApp) {
-        // Rollback license usage
-        await License.findByIdAndUpdate(license._id, { used: false, usedAt: null });
-        return fail(req, res, 403, 'invalidCreds', 'This application has reached its maximum user limit.');
-      }
-    }
-
     // Calculate expiry
     const expiryDate = license.expiryUnit !== 'lifetime' && license.expiryDuration
       ? License.calcExpiry(license.expiryUnit, license.expiryDuration)
@@ -207,12 +195,6 @@ router.post('/register',
     await License.findByIdAndUpdate(license._id, { usedBy: user._id, expiryDate });
 
     const sessionToken = await createSession(user._id, req.application._id, hwid, ip);
-
-    // Invalidate plan usage cache
-    try {
-      const redis = getRedisClient();
-      await redis.del(`plan:usage:${req.application.userId}`);
-    } catch (_) {}
 
     await AuditLog.create({
       applicationId: req.application._id,
@@ -491,16 +473,6 @@ router.post('/license',
       return fail(req, res, 400, 'usernameTaken', 'License already in use');
     }
 
-    // Enforce plan user limit
-    const owner2 = await require('../models/User').findById(req.application.userId).populate('plan');
-    const ownerPlan2 = owner2?.plan || await require('../models/SubscriptionPlan').findOne({ name: 'free' });
-    if (ownerPlan2 && ownerPlan2.limits.maxUsersPerApp !== -1) {
-      const currentUsers2 = await AppUser.countDocuments({ applicationId: req.application._id });
-      if (currentUsers2 >= ownerPlan2.limits.maxUsersPerApp) {
-        return fail(req, res, 403, 'invalidCreds', 'This application has reached its maximum user limit.');
-      }
-    }
-
     // Mark license used atomically
     const claimed = await License.findOneAndUpdate(
       { _id: license._id, used: false },
@@ -524,12 +496,6 @@ router.post('/license',
     await License.findByIdAndUpdate(license._id, { usedBy: user._id, expiryDate });
 
     const sessionToken = await createSession(user._id, req.application._id, hwid, ip);
-
-    // Invalidate plan usage cache
-    try {
-      const redis = getRedisClient();
-      await redis.del(`plan:usage:${req.application.userId}`);
-    } catch (_) {}
 
     sendDiscordWebhook(req.application.discordWebhook,
       registerEmbed(autoUsername, ip, hwid, req.application.name, key));
@@ -590,65 +556,8 @@ router.post('/heartbeat',
   asyncHandler(async (req, res) => {
     const redis = getRedisClient();
     const key = `sess:${req.sessionToken}`;
-
-    // Check force close flag in Redis session
-    const forceClose = req.session.forceClose === 'true';
-    if (forceClose) {
-      await redis.del(key);
-      await redis.del(`user_sess:${req.session.userId}:${req.application._id}`);
-      return res.sendSigned({ success: true, message: 'OK', forceClose: true });
-    }
-
     await redis.hSet(key, 'lastHeartbeat', Date.now().toString());
-
-    // Check client offset version & status
-    const doc = await RuntimeValues.findOne({ applicationId: req.application._id });
-    let offsetVersion = 0;
-    let offsetStatus = 'valid';
-
-    if (!doc || doc.revoked) {
-      offsetStatus = 'revoked';
-    } else {
-      offsetVersion = doc.offsetVersion || 1;
-      
-      if (doc.offsetExpiresAt && doc.offsetExpiresAt < Date.now()) {
-        offsetStatus = 'revoked';
-      }
-
-      const clientOffsetVersion = req.clientBody.offsetVersion;
-      if (offsetStatus !== 'revoked' && clientOffsetVersion !== undefined && clientOffsetVersion !== null) {
-        const clientVerNum = parseInt(clientOffsetVersion, 10);
-        if (clientVerNum !== offsetVersion) {
-          offsetStatus = 'refresh_required';
-        }
-      }
-    }
-
-    const clientOffsetVersion = req.clientBody.offsetVersion;
-    if (clientOffsetVersion !== undefined && clientOffsetVersion !== null) {
-      if (offsetStatus === 'refresh_required' || offsetStatus === 'revoked') {
-        await AuditLog.create({
-          applicationId: req.application._id,
-          userId: req.sessionUser._id,
-          action: 'offset_refresh_triggered',
-          ip: req.clientIp,
-          severity: 'info',
-          details: {
-            status: offsetStatus,
-            clientVersion: clientOffsetVersion,
-            serverVersion: offsetVersion
-          }
-        });
-      }
-    }
-
-    res.sendSigned({ 
-      success: true, 
-      message: 'OK',
-      forceClose: false,
-      offsetVersion,
-      offsetStatus
-    });
+    res.sendSigned({ success: true, message: 'OK' });
   })
 );
 // ─── POST /api/client/values ──────────────────────────────────────────────────
@@ -668,22 +577,10 @@ router.post('/values',
 
     const doc = await RuntimeValues.findOne({ applicationId: req.application._id });
 
-    if (!doc || doc.revoked) {
+    if (!doc) {
       return res.sendSigned({
         success: true,
-        message: 'No runtime values configured or values revoked',
-        offsetVersion: 0,
-        offsetExpiresAt: null,
-        values: {}
-      });
-    }
-
-    if (doc.offsetExpiresAt && doc.offsetExpiresAt < Date.now()) {
-      return res.sendSigned({
-        success: true,
-        message: 'Runtime values have expired',
-        offsetVersion: 0,
-        offsetExpiresAt: doc.offsetExpiresAt,
+        message: 'No runtime values configured',
         values: {}
       });
     }
@@ -691,8 +588,6 @@ router.post('/values',
     return res.sendSigned({
       success: true,
       message: 'Values retrieved',
-      offsetVersion: doc.offsetVersion || 1,
-      offsetExpiresAt: doc.offsetExpiresAt || null,
       values: doc.toClientPayload()
     });
   })

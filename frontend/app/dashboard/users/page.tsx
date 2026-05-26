@@ -7,7 +7,7 @@ import toast from 'react-hot-toast'
 import { PlusIcon, EyeIcon, EyeSlashIcon, XMarkIcon, EllipsisVerticalIcon } from '@heroicons/react/24/outline'
 
 // ── 3-dot dropdown per user row ───────────────────────────────────────────────
-function UserMenu({ user, onEdit, onBan, onPermanentBan, onUnban, onPause, onResetHwid, onDelete, onForceClose }: any) {
+function UserMenu({ user, onEdit, onBan, onPermanentBan, onUnban, onPause, onResetHwid, onDelete }: any) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -28,18 +28,11 @@ function UserMenu({ user, onEdit, onBan, onPermanentBan, onUnban, onPause, onRes
         <EllipsisVerticalIcon className="w-5 h-5" />
       </button>
 
-      {open && (() => {
-        const rect = ref.current?.getBoundingClientRect();
-        const menuHeight = 320; // approximate max height of the dropdown
-        const spaceBelow = window.innerHeight - (rect?.bottom ?? 0);
-        const showAbove = spaceBelow < menuHeight && (rect?.top ?? 0) > menuHeight;
-        return (
+      {open && (
         <div className="fixed mt-1 w-44 bg-[#1a1a24] border border-dark-border rounded-xl shadow-2xl z-[9999] overflow-hidden py-1"
           style={{
-            ...(showAbove
-              ? { bottom: window.innerHeight - (rect?.top ?? 0) + 4 }
-              : { top: (rect?.bottom ?? 0) + 4 }),
-            right: window.innerWidth - (rect?.right ?? 0)
+            top: ref.current ? ref.current.getBoundingClientRect().bottom + window.scrollY + 4 : 0,
+            right: window.innerWidth - (ref.current ? ref.current.getBoundingClientRect().right : 0)
           }}
         >
           <button onClick={() => { setOpen(false); onEdit(user) }} className="w-full text-left px-4 py-2.5 text-sm text-gray-200 hover:bg-dark-hover transition-colors flex items-center gap-2">
@@ -50,9 +43,6 @@ function UserMenu({ user, onEdit, onBan, onPermanentBan, onUnban, onPause, onRes
           </button>
           <button onClick={() => { setOpen(false); onResetHwid(user._id) }} className="w-full text-left px-4 py-2.5 text-sm text-blue-400 hover:bg-blue-500/10 transition-colors flex items-center gap-2">
             <span>🔄</span> Reset HWID
-          </button>
-          <button onClick={() => { setOpen(false); onForceClose(user._id) }} className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors flex items-center gap-2">
-            <span>💥</span> Crash it
           </button>
           {user.banned ? (
             <button onClick={() => { setOpen(false); onUnban(user._id) }} className="w-full text-left px-4 py-2.5 text-sm text-green-400 hover:bg-green-500/10 transition-colors flex items-center gap-2">
@@ -70,8 +60,7 @@ function UserMenu({ user, onEdit, onBan, onPermanentBan, onUnban, onPause, onRes
             <span>🗑️</span> Delete
           </button>
         </div>
-        );
-      })()}
+      )}
     </div>
   )
 }
@@ -165,8 +154,6 @@ export default function Users() {
     confirmText: 'Confirm'
   })
 
-  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([])
-
   useEffect(() => { 
     if (selectedApp?._id) {
       setCurrentPage(1)
@@ -182,7 +169,6 @@ export default function Users() {
       setUsers(res.data.users)
       setTotalPages(res.data.pagination.pages)
       setTotalUsers(res.data.pagination.total)
-      setSelectedUserIds([]) // reset selections
     } catch { toast.error('Failed to load users') }
     finally { setLoading(false) }
   }
@@ -191,77 +177,6 @@ export default function Users() {
     if (newPage < 1 || newPage > totalPages) return
     setCurrentPage(newPage)
     loadUsers(newPage)
-  }
-
-  const handleBulkAction = async (action: 'ban' | 'unban' | 'pause' | 'unpause' | 'reset-hwid' | 'delete') => {
-    if (selectedUserIds.length === 0) return toast.error('No users selected')
-
-    const execute = async () => {
-      try {
-        await api.post('/users/bulk-action', {
-          userIds: selectedUserIds,
-          action,
-          applicationId: selectedApp._id
-        })
-        toast.success(`Bulk action '${action}' successfully completed on ${selectedUserIds.length} user(s).`)
-        setSelectedUserIds([])
-        loadUsers()
-      } catch (e: any) {
-        toast.error(e.response?.data?.error || 'Bulk action failed')
-      }
-      setConfirmModal(prev => ({ ...prev, show: false }))
-    }
-
-    if (action === 'delete') {
-      setConfirmModal({
-        show: true,
-        title: 'Bulk Delete Users?',
-        message: `Are you sure you want to delete all ${selectedUserIds.length} selected users? This action is permanent!`,
-        type: 'danger',
-        confirmText: 'Delete Selected',
-        onConfirm: execute
-      })
-    } else if (action === 'ban') {
-      setConfirmModal({
-        show: true,
-        title: 'Bulk Ban Users?',
-        message: `Are you sure you want to soft ban all ${selectedUserIds.length} selected users?`,
-        type: 'warning',
-        confirmText: 'Ban Selected',
-        onConfirm: execute
-      })
-    } else if (action === 'reset-hwid') {
-      setConfirmModal({
-        show: true,
-        title: 'Bulk HWID Reset?',
-        message: `Are you sure you want to reset HWID for all ${selectedUserIds.length} selected users?`,
-        type: 'info',
-        confirmText: 'Reset Selected',
-        onConfirm: execute
-      })
-    } else {
-      execute()
-    }
-  }
-
-  const handleDeleteAllUsers = async () => {
-    setConfirmModal({
-      show: true,
-      title: 'DELETE ALL USERS?',
-      message: `DANGER: Are you sure you want to delete ALL users for "${selectedApp.name}"? This will permanently delete all user accounts and sessions. This cannot be undone!`,
-      type: 'danger',
-      confirmText: 'DELETE ALL',
-      onConfirm: async () => {
-        try {
-          await api.delete(`/users/application/${selectedApp._id}/all`)
-          toast.success('All application users successfully deleted.')
-          loadUsers()
-        } catch (e: any) {
-          toast.error(e.response?.data?.error || 'Failed to delete all users')
-        }
-        setConfirmModal(prev => ({ ...prev, show: false }))
-      }
-    })
   }
 
   // ── Actions ────────────────────────────────────────────────────────────────
@@ -419,26 +334,6 @@ export default function Users() {
     })
   }
 
-  const forceCloseUser = async (id: string) => {
-    setConfirmModal({
-      show: true,
-      title: 'Crash User App?',
-      message: 'Are you sure you want to force-close this user\'s running executable? This will terminate their active session.',
-      type: 'danger',
-      confirmText: 'Crash It',
-      onConfirm: async () => {
-        try {
-          await api.post(`/users/${id}/force-close`)
-          toast.success('Force-close command sent to client')
-          loadUsers()
-        } catch (e: any) {
-          toast.error(e.response?.data?.error || 'Failed to send force-close command')
-        }
-        setConfirmModal(prev => ({ ...prev, show: false }))
-      }
-    })
-  }
-
   const deleteUser = async (id: string) => {
     setConfirmModal({
       show: true,
@@ -476,7 +371,6 @@ export default function Users() {
                 className="w-64 pl-10 pr-4 py-2.5 bg-dark-bg border border-dark-border rounded-xl text-sm focus:outline-none focus:border-primary-500/50 transition-all placeholder-gray-500"
               />
             </div>
-
             <button onClick={() => setShowCreateModal(true)} className="btn btn-primary flex items-center gap-2 py-2.5">
               <PlusIcon className="w-4 h-4" /> Create User
             </button>
@@ -500,27 +394,13 @@ export default function Users() {
           ) : users.length === 0 ? (
             <div className="text-center py-12 text-gray-400">No users yet</div>
           ) : (
-            <div className="card overflow-visible p-0 relative">
+            <div className="card overflow-visible p-0">
               {(() => {
-                const showCreatedBy = !!(selectedApp?.team && selectedApp.team.length > 0)
+                const showCreatedBy = selectedApp?.team?.length > 0 || users.some(u => u.createdBy)
                 return (
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-dark-border">
-                        <th className="px-4 py-3 text-left w-10">
-                          <input 
-                            type="checkbox"
-                            checked={users.length > 0 && selectedUserIds.length === users.length}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedUserIds(users.map(u => u._id))
-                              } else {
-                                setSelectedUserIds([])
-                              }
-                            }}
-                            className="w-4 h-4 rounded border-dark-border bg-dark-bg text-primary-600 accent-primary-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
-                          />
-                        </th>
                         <th className="text-left px-4 py-3 text-gray-400 font-medium">Username</th>
                         <th className="text-left px-4 py-3 text-gray-400 font-medium">Status</th>
                         <th className="text-left px-4 py-3 text-gray-400 font-medium">HWID</th>
@@ -530,28 +410,13 @@ export default function Users() {
                         {showCreatedBy && (
                           <th className="text-left px-4 py-3 text-gray-400 font-medium">Created By</th>
                         )}
-                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Created</th>
                         <th className="text-left px-4 py-3 text-gray-400 font-medium">HWID Affected</th>
                         <th className="px-4 py-3" />
                       </tr>
                     </thead>
                     <tbody>
                       {users.map((user: any) => (
-                        <tr key={user._id} className={`border-b border-dark-border/50 hover:bg-dark-hover/30 transition-colors ${selectedUserIds.includes(user._id) ? 'bg-primary-950/10' : ''}`}>
-                          <td className="px-4 py-3 w-10">
-                            <input 
-                              type="checkbox"
-                              checked={selectedUserIds.includes(user._id)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setSelectedUserIds([...selectedUserIds, user._id])
-                                } else {
-                                  setSelectedUserIds(selectedUserIds.filter(id => id !== user._id))
-                                }
-                              }}
-                              className="w-4 h-4 rounded border-dark-border bg-dark-bg text-primary-600 accent-primary-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
-                            />
-                          </td>
+                        <tr key={user._id} className="border-b border-dark-border/50 hover:bg-dark-hover/30 transition-colors">
                           <td className="px-4 py-3 font-medium">{user.username}</td>
                           <td className="px-4 py-3">
                             {user.banned ? (
@@ -564,28 +429,28 @@ export default function Users() {
                               <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full font-medium">Active</span>
                             )}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400 font-mono">
-                            <button
-                              onClick={() => {
-                                if (user.hwid) {
-                                  navigator.clipboard.writeText(user.hwid);
-                                  toast.success('HWID copied to clipboard!');
-                                }
-                              }}
-                              className="hover:text-primary-400 transition-colors cursor-pointer text-left"
-                              title="Click to copy full HWID"
-                            >
-                              {user.hwid ? `${user.hwid.substring(0, 12)}...` : 'Not set'}
-                            </button>
-                          </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400 font-mono">
+                              <button
+                                onClick={() => {
+                                  if (user.hwid) {
+                                    navigator.clipboard.writeText(user.hwid);
+                                    toast.success('HWID copied to clipboard!');
+                                  }
+                                }}
+                                className="hover:text-primary-400 transition-colors cursor-pointer text-left"
+                                title="Click to copy full HWID"
+                              >
+                                {user.hwid ? `${user.hwid.substring(0, 12)}...` : 'Not set'}
+                              </button>
+                            </td>
                           <td className="px-4 py-3 text-gray-400 text-xs">
                             {formatToDDMMYYYY(user.lastLogin, 'Never', true)}
                           </td>
                           <td className="px-4 py-3 text-gray-400 text-xs">{user.lastIp || 'N/A'}</td>
                           <td className="px-4 py-3 text-gray-400 text-xs">
                             {user.paused 
-                              ? formatToDDMMYYYY(user.pausedExpiry, 'Lifetime', true)
-                              : formatToDDMMYYYY(user.expiryDate, 'Lifetime', true)}
+                              ? formatToDDMMYYYY(user.pausedExpiry, 'Lifetime', false)
+                              : formatToDDMMYYYY(user.expiryDate, 'Lifetime', false)}
                           </td>
                           {showCreatedBy && (
                             <td className="px-4 py-3">
@@ -594,9 +459,6 @@ export default function Users() {
                               </span>
                             </td>
                           )}
-                          <td className="px-4 py-3 text-gray-400 text-xs">
-                            {formatToDDMMYYYY(user.createdAt, 'N/A', true)}
-                          </td>
                           <td className="px-4 py-3 text-gray-400 text-xs">
                             {user.hwidAffected ? (
                               <span className="text-indigo-400 font-medium">Yes</span>
@@ -614,7 +476,6 @@ export default function Users() {
                               onPause={pauseUser}
                               onResetHwid={resetHwid}
                               onDelete={deleteUser}
-                              onForceClose={forceCloseUser}
                             />
                           </td>
                         </tr>
@@ -623,61 +484,6 @@ export default function Users() {
                   </table>
                 )
               })()}
-
-              {/* Bulk Controls Panel */}
-              {selectedUserIds.length > 0 && (
-                <div className="fixed bottom-16 left-1/2 -translate-x-1/2 bg-[#101018]/95 backdrop-blur-xl border border-primary-500/30 px-6 py-3.5 rounded-2xl shadow-2xl flex items-center gap-4 z-[999]">
-                  <div className="text-sm font-semibold text-gray-300">
-                    Selected: <span className="text-primary-400 font-mono">{selectedUserIds.length}</span> users
-                  </div>
-                  <div className="h-6 w-px bg-dark-border" />
-                  <div className="flex items-center gap-2">
-                    <button 
-                      onClick={() => handleBulkAction('ban')}
-                      className="px-4 py-2 bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/20 text-yellow-400 text-xs font-bold rounded-xl transition-all"
-                    >
-                      🚫 Ban
-                    </button>
-                    <button 
-                      onClick={() => handleBulkAction('unban')}
-                      className="px-4 py-2 bg-green-500/10 hover:bg-green-500/20 border border-green-500/20 text-green-400 text-xs font-bold rounded-xl transition-all"
-                    >
-                      ✅ Unban
-                    </button>
-                    <button 
-                      onClick={() => handleBulkAction('pause')}
-                      className="px-4 py-2 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-purple-400 text-xs font-bold rounded-xl transition-all"
-                    >
-                      ⏸️ Pause
-                    </button>
-                    <button 
-                      onClick={() => handleBulkAction('unpause')}
-                      className="px-4 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-indigo-400 text-xs font-bold rounded-xl transition-all"
-                    >
-                      ▶️ Play
-                    </button>
-                    <button 
-                      onClick={() => handleBulkAction('reset-hwid')}
-                      className="px-4 py-2 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 text-blue-400 text-xs font-bold rounded-xl transition-all"
-                    >
-                      🔄 Reset HWID
-                    </button>
-                    <button 
-                      onClick={() => handleBulkAction('delete')}
-                      className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 text-xs font-bold rounded-xl transition-all"
-                    >
-                      🗑️ Delete
-                    </button>
-                  </div>
-                  <div className="h-6 w-px bg-dark-border" />
-                  <button 
-                    onClick={() => setSelectedUserIds([])}
-                    className="text-xs font-bold text-gray-500 hover:text-gray-300 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              )}
 
               {/* Pagination Controls — KeyAuth Style */}
               <div className="flex items-center justify-between px-6 py-4 bg-black/20 border-t border-white/5">

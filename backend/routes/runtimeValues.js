@@ -39,19 +39,9 @@ router.patch('/:applicationId/initbase', verifyAppAccess('manage_settings'), asy
   const { value } = req.body;
   const doc = await RuntimeValues.findOneAndUpdate(
     { applicationId },
-    { $set: { initBase: value, updatedAt: Date.now() }, $inc: { offsetVersion: 1 } },
+    { $set: { initBase: value, updatedAt: Date.now() } },
     { upsert: true, new: true }
   );
-  
-  const AuditLog = require('../models/AuditLog');
-  await AuditLog.create({
-    applicationId,
-    action: 'offset_updated',
-    ip: req.ip || req.connection.remoteAddress,
-    severity: 'info',
-    details: { type: 'initbase', updatedBy: req.userId }
-  });
-
   res.json({ success: true, data: doc });
 }));
 
@@ -80,16 +70,6 @@ router.patch('/:applicationId/offsets/:category', verifyAppAccess('manage_settin
   }
 
   await doc.save();
-
-  const AuditLog = require('../models/AuditLog');
-  await AuditLog.create({
-    applicationId,
-    action: 'offset_updated',
-    ip: req.ip || req.connection.remoteAddress,
-    severity: 'info',
-    details: { type: 'offset', category, name, updatedBy: req.userId }
-  });
-
   res.json({ success: true, data: doc });
 }));
 
@@ -115,16 +95,6 @@ router.patch('/:applicationId/bones', verifyAppAccess('manage_settings'), asyncH
   }
 
   await doc.save();
-
-  const AuditLog = require('../models/AuditLog');
-  await AuditLog.create({
-    applicationId,
-    action: 'offset_updated',
-    ip: req.ip || req.connection.remoteAddress,
-    severity: 'info',
-    details: { type: 'bone', name, updatedBy: req.userId }
-  });
-
   res.json({ success: true, data: doc });
 }));
 
@@ -137,15 +107,6 @@ router.delete('/:applicationId/offsets/:category/:offsetId', verifyAppAccess('ma
   if (doc && doc[category]) {
     doc[category].pull({ _id: offsetId });
     await doc.save();
-
-    const AuditLog = require('../models/AuditLog');
-    await AuditLog.create({
-      applicationId,
-      action: 'offset_updated',
-      ip: req.ip || req.connection.remoteAddress,
-      severity: 'info',
-      details: { type: 'offset_deleted', category, offsetId, updatedBy: req.userId }
-    });
   }
   res.json({ success: true });
 }));
@@ -159,15 +120,6 @@ router.delete('/:applicationId/bones/:boneId', verifyAppAccess('manage_settings'
   if (doc) {
     doc.bones.pull({ _id: boneId });
     await doc.save();
-
-    const AuditLog = require('../models/AuditLog');
-    await AuditLog.create({
-      applicationId,
-      action: 'offset_updated',
-      ip: req.ip || req.connection.remoteAddress,
-      severity: 'info',
-      details: { type: 'bone_deleted', boneId, updatedBy: req.userId }
-    });
   }
   res.json({ success: true });
 }));
@@ -179,31 +131,6 @@ router.delete('/:applicationId/reset', verifyAppAccess('manage_settings'), async
   const { applicationId } = req.params;
   await RuntimeValues.deleteOne({ applicationId });
   res.json({ success: true });
-}));
-
-/**
- * PATCH Toggle Offset Revocation
- */
-router.patch('/:applicationId/revoke', verifyAppAccess('manage_settings'), asyncHandler(async (req, res) => {
-  const { applicationId } = req.params;
-  const { revoked } = req.body; // boolean
-
-  const doc = await RuntimeValues.findOneAndUpdate(
-    { applicationId },
-    { $set: { revoked: !!revoked, updatedAt: Date.now() }, $inc: { offsetVersion: 1 } },
-    { upsert: true, new: true }
-  );
-
-  const AuditLog = require('../models/AuditLog');
-  await AuditLog.create({
-    applicationId,
-    action: revoked ? 'offsets_revoked' : 'offsets_unrevoked',
-    ip: req.ip || req.connection.remoteAddress,
-    severity: 'warning',
-    details: { revokedBy: req.userId }
-  });
-
-  res.json({ success: true, data: doc });
 }));
 
 module.exports = router;

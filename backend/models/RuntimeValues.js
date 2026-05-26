@@ -48,22 +48,14 @@ const runtimeValuesSchema = new mongoose.Schema({
   // ── Bone structure ────────────────────────────────────────────────────────
   bones: { type: [boneEntrySchema], default: [] },
 
-  // ── Runtime Controls ──────────────────────────────────────────────────────
-  offsetVersion: { type: Number, default: 1 },
-  offsetExpiresAt: { type: Date, default: null },
-  revoked: { type: Boolean, default: false },
-
   // ── Metadata ──────────────────────────────────────────────────────────────
   updatedAt: { type: Date, default: Date.now },
   createdAt: { type: Date, default: Date.now }
 });
 
-// Auto-update updatedAt on every save and increment offsetVersion on change
+// Auto-update updatedAt on every save
 runtimeValuesSchema.pre('save', function (next) {
   this.updatedAt = new Date();
-  if (this.isModified() || this.isNew) {
-    this.offsetVersion = (this.offsetVersion || 0) + 1;
-  }
   next();
 });
 
