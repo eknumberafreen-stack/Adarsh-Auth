@@ -556,10 +556,17 @@ router.post('/heartbeat',
   asyncHandler(async (req, res) => {
     const redis = getRedisClient();
     const key = `sess:${req.sessionToken}`;
+
+    // Check force close flag in Redis session
+    const forceClose = req.session.forceClose === 'true';
+    if (forceClose) {
+      await redis.del(key);
+      await redis.del(`user_sess:${req.session.userId}:${req.application._id}`);
+      return res.sendSigned({ success: true, message: 'OK', forceClose: true });
+    }
+
     await redis.hSet(key, 'lastHeartbeat', Date.now().toString());
-<<<<<<< HEAD
-    res.sendSigned({ success: true, message: 'OK' });
-=======
+    
     if (req.clientBody.ping) {
       await redis.hSet(key, 'ping', req.clientBody.ping.toString());
     }
@@ -612,7 +619,6 @@ router.post('/heartbeat',
       offsetVersion,
       offsetStatus
     });
->>>>>>> d381af0 (Auto-update)
   })
 );
 // ─── POST /api/client/values ──────────────────────────────────────────────────
