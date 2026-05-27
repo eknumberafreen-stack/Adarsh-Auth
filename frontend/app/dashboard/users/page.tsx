@@ -87,7 +87,9 @@ export default function Users() {
   const [totalPages, setTotalPages] = useState(1)
   const [totalUsers, setTotalUsers] = useState(0)
   const [searchTerm, setSearchTerm] = useState('')
+  const [onlineUsers, setOnlineUsers] = useState<Record<string, string | null>>({}) // userId -> ping
   const limit = 10
+  const onlineIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   // Create user modal
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -160,9 +162,28 @@ export default function Users() {
   useEffect(() => { 
     if (selectedApp?._id) {
       setCurrentPage(1)
-      loadUsers(1, searchTerm) 
-    } 
+      loadUsers(1, searchTerm)
+      // Start polling live status
+      pollOnlineStatus()
+      if (onlineIntervalRef.current) clearInterval(onlineIntervalRef.current)
+      onlineIntervalRef.current = setInterval(pollOnlineStatus, 5000)
+    }
+    return () => {
+      if (onlineIntervalRef.current) clearInterval(onlineIntervalRef.current)
+    }
   }, [selectedApp?._id, searchTerm])
+
+  const pollOnlineStatus = async () => {
+    if (!selectedApp?._id) return
+    try {
+      const res = await api.get(`/users/application/${selectedApp._id}/online-status`)
+      const map: Record<string, string | null> = {}
+      res.data.online.forEach((entry: { userId: string; ping: string | null }) => {
+        map[entry.userId] = entry.ping
+      })
+      setOnlineUsers(map)
+    } catch { /* silent fail */ }
+  }
 
   const loadUsers = async (page = currentPage, search = searchTerm) => {
     if (!selectedApp?._id) return
@@ -440,7 +461,22 @@ export default function Users() {
                     <tbody>
                       {users.map((user: any) => (
                         <tr key={user._id} className="border-b border-dark-border/50 hover:bg-dark-hover/30 transition-colors">
-                          <td className="px-4 py-3 font-medium">{user.username}</td>
+                          <td className="px-4 py-3 font-medium">
+                            <div className="flex items-center gap-2">
+                              {onlineUsers[user._id] !== undefined && (
+                                <span className="relative flex h-2 w-2 shrink-0">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-400"></span>
+                                </span>
+                              )}
+                              <span>{user.username}</span>
+                              {onlineUsers[user._id] !== undefined && (
+                                <span className="text-[10px] text-green-400/80 font-normal">
+                                  {onlineUsers[user._id] ? `${onlineUsers[user._id]}ms` : 'Live'}
+                                </span>
+                              )}
+                            </div>
+                          </td>
                           <td className="px-4 py-3">
                             {user.banned ? (
                               <span className="px-2 py-1 bg-red-500/20 text-red-400 text-xs rounded-full font-medium">Banned</span>

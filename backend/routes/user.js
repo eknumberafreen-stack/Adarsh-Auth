@@ -45,7 +45,39 @@ const verifyUserActionAccess = async (req, res, appUser, requiredPermission) => 
   return false; // Not owner, not team member
 };
 
+// ─── Get online status for all users of an application ───────────────────────
+router.get('/application/:applicationId/online-status', verifyAppAccess(), asyncHandler(async (req, res) => {
+  const redis = getRedisClient();
+  const appId = req.params.applicationId;
+
+  // Get all users in this app to know which user IDs to check
+  const users = await AppUser.find({ applicationId: appId }).select('_id').lean();
+
+  const HEARTBEAT_TIMEOUT_MS = 30_000; // 30s — generous since heartbeat is 3s
+  const onlineUserIds = [];
+
+  await Promise.all(users.map(async (user) => {
+    const userKey = `user_sess:${user._id}:${appId}`;
+    const token = await redis.get(userKey);
+    if (!token) return;
+
+    const session = await redis.hGetAll(`sess:${token}`);
+    if (!session || !session.lastHeartbeat) return;
+
+    const timeSince = Date.now() - parseInt(session.lastHeartbeat);
+    if (timeSince <= HEARTBEAT_TIMEOUT_MS) {
+      onlineUserIds.push({
+        userId: user._id.toString(),
+        ping: session.ping || null
+      });
+    }
+  }));
+
+  res.json({ online: onlineUserIds });
+}));
+
 // ─── Get all users for application (with pagination) ──────────────────────────
+
 router.get('/application/:applicationId', verifyAppAccess(), asyncHandler(async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
