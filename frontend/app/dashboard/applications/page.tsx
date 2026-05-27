@@ -473,7 +473,7 @@ export default function Applications() {
                           )}
                         </div>
                       </div>
-                    </div>
+                    </motion.div>
                   )
                 })}
 
