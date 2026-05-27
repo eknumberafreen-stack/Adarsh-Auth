@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import api from '@/lib/api'
 import { useAppStore, useAuthStore } from '@/lib/store'
 import toast from 'react-hot-toast'
+import { motion } from 'framer-motion'
 import {
   CheckIcon,
   CubeIcon,
@@ -225,15 +226,21 @@ export default function Applications() {
       </section>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {statTiles.map((tile) => (
-          <div key={tile.label} className="stat-tile">
+        {statTiles.map((tile, i) => (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: i * 0.1, ease: 'easeOut' }}
+            key={tile.label} 
+            className="stat-tile"
+          >
             <div className="flex items-center justify-between">
               <p className="stat-label">{tile.label}</p>
               <tile.icon className={`h-5 w-5 ${tile.tone}`} />
             </div>
             <p className="stat-value">{tile.value}</p>
             <p className="stat-meta">Live summary across your application inventory</p>
-          </div>
+          </motion.div>
         ))}
       </section>
 
@@ -388,7 +395,7 @@ export default function Applications() {
               </div>
             ) : (
               <>
-                 {applications.map((app: any) => {
+                 {applications.map((app: any, i: number) => {
                   const isSelected = selectedApp?._id === app._id
                   const isOwner = app.userId === user?.id
                   const currentMember = app.team?.find((m: any) => {
@@ -397,7 +404,10 @@ export default function Applications() {
                   })
                   const hasManageSettings = isOwner || !!currentMember?.permissions?.includes('manage_settings')
                   return (
-                    <div
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.4, delay: i * 0.05, ease: 'easeOut' }}
                       key={app._id}
                       className={`rounded-2xl border p-5 transition-all ${
                         isSelected

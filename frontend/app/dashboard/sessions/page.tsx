@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import api from '@/lib/api'
 import { useAppStore } from '@/lib/store'
 import toast from 'react-hot-toast'
+import { motion } from 'framer-motion'
 import { XMarkIcon } from '@heroicons/react/24/outline'
 
 function timeAgo(dateStr: string) {
@@ -104,22 +105,22 @@ export default function Sessions() {
         <>
           {/* ── Stat Cards ── */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="card p-4 flex flex-col gap-1">
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.1 }} className="card p-4 flex flex-col gap-1">
               <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Total Sessions</p>
               <p className="text-3xl font-bold text-white">{sessions.length}</p>
               <p className="text-xs text-gray-500">{selectedApp?.name}</p>
-            </div>
-            <div className="card p-4 flex flex-col gap-1">
+            </motion.div>
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.2 }} className="card p-4 flex flex-col gap-1">
               <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">🟢 Live Now</p>
               <p className="text-3xl font-bold text-green-400">{activeSessions.length}</p>
               <p className="text-xs text-gray-500">heartbeat &lt; 45s</p>
-            </div>
-            <div className="card p-4 flex flex-col gap-1">
+            </motion.div>
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.3 }} className="card p-4 flex flex-col gap-1">
               <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">🔴 Offline</p>
               <p className="text-3xl font-bold text-red-400">{offlineSessions.length}</p>
               <p className="text-xs text-gray-500">stale sessions</p>
-            </div>
-            <div className="card p-4 flex flex-col gap-1">
+            </motion.div>
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.4 }} className="card p-4 flex flex-col gap-1">
               <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Avg Ping</p>
               <p className="text-3xl font-bold text-indigo-400">
                 {activeSessions.length === 0
@@ -128,7 +129,7 @@ export default function Sessions() {
                 }
               </p>
               <p className="text-xs text-gray-500">live clients only</p>
-            </div>
+            </motion.div>
           </div>
 
           {/* ── Sessions Table ── */}
@@ -158,12 +159,18 @@ export default function Sessions() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sessions.map((session: any) => {
+                  {sessions.map((session: any, i: number) => {
                     const isLive = Date.now() - new Date(session.lastHeartbeat).getTime() < 45000
                     const ping = session.ping && session.ping !== 'N/A' ? parseInt(session.ping) : null
                     const pingColor = ping === null ? 'text-gray-500' : ping < 100 ? 'text-green-400' : ping < 300 ? 'text-yellow-400' : 'text-red-400'
                     return (
-                      <tr key={session._id} className="border-b border-dark-border/50 hover:bg-dark-hover/20 transition-colors">
+                      <motion.tr 
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.3, delay: i * 0.03 }}
+                        key={session._id} 
+                        className="border-b border-dark-border/50 hover:bg-dark-hover/20 transition-colors"
+                      >
                         {/* User */}
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-3">
@@ -235,7 +242,7 @@ export default function Sessions() {
                             Kick
                           </button>
                         </td>
-                      </tr>
+                      </motion.tr>
                     )
                   })}
                 </tbody>

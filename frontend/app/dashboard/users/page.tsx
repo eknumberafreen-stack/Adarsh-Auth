@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import api from '@/lib/api'
 import { useAppStore } from '@/lib/store'
 import toast from 'react-hot-toast'
+import { motion } from 'framer-motion'
 import { PlusIcon, EyeIcon, EyeSlashIcon, XMarkIcon, EllipsisVerticalIcon } from '@heroicons/react/24/outline'
 
 // ── 3-dot dropdown per user row ───────────────────────────────────────────────
@@ -461,8 +462,14 @@ export default function Users() {
                       </tr>
                     </thead>
                     <tbody>
-                      {users.map((user: any) => (
-                        <tr key={user._id} className="border-b border-dark-border/50 hover:bg-dark-hover/30 transition-colors">
+                      {users.map((user: any, i: number) => (
+                        <motion.tr 
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.3, delay: i * 0.03 }}
+                          key={user._id} 
+                          className="border-b border-dark-border/50 hover:bg-dark-hover/30 transition-colors"
+                        >
                           <td className="px-4 py-3 font-medium">
                             <div className="flex items-center gap-2">
                               {onlineUsers[user._id] !== undefined && (
@@ -543,7 +550,7 @@ export default function Users() {
                               onForceClose={forceCloseUser}
                             />
                           </td>
-                        </tr>
+                        </motion.tr>
                       ))}
                     </tbody>
                   </table>
