@@ -4,27 +4,38 @@ import { useEffect, useState } from 'react'
 import api from '@/lib/api'
 import { useAppStore } from '@/lib/store'
 import toast from 'react-hot-toast'
-import { ClockIcon, SignalIcon, TrashIcon, UserCircleIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon } from '@heroicons/react/24/outline'
+
+function timeAgo(dateStr: string) {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const s = Math.floor(diff / 1000)
+  if (s < 60) return `${s}s ago`
+  const m = Math.floor(s / 60)
+  if (m < 60) return `${m}m ago`
+  const h = Math.floor(m / 60)
+  return `${h}h ago`
+}
+
+function formatDate(dateStr: string) {
+  if (!dateStr) return 'N/A'
+  const d = new Date(dateStr)
+  return d.toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
 
 export default function Sessions() {
   const { applications, selectedApp } = useAppStore()
   const [sessions, setSessions] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
 
-  // Custom Confirm Modal
   const [confirmModal, setConfirmModal] = useState({
-    show: false,
-    title: '',
-    message: '',
-    onConfirm: () => {},
-    type: 'danger' as 'danger' | 'warning' | 'info',
-    confirmText: 'Confirm'
+    show: false, title: '', message: '', onConfirm: () => {},
+    type: 'danger' as 'danger' | 'warning' | 'info', confirmText: 'Confirm'
   })
 
   useEffect(() => {
     if (selectedApp?._id) {
       loadSessions()
-      const interval = setInterval(() => loadSessions(true), 10000)
+      const interval = setInterval(() => loadSessions(true), 5000)
       return () => clearInterval(interval)
     }
   }, [selectedApp?._id])
@@ -33,210 +44,228 @@ export default function Sessions() {
     if (!selectedApp?._id) return
     if (!background) setLoading(true)
     try {
-      const response = await api.get(`/sessions/application/${selectedApp._id}`)
-      setSessions(response.data.sessions)
-    } catch {
-      toast.error('Failed to load sessions')
-    } finally {
-      if (!background) setLoading(false)
-    }
+      const res = await api.get(`/sessions/application/${selectedApp._id}`)
+      setSessions(res.data.sessions)
+    } catch { toast.error('Failed to load sessions') }
+    finally { if (!background) setLoading(false) }
   }
 
-  const terminateSession = async (id: string) => {
-    setConfirmModal({
-      show: true,
-      title: 'Terminate Session?',
-      message: 'Are you sure you want to terminate this active session? The user will be disconnected immediately.',
-      type: 'danger',
-      confirmText: 'Terminate',
-      onConfirm: async () => {
-        try {
-          await api.delete(`/sessions/${id}`)
-          toast.success('Session terminated')
-          loadSessions()
-        } catch {
-          toast.error('Failed to terminate session')
-        }
-        setConfirmModal(prev => ({ ...prev, show: false }))
-      }
+  const confirmAction = (title: string, message: string, type: 'danger' | 'warning' | 'info', confirmText: string, onConfirm: () => void) => {
+    setConfirmModal({ show: true, title, message, type, confirmText, onConfirm })
+  }
+
+  const terminateSession = (id: string) => {
+    confirmAction('Terminate Session?', 'Are you sure? The user will be disconnected immediately.', 'danger', 'Terminate', async () => {
+      try { await api.delete(`/sessions/${id}`); toast.success('Session terminated'); loadSessions() }
+      catch { toast.error('Failed to terminate session') }
+      setConfirmModal(p => ({ ...p, show: false }))
     })
   }
 
-  const terminateAll = async () => {
-    setConfirmModal({
-      show: true,
-      title: 'Terminate All?',
-      message: 'Are you sure you want to terminate EVERY active session for this application? All users will be disconnected.',
-      type: 'danger',
-      confirmText: 'Terminate All',
-      onConfirm: async () => {
-        try {
-          await api.delete(`/sessions/application/${selectedApp?._id}/all`)
-          toast.success('All sessions terminated')
-          loadSessions()
-        } catch {
-          toast.error('Failed to terminate sessions')
-        }
-        setConfirmModal(prev => ({ ...prev, show: false }))
-      }
+  const terminateAll = () => {
+    confirmAction('Terminate All?', 'This will disconnect ALL active users from this application.', 'danger', 'Terminate All', async () => {
+      try { await api.delete(`/sessions/application/${selectedApp?._id}/all`); toast.success('All sessions terminated'); loadSessions() }
+      catch { toast.error('Failed to terminate sessions') }
+      setConfirmModal(p => ({ ...p, show: false }))
     })
   }
 
+  const activeSessions = sessions.filter(s => Date.now() - new Date(s.lastHeartbeat).getTime() < 45000)
+  const offlineSessions = sessions.filter(s => Date.now() - new Date(s.lastHeartbeat).getTime() >= 45000)
 
   return (
-    <div className="space-y-8">
-      <section className="page-header">
+    <div className="space-y-6">
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between">
         <div>
-          <p className="page-eyebrow">Sessions</p>
-          <h1 className="page-title">Review active authenticated sessions with a clearer dark layout.</h1>
-          <p className="page-subtitle">
-            Monitor session heartbeat activity, device binding, and expiry windows for each application, then terminate specific or all
-            sessions when needed.
-          </p>
+          <h1 className="text-2xl font-bold text-white">Sessions</h1>
+          <p className="text-sm text-gray-400 mt-0.5">Real-time monitor of all active client connections</p>
         </div>
-
-        {sessions.length > 0 && (
-          <button onClick={terminateAll} className="btn btn-danger">
-            <XMarkIcon className="h-5 w-5" />
-            Terminate All
-          </button>
-        )}
-      </section>
+        <div className="flex items-center gap-3">
+          {/* Live refresh indicator */}
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 border border-green-500/20 rounded-full text-xs text-green-400 font-medium">
+            <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+            Auto-refreshing every 5s
+          </div>
+          {sessions.length > 0 && (
+            <button onClick={terminateAll} className="flex items-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 text-sm font-medium rounded-xl transition-all">
+              <XMarkIcon className="w-4 h-4" /> Terminate All
+            </button>
+          )}
+        </div>
+      </div>
 
       {applications.length === 0 ? (
-        <div className="card text-center">
+        <div className="card text-center py-16">
           <p className="text-lg font-semibold text-white">Create an application first</p>
-          <p className="mt-2 text-sm text-slate-400">Sessions are application-specific, so there is nothing to monitor yet.</p>
+          <p className="mt-2 text-sm text-gray-400">Sessions are application-specific.</p>
         </div>
       ) : (
         <>
-          <section className="grid gap-4 lg:grid-cols-[0.8fr_1.2fr]">
-            <div className="card h-fit">
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-                <div className="stat-tile">
-                  <div className="flex items-center justify-between">
-                    <p className="stat-label">Selected App</p>
-                    <SignalIcon className="h-5 w-5 text-indigo-300" />
-                  </div>
-                  <p className="mt-4 text-xl font-bold text-white">{selectedApp?.name ?? 'Unknown'}</p>
-                  <p className="stat-meta">Version {selectedApp?.version ?? 'N/A'}</p>
-                </div>
-
-                <div className="stat-tile">
-                  <div className="flex items-center justify-between">
-                    <p className="stat-label">Active Sessions</p>
-                    <ClockIcon className="h-5 w-5 text-slate-200" />
-                  </div>
-                  <p className="stat-value">{sessions.length}</p>
-                  <p className="stat-meta">Real-time count for the selected application</p>
-                </div>
-              </div>
+          {/* ── Stat Cards ── */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="card p-4 flex flex-col gap-1">
+              <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Total Sessions</p>
+              <p className="text-3xl font-bold text-white">{sessions.length}</p>
+              <p className="text-xs text-gray-500">{selectedApp?.name}</p>
             </div>
+            <div className="card p-4 flex flex-col gap-1">
+              <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">🟢 Live Now</p>
+              <p className="text-3xl font-bold text-green-400">{activeSessions.length}</p>
+              <p className="text-xs text-gray-500">heartbeat &lt; 45s</p>
+            </div>
+            <div className="card p-4 flex flex-col gap-1">
+              <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">🔴 Offline</p>
+              <p className="text-3xl font-bold text-red-400">{offlineSessions.length}</p>
+              <p className="text-xs text-gray-500">stale sessions</p>
+            </div>
+            <div className="card p-4 flex flex-col gap-1">
+              <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Avg Ping</p>
+              <p className="text-3xl font-bold text-indigo-400">
+                {activeSessions.length === 0
+                  ? 'N/A'
+                  : `${Math.round(activeSessions.filter(s => s.ping && s.ping !== 'N/A').reduce((a, s) => a + parseInt(s.ping), 0) / (activeSessions.filter(s => s.ping && s.ping !== 'N/A').length || 1))}ms`
+                }
+              </p>
+              <p className="text-xs text-gray-500">live clients only</p>
+            </div>
+          </div>
 
-            <div className="card">
-              <p className="page-eyebrow">Session Surface</p>
-              <h2 className="mt-2 text-2xl font-bold text-white">Active authenticated clients</h2>
-
-              {loading ? (
-                <div className="flex justify-center py-16">
-                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-400 border-t-transparent" />
-                </div>
-              ) : sessions.length === 0 ? (
-                <div className="mt-6 rounded-2xl border border-dashed border-white/10 px-5 py-16 text-center">
-                  <p className="text-lg font-semibold text-white">No active sessions</p>
-                  <p className="mt-2 text-sm text-slate-400">When a client logs in and starts heartbeating, it will appear here.</p>
-                </div>
-              ) : (
-                <div className="mt-6 grid gap-4 xl:grid-cols-2">
-                  {sessions.map((session: any) => (
-                    <div key={session._id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
+          {/* ── Sessions Table ── */}
+          <div className="card overflow-visible p-0">
+            {loading ? (
+              <div className="flex justify-center py-16">
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary-500 border-t-transparent" />
+              </div>
+            ) : sessions.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="text-5xl mb-4">📡</div>
+                <p className="text-lg font-semibold text-white">No active sessions</p>
+                <p className="mt-2 text-sm text-gray-400">When a client logs in and starts heartbeating, it will appear here.</p>
+              </div>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-dark-border">
+                    <th className="text-left px-5 py-3.5 text-gray-400 font-medium text-xs uppercase tracking-wider">User</th>
+                    <th className="text-left px-5 py-3.5 text-gray-400 font-medium text-xs uppercase tracking-wider">Status</th>
+                    <th className="text-left px-5 py-3.5 text-gray-400 font-medium text-xs uppercase tracking-wider">Ping</th>
+                    <th className="text-left px-5 py-3.5 text-gray-400 font-medium text-xs uppercase tracking-wider">IP Address</th>
+                    <th className="text-left px-5 py-3.5 text-gray-400 font-medium text-xs uppercase tracking-wider">HWID</th>
+                    <th className="text-left px-5 py-3.5 text-gray-400 font-medium text-xs uppercase tracking-wider">Last Heartbeat</th>
+                    <th className="text-left px-5 py-3.5 text-gray-400 font-medium text-xs uppercase tracking-wider">Expires</th>
+                    <th className="px-5 py-3.5" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {sessions.map((session: any) => {
+                    const isLive = Date.now() - new Date(session.lastHeartbeat).getTime() < 45000
+                    const ping = session.ping && session.ping !== 'N/A' ? parseInt(session.ping) : null
+                    const pingColor = ping === null ? 'text-gray-500' : ping < 100 ? 'text-green-400' : ping < 300 ? 'text-yellow-400' : 'text-red-400'
+                    return (
+                      <tr key={session._id} className="border-b border-dark-border/50 hover:bg-dark-hover/20 transition-colors">
+                        {/* User */}
+                        <td className="px-5 py-4">
                           <div className="flex items-center gap-3">
-                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-400/10 text-indigo-200">
-                              <UserCircleIcon className="h-6 w-6" />
+                            <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-300 font-bold text-sm shrink-0">
+                              {(session.userId?.username || '?')[0].toUpperCase()}
                             </div>
                             <div>
-                              <div className="flex items-center gap-2">
-                                <p className="text-lg font-bold text-white">{session.userId?.username || 'Unknown User'}</p>
-                                {Date.now() - new Date(session.lastHeartbeat).getTime() < 45000 ? (
-                                  <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/20 text-[10px] font-bold text-green-400 uppercase tracking-wider">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                                    Live
-                                  </span>
-                                ) : (
-                                  <span className="px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/20 text-[10px] font-bold text-red-400 uppercase tracking-wider">
-                                    Offline
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-sm text-slate-400">Application session record</p>
+                              <p className="font-semibold text-white">{session.userId?.username || 'Unknown'}</p>
+                              <p className="text-[11px] text-gray-500 font-mono">{session._id?.slice(-8)}</p>
                             </div>
                           </div>
-                        </div>
+                        </td>
 
-                        <button onClick={() => terminateSession(session._id)} className="btn btn-danger px-3 py-2 text-xs">
-                          <TrashIcon className="h-4 w-4" />
-                          Terminate
-                        </button>
-                      </div>
+                        {/* Status */}
+                        <td className="px-5 py-4">
+                          {isLive ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/10 border border-green-500/20 text-[11px] font-bold text-green-400 uppercase tracking-wider">
+                              <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                              Live
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-[11px] font-bold text-red-400 uppercase tracking-wider">
+                              Offline
+                            </span>
+                          )}
+                        </td>
 
-                      <div className="mt-5 grid gap-3">
-                        {[
-                          { label: 'Ping', value: session.ping !== 'N/A' ? `${session.ping} ms` : 'N/A' },
-                          { label: 'IP Address', value: session.ip },
-                          { label: 'HWID', value: session.hwid },
-                          { label: 'Last Heartbeat', value: new Date(session.lastHeartbeat).toLocaleString() },
-                          { label: 'Created', value: new Date(session.createdAt).toLocaleString() },
-                          { label: 'Expires', value: new Date(session.expiresAt).toLocaleString() },
-                        ].map((item) => (
-                          <div key={item.label} className="rounded-xl border border-white/8 bg-slate-950/40 px-4 py-3">
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">{item.label}</p>
-                            <p className="mt-1 break-all text-sm text-slate-200">{item.value}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </section>
+                        {/* Ping */}
+                        <td className="px-5 py-4">
+                          <span className={`font-mono font-semibold text-sm ${pingColor}`}>
+                            {ping !== null ? `${ping} ms` : '—'}
+                          </span>
+                        </td>
+
+                        {/* IP */}
+                        <td className="px-5 py-4">
+                          <span className="font-mono text-xs text-gray-300">{session.ip || 'N/A'}</span>
+                        </td>
+
+                        {/* HWID */}
+                        <td className="px-5 py-4">
+                          <button
+                            onClick={() => { navigator.clipboard.writeText(session.hwid || ''); toast.success('HWID copied!') }}
+                            className="font-mono text-xs text-gray-400 hover:text-primary-400 transition-colors cursor-pointer"
+                            title={session.hwid}
+                          >
+                            {session.hwid ? `${session.hwid.slice(0, 10)}…` : 'N/A'}
+                          </button>
+                        </td>
+
+                        {/* Last Heartbeat */}
+                        <td className="px-5 py-4">
+                          <p className="text-xs text-gray-300">{timeAgo(session.lastHeartbeat)}</p>
+                          <p className="text-[11px] text-gray-500">{formatDate(session.lastHeartbeat)}</p>
+                        </td>
+
+                        {/* Expires */}
+                        <td className="px-5 py-4">
+                          <p className="text-xs text-gray-400">{formatDate(session.expiresAt)}</p>
+                        </td>
+
+                        {/* Actions */}
+                        <td className="px-5 py-4">
+                          <button
+                            onClick={() => terminateSession(session._id)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 text-xs font-medium rounded-lg transition-all"
+                          >
+                            <XMarkIcon className="w-3.5 h-3.5" />
+                            Kick
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
         </>
       )}
-      {/* ── Custom Confirmation Modal ────────────────────────────────────── */}
-      {confirmModal.show && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-200">
-          <div className="w-full max-w-sm bg-[#13131a] border border-white/5 rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="flex flex-col items-center text-center">
-              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 ${
-                confirmModal.type === 'danger' ? 'bg-red-500/20 text-red-400' :
-                confirmModal.type === 'warning' ? 'bg-yellow-500/20 text-yellow-400' :
-                'bg-blue-500/20 text-blue-400'
-              }`}>
-                {confirmModal.type === 'danger' ? '🗑️' : confirmModal.type === 'warning' ? '⚠️' : '🔄'}
-              </div>
-              
-              <h3 className="text-xl font-bold text-white mb-2">{confirmModal.title}</h3>
-              <p className="text-sm text-gray-400 mb-8 leading-relaxed">
-                {confirmModal.message}
-              </p>
 
+      {/* ── Confirm Modal ── */}
+      {confirmModal.show && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]">
+          <div className="w-full max-w-sm bg-[#13131a] border border-white/5 rounded-3xl p-6 shadow-2xl">
+            <div className="flex flex-col items-center text-center">
+              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 text-2xl ${
+                confirmModal.type === 'danger' ? 'bg-red-500/20' : confirmModal.type === 'warning' ? 'bg-yellow-500/20' : 'bg-blue-500/20'
+              }`}>
+                {confirmModal.type === 'danger' ? '⚡' : confirmModal.type === 'warning' ? '⚠️' : '🔄'}
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">{confirmModal.title}</h3>
+              <p className="text-sm text-gray-400 mb-8 leading-relaxed">{confirmModal.message}</p>
               <div className="flex gap-3 w-full">
-                <button
-                  onClick={() => setConfirmModal(prev => ({ ...prev, show: false }))}
-                  className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-gray-300 rounded-2xl text-sm font-bold transition-all"
-                >
+                <button onClick={() => setConfirmModal(p => ({ ...p, show: false }))}
+                  className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-gray-300 rounded-2xl text-sm font-bold transition-all">
                   Cancel
                 </button>
-                <button
-                  onClick={confirmModal.onConfirm}
-                  className={`flex-1 px-4 py-3 rounded-2xl text-sm font-bold text-white transition-all shadow-lg ${
-                    confirmModal.type === 'danger' ? 'bg-red-600 hover:bg-red-500 shadow-red-900/20' :
-                    confirmModal.type === 'warning' ? 'bg-yellow-600 hover:bg-yellow-500 shadow-yellow-900/20' :
-                    'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-900/20'
-                  }`}
-                >
+                <button onClick={confirmModal.onConfirm}
+                  className={`flex-1 px-4 py-3 rounded-2xl text-sm font-bold text-white transition-all ${
+                    confirmModal.type === 'danger' ? 'bg-red-600 hover:bg-red-500' : confirmModal.type === 'warning' ? 'bg-yellow-600 hover:bg-yellow-500' : 'bg-indigo-600 hover:bg-indigo-500'
+                  }`}>
                   {confirmModal.confirmText}
                 </button>
               </div>
