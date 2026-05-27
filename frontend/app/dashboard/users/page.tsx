@@ -4,8 +4,45 @@ import { useEffect, useRef, useState } from 'react'
 import api from '@/lib/api'
 import { useAppStore } from '@/lib/store'
 import toast from 'react-hot-toast'
-import { motion } from 'framer-motion'
-import { PlusIcon, EyeIcon, EyeSlashIcon, XMarkIcon, EllipsisVerticalIcon } from '@heroicons/react/24/outline'
+import { motion, AnimatePresence } from 'framer-motion'
+import {
+  PlusIcon,
+  EyeIcon,
+  EyeSlashIcon,
+  XMarkIcon,
+  EllipsisVerticalIcon,
+  PencilIcon,
+  PlayIcon,
+  PauseIcon,
+  ArrowPathIcon,
+  TrashIcon,
+  CheckIcon,
+  NoSymbolIcon,
+  ExclamationTriangleIcon,
+  BoltIcon,
+  ShieldExclamationIcon,
+  InformationCircleIcon,
+  MagnifyingGlassIcon,
+  UserIcon,
+  CommandLineIcon
+} from '@heroicons/react/24/outline'
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.05 }
+  }
+} as const
+
+const rowVariants = {
+  hidden: { opacity: 0, y: 10 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { type: 'spring', stiffness: 100, damping: 15 }
+  }
+} as const
 
 // ── 3-dot dropdown per user row ───────────────────────────────────────────────
 function UserMenu({ user, onEdit, onBan, onPermanentBan, onUnban, onPause, onResetHwid, onDelete, onForceClose }: any) {
@@ -24,47 +61,95 @@ function UserMenu({ user, onEdit, onBan, onPermanentBan, onUnban, onPause, onRes
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
-        className="p-2 rounded-lg hover:bg-dark-hover text-gray-400 hover:text-white transition-colors"
+        className="p-2 rounded-xl hover:bg-white/[0.06] border border-transparent hover:border-white/5 text-slate-400 hover:text-white transition-all"
       >
         <EllipsisVerticalIcon className="w-5 h-5" />
       </button>
 
-      {open && (
-        <div className="fixed mt-1 w-44 bg-[#1a1a24] border border-dark-border rounded-xl shadow-2xl z-[9999] overflow-hidden py-1"
-          style={{
-            top: ref.current ? ref.current.getBoundingClientRect().bottom + window.scrollY + 4 : 0,
-            right: window.innerWidth - (ref.current ? ref.current.getBoundingClientRect().right : 0)
-          }}
-        >
-          <button onClick={() => { setOpen(false); onEdit(user) }} className="w-full text-left px-4 py-2.5 text-sm text-gray-200 hover:bg-dark-hover transition-colors flex items-center gap-2">
-            <span>✏️</span> Edit
-          </button>
-          <button onClick={() => { setOpen(false); onPause(user) }} className="w-full text-left px-4 py-2.5 text-sm text-yellow-400 hover:bg-yellow-500/10 transition-colors flex items-center gap-2">
-            <span>{user.paused ? '▶️' : '⏸️'}</span> {user.paused ? 'Unpause' : 'Pause'}
-          </button>
-          <button onClick={() => { setOpen(false); onResetHwid(user._id) }} className="w-full text-left px-4 py-2.5 text-sm text-blue-400 hover:bg-blue-500/10 transition-colors flex items-center gap-2">
-            <span>🔄</span> Reset HWID
-          </button>
-          <button onClick={() => { setOpen(false); onForceClose(user._id) }} className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors flex items-center gap-2">
-            <span>💥</span> Crash it
-          </button>
-          {user.banned ? (
-            <button onClick={() => { setOpen(false); onUnban(user._id) }} className="w-full text-left px-4 py-2.5 text-sm text-green-400 hover:bg-green-500/10 transition-colors flex items-center gap-2">
-              <span>✅</span> Unban
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: -10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: -10 }}
+            className="fixed mt-1 w-48 bg-[#12121a] border border-white/5 rounded-2xl shadow-2xl z-[9999] overflow-hidden py-1.5 backdrop-blur-md"
+            style={{
+              top: ref.current ? ref.current.getBoundingClientRect().bottom + window.scrollY + 4 : 0,
+              right: window.innerWidth - (ref.current ? ref.current.getBoundingClientRect().right : 0)
+            }}
+          >
+            <button
+              onClick={() => { setOpen(false); onEdit(user) }}
+              className="w-full text-left px-4 py-2 text-xs font-semibold text-slate-300 hover:bg-white/[0.04] transition-all flex items-center gap-2"
+            >
+              <PencilIcon className="w-3.5 h-3.5 text-indigo-400" /> Edit Credentials
             </button>
-          ) : (
-            <button onClick={() => { setOpen(false); onBan(user) }} className="w-full text-left px-4 py-2.5 text-sm text-orange-400 hover:bg-orange-500/10 transition-colors flex items-center gap-2">
-              <span>🚫</span> Ban
+            
+            <button
+              onClick={() => { setOpen(false); onPause(user) }}
+              className="w-full text-left px-4 py-2 text-xs font-semibold text-amber-400 hover:bg-amber-400/5 transition-all flex items-center gap-2"
+            >
+              {user.paused ? (
+                <>
+                  <PlayIcon className="w-3.5 h-3.5" /> Resume Access
+                </>
+              ) : (
+                <>
+                  <PauseIcon className="w-3.5 h-3.5" /> Pause Access
+                </>
+              )}
             </button>
-          )}
-          <button onClick={() => { setOpen(false); onPermanentBan(user) }} className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors flex items-center gap-2">
-            <span>⛔</span> Full Ban
-          </button>
-          <button onClick={() => { setOpen(false); onDelete(user._id) }} className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-500/10 transition-colors flex items-center gap-2">
-            <span>🗑️</span> Delete
-          </button>
-        </div>
-      )}
+
+            <button
+              onClick={() => { setOpen(false); onResetHwid(user._id) }}
+              className="w-full text-left px-4 py-2 text-xs font-semibold text-blue-400 hover:bg-blue-400/5 transition-all flex items-center gap-2"
+            >
+              <ArrowPathIcon className="w-3.5 h-3.5" /> Reset HWID
+            </button>
+
+            <button
+              onClick={() => { setOpen(false); onForceClose(user._id) }}
+              className="w-full text-left px-4 py-2 text-xs font-semibold text-rose-400 hover:bg-rose-400/5 transition-all flex items-center gap-2"
+            >
+              <BoltIcon className="w-3.5 h-3.5 animate-pulse" /> Crash it
+            </button>
+
+            <div className="border-t border-white/5 my-1" />
+
+            {user.banned ? (
+              <button
+                onClick={() => { setOpen(false); onUnban(user._id) }}
+                className="w-full text-left px-4 py-2 text-xs font-semibold text-emerald-400 hover:bg-emerald-400/5 transition-all flex items-center gap-2"
+              >
+                <CheckIcon className="w-3.5 h-3.5" /> Lift Ban
+              </button>
+            ) : (
+              <button
+                onClick={() => { setOpen(false); onBan(user) }}
+                className="w-full text-left px-4 py-2 text-xs font-semibold text-orange-400 hover:bg-orange-400/5 transition-all flex items-center gap-2"
+              >
+                <NoSymbolIcon className="w-3.5 h-3.5" /> Ban Session
+              </button>
+            )}
+
+            <button
+              onClick={() => { setOpen(false); onPermanentBan(user) }}
+              className="w-full text-left px-4 py-2 text-xs font-semibold text-red-400 hover:bg-red-400/5 transition-all flex items-center gap-2"
+            >
+              <ShieldExclamationIcon className="w-3.5 h-3.5" /> Full Ban
+            </button>
+
+            <div className="border-t border-white/5 my-1" />
+
+            <button
+              onClick={() => { setOpen(false); onDelete(user._id) }}
+              className="w-full text-left px-4 py-2 text-xs font-semibold text-red-500 hover:bg-red-500/10 transition-all flex items-center gap-2"
+            >
+              <TrashIcon className="w-3.5 h-3.5" /> Delete User
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
@@ -397,426 +482,617 @@ export default function Users() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div>
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Users</h1>
-        {selectedApp?._id && (
-          <div className="flex items-center gap-3">
-            <div className="relative group">
-              <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-gray-500 group-focus-within:text-primary-400 transition-colors">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search users..."
-                className="w-64 pl-10 pr-4 py-2.5 bg-dark-bg border border-dark-border rounded-xl text-sm focus:outline-none focus:border-primary-500/50 transition-all placeholder-gray-500"
-              />
-            </div>
-            <button onClick={() => setShowCreateModal(true)} className="btn btn-primary flex items-center gap-2 py-2.5">
-              <PlusIcon className="w-4 h-4" /> Create User
-            </button>
+    <div className="space-y-8">
+      {/* Header section with glass background & glow */}
+      <motion.section
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#0f0f1a] to-[#0d0d18] p-8 shadow-xl"
+      >
+        <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-indigo-500/10 blur-[80px]" />
+        <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between relative z-10">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-400">User Operations</p>
+            <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-white">Users Registry</h1>
+            <p className="mt-2 max-w-xl text-sm text-slate-400 leading-relaxed">
+              Monitor, ban, pause, and configure authentication profiles for all clients bound to the current application scope.
+            </p>
           </div>
-        )}
-      </div>
+          {selectedApp?._id && (
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+              <div className="relative">
+                <MagnifyingGlassIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-slate-500 transition-colors" />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Filter by username..."
+                  className="pl-10 pr-4 py-3 bg-black/40 border border-white/10 rounded-2xl text-xs font-semibold text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 w-full sm:w-64 transition-all"
+                />
+              </div>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setShowCreateModal(true)}
+                className="flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-3.5 text-xs font-bold text-white shadow-lg shadow-indigo-900/30 hover:opacity-95 transition-all"
+              >
+                <PlusIcon className="h-4.5 w-4.5" />
+                Create User
+              </motion.button>
+            </div>
+          )}
+        </div>
+      </motion.section>
 
       {loadingApplications ? (
         <div className="flex justify-center py-24">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary-500 border-t-transparent" />
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
         </div>
       ) : applications.length === 0 ? (
-        <div className="text-center py-12 text-gray-400">Create an application first</div>
+        <div className="rounded-3xl border border-dashed border-white/10 p-12 text-center">
+          <CommandLineIcon className="mx-auto h-12 w-12 text-slate-600" />
+          <p className="mt-4 text-base font-bold text-white">Create an application first</p>
+          <p className="mt-2 text-xs text-slate-400">You must register an application in the Applications registry before managing users.</p>
+        </div>
       ) : (
         <>
-          {/* Users table */}
           {loading ? (
-            <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary-500" />
+            <div className="flex justify-center py-24">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
             </div>
           ) : users.length === 0 ? (
-            <div className="text-center py-12 text-gray-400">No users yet</div>
+            <div className="rounded-3xl border border-dashed border-[#ffaa00]/10 bg-[#ffaa00]/5 p-12 text-center">
+              <UserIcon className="mx-auto h-12 w-12 text-[#ffaa00]/50" />
+              <p className="mt-4 text-base font-bold text-white">No Users Found</p>
+              <p className="mt-2 text-xs text-slate-400 max-w-sm mx-auto">
+                No user profiles match your search criteria, or no users are currently assigned to this application scope.
+              </p>
+            </div>
           ) : (
-            <div className="card overflow-visible p-0">
-              {(() => {
-                const showCreatedBy = selectedApp?.team?.length > 0 || users.some(u => u.createdBy)
-                return (
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-dark-border">
-                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Username</th>
-                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Status</th>
-                        <th className="text-left px-4 py-3 text-gray-400 font-medium">HWID</th>
-                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Created</th>
-                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Last Login</th>
-                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Last IP</th>
-                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Expiry</th>
-                        {showCreatedBy && (
-                          <th className="text-left px-4 py-3 text-gray-400 font-medium">Created By</th>
-                        )}
-                        <th className="text-left px-4 py-3 text-gray-400 font-medium">HWID Affected</th>
-                        <th className="px-4 py-3" />
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {users.map((user: any, i: number) => (
-                        <motion.tr 
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ duration: 0.3, delay: i * 0.03 }}
-                          key={user._id} 
-                          className="border-b border-dark-border/50 hover:bg-dark-hover/30 transition-colors"
-                        >
-                          <td className="px-4 py-3 font-medium">
-                            <div className="flex items-center gap-2">
-                              {onlineUsers[user._id] !== undefined && (
-                                <span className="relative flex h-2 w-2 shrink-0">
-                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-400"></span>
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              className="rounded-3xl border border-white/10 bg-[#0e0e16] overflow-hidden shadow-2xl"
+            >
+              <div className="overflow-x-auto">
+                {(() => {
+                  const showCreatedBy = selectedApp?.team?.length > 0 || users.some(u => u.createdBy)
+                  return (
+                    <table className="w-full text-xs font-semibold text-slate-300">
+                      <thead>
+                        <tr className="border-b border-white/5 bg-white/[0.01] uppercase tracking-[0.1em] text-slate-500">
+                          <th className="text-left px-6 py-4">Username</th>
+                          <th className="text-left px-6 py-4">Status</th>
+                          <th className="text-left px-6 py-4">HWID Reference</th>
+                          <th className="text-left px-6 py-4">Created Date</th>
+                          <th className="text-left px-6 py-4">Last Connection</th>
+                          <th className="text-left px-6 py-4">Last IP Route</th>
+                          <th className="text-left px-6 py-4">Access Expiry</th>
+                          {showCreatedBy && (
+                            <th className="text-left px-6 py-4">Origin Maker</th>
+                          )}
+                          <th className="text-left px-6 py-4">HWID Lock</th>
+                          <th className="px-6 py-4" />
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {users.map((user: any, i: number) => (
+                          <motion.tr 
+                            variants={rowVariants}
+                            key={user._id} 
+                            className="hover:bg-white/[0.02] transition-colors"
+                          >
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-2.5">
+                                {onlineUsers[user._id] !== undefined ? (
+                                  <span className="relative flex h-2.5 w-2.5 shrink-0">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400"></span>
+                                  </span>
+                                ) : (
+                                  <span className="h-2.5 w-2.5 rounded-full bg-slate-700 shrink-0" />
+                                )}
+                                <span className="font-bold text-white text-[13px]">{user.username}</span>
+                                {onlineUsers[user._id] !== undefined && (
+                                  <span className="text-[9px] font-mono text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-md">
+                                    {onlineUsers[user._id] ? `${onlineUsers[user._id]}ms` : 'Live'}
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              {user.banned ? (
+                                <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                                  Banned
+                                </span>
+                              ) : user.paused ? (
+                                <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                                  Paused
+                                </span>
+                              ) : user.expiryDate && new Date(user.expiryDate) < new Date() ? (
+                                <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-slate-800 text-slate-400 border border-slate-700">
+                                  Expired
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 animate-pulse">
+                                  Active
                                 </span>
                               )}
-                              <span>{user.username}</span>
-                              {onlineUsers[user._id] !== undefined && (
-                                <span className="text-[10px] text-green-400/80 font-normal">
-                                  {onlineUsers[user._id] ? `${onlineUsers[user._id]}ms` : 'Live'}
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-4 py-3">
-                            {user.banned ? (
-                              <span className="px-2 py-1 bg-red-500/20 text-red-400 text-xs rounded-full font-medium">Banned</span>
-                            ) : user.paused ? (
-                              <span className="px-2 py-1 bg-purple-500/20 text-purple-400 text-xs rounded-full font-medium">Paused</span>
-                            ) : user.expiryDate && new Date(user.expiryDate) < new Date() ? (
-                              <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded-full font-medium">Expired</span>
-                            ) : (
-                              <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full font-medium">Active</span>
-                            )}
-                          </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400 font-mono">
+                            </td>
+                            <td className="px-6 py-4 font-mono text-[11px] text-slate-400">
                               <button
                                 onClick={() => {
                                   if (user.hwid) {
                                     navigator.clipboard.writeText(user.hwid);
-                                    toast.success('HWID copied to clipboard!');
+                                    toast.success('HWID copied!');
                                   }
                                 }}
-                                className="hover:text-primary-400 transition-colors cursor-pointer text-left"
+                                className="hover:text-indigo-400 transition-colors cursor-pointer text-left focus:outline-none"
                                 title="Click to copy full HWID"
                               >
                                 {user.hwid ? `${user.hwid.substring(0, 12)}...` : 'Not set'}
                               </button>
                             </td>
-                          <td className="px-4 py-3 text-gray-400 text-xs">
-                            {formatToDDMMYYYY(user.createdAt, 'Unknown', true)}
-                          </td>
-                          <td className="px-4 py-3 text-gray-400 text-xs">
-                            {formatToDDMMYYYY(user.lastLogin, 'Never', true)}
-                          </td>
-                          <td className="px-4 py-3 text-gray-400 text-xs">{user.lastIp || 'N/A'}</td>
-                          <td className="px-4 py-3 text-gray-400 text-xs">
-                            {user.paused 
-                              ? formatToDDMMYYYY(user.pausedExpiry, 'Lifetime', true)
-                              : formatToDDMMYYYY(user.expiryDate, 'Lifetime', true)}
-                          </td>
-                          {showCreatedBy && (
-                            <td className="px-4 py-3">
-                              <span className="px-2 py-0.5 rounded-full bg-white/5 text-gray-300 text-[11px] border border-white/10">
-                                {getCreatorDisplay(user.createdBy, selectedApp?.userId)}
-                              </span>
+                            <td className="px-6 py-4 text-slate-400 text-[11px]">
+                              {formatToDDMMYYYY(user.createdAt, 'Unknown', true)}
                             </td>
-                          )}
-                          <td className="px-4 py-3 text-gray-400 text-xs">
-                            {user.hwidAffected ? (
-                              <span className="text-indigo-400 font-medium">Yes</span>
-                            ) : (
-                              <span className="text-gray-500">No</span>
+                            <td className="px-6 py-4 text-slate-400 text-[11px]">
+                              {formatToDDMMYYYY(user.lastLogin, 'Never', true)}
+                            </td>
+                            <td className="px-6 py-4 text-slate-400 font-mono text-[11px]">{user.lastIp || 'N/A'}</td>
+                            <td className="px-6 py-4 text-slate-400 text-[11px]">
+                              {user.paused 
+                                ? formatToDDMMYYYY(user.pausedExpiry, 'Lifetime', true)
+                                : formatToDDMMYYYY(user.expiryDate, 'Lifetime', true)}
+                            </td>
+                            {showCreatedBy && (
+                              <td className="px-6 py-4">
+                                <span className="px-2 py-0.5 rounded-lg bg-white/[0.04] text-slate-400 text-[10px] border border-white/5">
+                                  {getCreatorDisplay(user.createdBy, selectedApp?.userId)}
+                                </span>
+                              </td>
                             )}
-                          </td>
-                          <td className="px-4 py-3">
-                            <UserMenu
-                              user={user}
-                              onEdit={openEditModal}
-                              onBan={softBan}
-                              onPermanentBan={openBanModal}
-                              onUnban={unbanUser}
-                              onPause={pauseUser}
-                              onResetHwid={resetHwid}
-                              onDelete={deleteUser}
-                              onForceClose={forceCloseUser}
-                            />
-                          </td>
-                        </motion.tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )
-              })()}
+                            <td className="px-6 py-4">
+                              {user.hwidAffected ? (
+                                <span className="text-indigo-400 font-bold bg-indigo-500/10 px-2 py-0.5 rounded-lg border border-indigo-500/10">Locked</span>
+                              ) : (
+                                <span className="text-slate-500 font-bold bg-white/[0.02] px-2 py-0.5 rounded-lg border border-white/5">None</span>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <UserMenu
+                                user={user}
+                                onEdit={openEditModal}
+                                onBan={softBan}
+                                onPermanentBan={openBanModal}
+                                onUnban={unbanUser}
+                                onPause={pauseUser}
+                                onResetHwid={resetHwid}
+                                onDelete={deleteUser}
+                                onForceClose={forceCloseUser}
+                              />
+                            </td>
+                          </motion.tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )
+                })()}
+              </div>
 
-              {/* Pagination Controls — KeyAuth Style */}
-              <div className="flex items-center justify-between px-6 py-4 bg-black/20 border-t border-white/5">
+              {/* Pagination Controls */}
+              <div className="flex items-center justify-between px-6 py-4 bg-black/45 border-t border-white/5">
                 <button
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className="px-5 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-gray-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                  className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-gray-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                 >
                   Previous
                 </button>
-                
-                <div className="text-xs font-medium text-gray-500">
-                  Showing page <span className="text-gray-200">{currentPage}</span> of <span className="text-gray-200">{totalPages}</span>
+                <div className="text-xs font-medium text-slate-500">
+                  Page <span className="text-slate-300">{currentPage}</span> of <span className="text-slate-300">{totalPages || 1}</span>
                 </div>
-
                 <button
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === totalPages || totalPages === 0}
-                  className="px-5 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-gray-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                  className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-gray-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                 >
                   Next
                 </button>
               </div>
-            </div>
+            </motion.div>
           )}
         </>
       )}
 
-      {/* ── Create User Modal ─────────────────────────────────────────── */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
-          <div className="modal-card max-w-md w-full">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">Create User</h2>
-              <button onClick={() => setShowCreateModal(false)} className="text-gray-400 hover:text-white">
-                <XMarkIcon className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Username <span className="text-red-400">*</span></label>
-                <input type="text" value={newUser.username} onChange={(e) => setNewUser({ ...newUser, username: e.target.value })} className="input" placeholder="Enter username" />
+      {/* ── Modals with scale & blur overlays ────────────────────────────── */}
+      <AnimatePresence>
+        
+        {/* Create User Modal */}
+        {showCreateModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowCreateModal(false)}
+              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="relative w-full max-w-md bg-[#13131a] border border-white/5 rounded-3xl p-6 shadow-2xl z-10"
+            >
+              <div className="flex justify-between items-center border-b border-white/5 pb-4">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-indigo-400">Creation Panel</p>
+                  <h2 className="text-xl font-bold text-white mt-0.5">Register Profile</h2>
+                </div>
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="rounded-xl border border-white/10 bg-white/[0.02] p-1.5 text-slate-400 hover:text-white"
+                >
+                  <XMarkIcon className="w-5 h-5" />
+                </button>
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Password</label>
-                <div className="relative">
-                  <input type={showPassword ? 'text' : 'password'} value={newUser.password} onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} className="input pr-10" placeholder="Enter password" />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
-                    {showPassword ? <EyeSlashIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
+
+              <div className="mt-5 space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1.5">Username <span className="text-rose-500">*</span></label>
+                  <input
+                    type="text"
+                    value={newUser.username}
+                    onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
+                    className="input text-sm"
+                    placeholder="User profile identity"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1.5">Password <span className="text-rose-500">*</span></label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={newUser.password}
+                      onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                      className="input text-sm pr-10"
+                      placeholder="Access security key"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"
+                    >
+                      {showPassword ? <EyeSlashIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1.5">Email Identity</label>
+                  <input
+                    type="email"
+                    value={newUser.email}
+                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                    className="input text-sm"
+                    placeholder="Enter email (optional)"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1.5">Subscription Level</label>
+                  <input
+                    type="text"
+                    value={newUser.subscription}
+                    onChange={(e) => setNewUser({ ...newUser, subscription: e.target.value })}
+                    className="input text-sm"
+                    placeholder="default"
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-semibold text-slate-400">Access Expiry</label>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="checkbox"
+                        id="createLifetime"
+                        checked={newUser.isLifetime}
+                        onChange={(e) => setNewUser({ ...newUser, isLifetime: e.target.checked })}
+                        className="w-3.5 h-3.5 accent-indigo-600 rounded"
+                      />
+                      <label htmlFor="createLifetime" className="text-[10px] text-slate-400 font-bold cursor-pointer uppercase tracking-wider">Lifetime</label>
+                    </div>
+                  </div>
+                  {!newUser.isLifetime && (
+                    <input
+                      type="datetime-local"
+                      value={newUser.expiryDate}
+                      onChange={(e) => setNewUser({ ...newUser, expiryDate: e.target.value })}
+                      className="input text-sm text-slate-300"
+                    />
+                  )}
+                </div>
+                <div className="flex items-center gap-2 py-1">
+                  <input
+                    type="checkbox"
+                    id="hwidAffected"
+                    checked={newUser.hwidAffected}
+                    onChange={(e) => setNewUser({ ...newUser, hwidAffected: e.target.checked })}
+                    className="w-4 h-4 accent-indigo-600 rounded"
+                  />
+                  <label htmlFor="hwidAffected" className="text-xs font-bold text-slate-400 cursor-pointer">Enforce Hardware ID (HWID) Lock</label>
+                </div>
+                <div className="flex gap-2.5 pt-2">
+                  <button onClick={() => setShowCreateModal(false)} className="btn btn-secondary flex-1 py-3 text-xs">
+                    Cancel
+                  </button>
+                  <button onClick={createUser} disabled={creating} className="btn btn-primary flex-1 py-3 text-xs">
+                    {creating ? 'Registering...' : 'Create Account'}
                   </button>
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Email</label>
-                <input type="email" value={newUser.email} onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} className="input" placeholder="Optional" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Subscription</label>
-                <input type="text" value={newUser.subscription} onChange={(e) => setNewUser({ ...newUser, subscription: e.target.value })} className="input" placeholder="default" />
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium">Expiration</label>
-                  <div className="flex items-center gap-2">
-                    <input type="checkbox" id="createLifetime" checked={newUser.isLifetime} onChange={(e) => setNewUser({ ...newUser, isLifetime: e.target.checked })} className="w-3.5 h-3.5 accent-primary-600" />
-                    <label htmlFor="createLifetime" className="text-xs text-gray-400 cursor-pointer">Lifetime Access</label>
-                  </div>
-                </div>
-                {!newUser.isLifetime && (
-                  <input type="datetime-local" value={newUser.expiryDate} onChange={(e) => setNewUser({ ...newUser, expiryDate: e.target.value })} className="input" />
-                )}
-              </div>
-              <div className="flex items-center gap-3">
-                <input type="checkbox" id="hwidAffected" checked={newUser.hwidAffected} onChange={(e) => setNewUser({ ...newUser, hwidAffected: e.target.checked })} className="w-4 h-4 accent-primary-600" />
-                <label htmlFor="hwidAffected" className="text-sm">HWID Affected</label>
-              </div>
-              <div className="flex gap-2 pt-2">
-                <button onClick={() => setShowCreateModal(false)} className="btn btn-secondary flex-1">Cancel</button>
-                <button onClick={createUser} disabled={creating} className="btn btn-primary flex-1">{creating ? 'Creating...' : 'Create User'}</button>
-              </div>
-            </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* ── Edit User Modal ───────────────────────────────────────────── */}
-      {showEditModal && editTarget && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
-          <div className="modal-card max-w-md w-full">
-            <div className="flex justify-between items-center mb-4">
-              <div>
-                <h2 className="text-xl font-bold">Edit User</h2>
-                <p className="text-sm text-gray-400 mt-0.5">Editing: <span className="text-white font-medium">{editTarget.username}</span></p>
-              </div>
-              <button onClick={() => setShowEditModal(false)} className="text-gray-400 hover:text-white">
-                <XMarkIcon className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Username</label>
-                <input type="text" value={editData.username} onChange={(e) => setEditData({ ...editData, username: e.target.value })} className="input" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Email</label>
-                <input type="email" value={editData.email} onChange={(e) => setEditData({ ...editData, email: e.target.value })} className="input" placeholder="Optional" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Subscription</label>
-                <input type="text" value={editData.subscription} onChange={(e) => setEditData({ ...editData, subscription: e.target.value })} className="input" />
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium">Expiration</label>
-                  <div className="flex items-center gap-2">
-                    <input type="checkbox" id="editLifetime" checked={editData.isLifetime} onChange={(e) => setEditData({ ...editData, isLifetime: e.target.checked })} className="w-3.5 h-3.5 accent-primary-600" />
-                    <label htmlFor="editLifetime" className="text-xs text-gray-400 cursor-pointer">Lifetime Access</label>
-                  </div>
+        {/* Edit User Modal */}
+        {showEditModal && editTarget && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowEditModal(false)}
+              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="relative w-full max-w-md bg-[#13131a] border border-white/5 rounded-3xl p-6 shadow-2xl z-10"
+            >
+              <div className="flex justify-between items-center border-b border-white/5 pb-4">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-indigo-400">Settings Editor</p>
+                  <h2 className="text-xl font-bold text-white mt-0.5">Edit Profile</h2>
+                  <p className="text-[10px] text-slate-500 font-mono mt-0.5">Scope: {editTarget.username}</p>
                 </div>
-                {!editData.isLifetime && (
-                  <input type="datetime-local" value={editData.expiryDate} onChange={(e) => setEditData({ ...editData, expiryDate: e.target.value })} className="input" />
-                )}
+                <button
+                  onClick={() => setShowEditModal(false)}
+                  className="rounded-xl border border-white/10 bg-white/[0.02] p-1.5 text-slate-400 hover:text-white"
+                >
+                  <XMarkIcon className="w-5 h-5" />
+                </button>
               </div>
-              <div className="flex items-center gap-3">
-                <input type="checkbox" id="editHwidAffected" checked={editData.hwidAffected} onChange={(e) => setEditData({ ...editData, hwidAffected: e.target.checked })} className="w-4 h-4 accent-primary-600" />
-                <label htmlFor="editHwidAffected" className="text-sm">HWID Affected</label>
+
+              <div className="mt-5 space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1.5">Username Identifier</label>
+                  <input
+                    type="text"
+                    value={editData.username}
+                    onChange={(e) => setEditData({ ...editData, username: e.target.value })}
+                    className="input text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1.5">Email Identity</label>
+                  <input
+                    type="email"
+                    value={editData.email}
+                    onChange={(e) => setEditData({ ...editData, email: e.target.value })}
+                    className="input text-sm"
+                    placeholder="Enter email (optional)"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1.5">Subscription Level</label>
+                  <input
+                    type="text"
+                    value={editData.subscription}
+                    onChange={(e) => setEditData({ ...editData, subscription: e.target.value })}
+                    className="input text-sm"
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-semibold text-slate-400">Expiration Status</label>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="checkbox"
+                        id="editLifetime"
+                        checked={editData.isLifetime}
+                        onChange={(e) => setEditData({ ...editData, isLifetime: e.target.checked })}
+                        className="w-3.5 h-3.5 accent-indigo-600 rounded"
+                      />
+                      <label htmlFor="editLifetime" className="text-[10px] text-slate-400 font-bold cursor-pointer uppercase tracking-wider">Lifetime</label>
+                    </div>
+                  </div>
+                  {!editData.isLifetime && (
+                    <input
+                      type="datetime-local"
+                      value={editData.expiryDate}
+                      onChange={(e) => setEditData({ ...editData, expiryDate: e.target.value })}
+                      className="input text-sm text-slate-300"
+                    />
+                  )}
+                </div>
+                <div className="flex items-center gap-2 py-1">
+                  <input
+                    type="checkbox"
+                    id="editHwidAffected"
+                    checked={editData.hwidAffected}
+                    onChange={(e) => setEditData({ ...editData, hwidAffected: e.target.checked })}
+                    className="w-4 h-4 accent-indigo-600 rounded"
+                  />
+                  <label htmlFor="editHwidAffected" className="text-xs font-bold text-slate-400 cursor-pointer">Enforce Hardware ID (HWID) Lock</label>
+                </div>
+                <div className="flex gap-2.5 pt-2">
+                  <button onClick={() => setShowEditModal(false)} className="btn btn-secondary flex-1 py-3 text-xs">
+                    Cancel
+                  </button>
+                  <button onClick={saveEdit} className="btn btn-primary flex-1 py-3 text-xs">
+                    Save Changes
+                  </button>
+                </div>
               </div>
-              <div className="flex gap-2 pt-2">
-                <button onClick={() => setShowEditModal(false)} className="btn btn-secondary flex-1">Cancel</button>
-                <button onClick={saveEdit} className="btn btn-primary flex-1">Save Changes</button>
-              </div>
-            </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* ── Full Ban Modal ───────────────────────────────────────── */}
-      {showBanModal && banTarget && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
-          <div className="modal-card w-full max-w-md">
-            <div className="flex justify-between items-start mb-5">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0">
-                    <span className="text-white text-xs font-bold">—</span>
+        {/* Full Ban Modal */}
+        {showBanModal && banTarget && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowBanModal(false)}
+              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="relative w-full max-w-md bg-[#13131a] border border-white/5 rounded-3xl p-6 shadow-2xl z-10"
+            >
+              <div className="flex justify-between items-center border-b border-white/5 pb-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400">
+                    <ShieldExclamationIcon className="w-4 h-4" />
                   </div>
-                  <h2 className="text-xl font-bold text-red-400">Full Ban</h2>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-red-500">Security Override</p>
+                    <h2 className="text-xl font-bold text-white mt-0.5">Permanent Ban</h2>
+                  </div>
                 </div>
-                <p className="text-sm text-gray-400 ml-8">
-                  Banning: <span className="text-white font-semibold">{banTarget.username}</span>
+                <button
+                  onClick={() => setShowBanModal(false)}
+                  className="rounded-xl border border-white/10 bg-white/[0.02] p-1.5 text-slate-400 hover:text-white"
+                >
+                  <XMarkIcon className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="mt-5 space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1.5">
+                    Internal Reason Reference
+                  </label>
+                  <input
+                    type="text"
+                    value={banReason}
+                    onChange={(e) => setBanReason(e.target.value)}
+                    className="input text-sm"
+                    placeholder="e.g. Chargeback, Terms violation..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1.5">
+                    Ban Description to Client <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    value={banMessage}
+                    onChange={(e) => setBanMessage(e.target.value)}
+                    rows={3}
+                    className="input text-sm resize-none"
+                    placeholder="This notification will be displayed on the client authentication window."
+                  />
+                </div>
+
+                <div className="flex items-center gap-2.5 p-3.5 bg-black/45 border border-white/5 rounded-2xl">
+                  <input
+                    type="checkbox"
+                    id="banIpCheck"
+                    checked={banIp}
+                    onChange={(e) => setBanIp(e.target.checked)}
+                    className="w-4 h-4 accent-red-600 rounded flex-shrink-0"
+                  />
+                  <label htmlFor="banIpCheck" className="text-xs font-bold text-slate-400 cursor-pointer">
+                    Blacklist Client Route IP ({banTarget.lastIp || 'unknown'})
+                  </label>
+                </div>
+
+                <div className="flex items-start gap-2 p-3 bg-red-500/5 border border-red-500/10 rounded-2xl">
+                  <InformationCircleIcon className="w-4.5 h-4.5 text-red-400 flex-shrink-0 mt-0.5" />
+                  <p className="text-[11px] text-red-300 leading-relaxed">
+                    Executing a full ban immediately terminates all active sockets, voids licensing access, and locks future client handshakes permanently.
+                  </p>
+                </div>
+
+                <div className="flex gap-2.5 pt-2">
+                  <button onClick={() => setShowBanModal(false)} className="btn btn-secondary flex-1 py-3 text-xs">
+                    Cancel
+                  </button>
+                  <button
+                    onClick={executeBan}
+                    disabled={banning}
+                    className="btn btn-danger flex-1 py-3 text-xs bg-red-600 hover:bg-red-500"
+                  >
+                    {banning ? 'Executing Ban...' : 'Confirm Permanent Ban'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Custom Confirmation Modal */}
+        {confirmModal.show && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setConfirmModal(prev => ({ ...prev, show: false }))}
+              className="absolute inset-0 bg-black/85 backdrop-blur-xs"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-full max-w-sm bg-[#13131a] border border-white/5 rounded-3xl p-6 shadow-2xl z-10"
+            >
+              <div className="flex flex-col items-center text-center">
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 border ${
+                  confirmModal.type === 'danger' ? 'bg-red-500/10 text-red-400 border-red-500/10' :
+                  confirmModal.type === 'warning' ? 'bg-amber-500/10 text-amber-400 border-amber-500/10' :
+                  'bg-indigo-500/10 text-indigo-400 border-indigo-500/10'
+                }`}>
+                  {confirmModal.type === 'danger' ? <TrashIcon className="h-5 w-5" /> : 
+                   confirmModal.type === 'warning' ? <ExclamationTriangleIcon className="h-5 w-5" /> : 
+                   <ArrowPathIcon className="h-5 w-5 animate-spin-hover" />}
+                </div>
+                
+                <h3 className="text-lg font-bold text-white mb-1.5">{confirmModal.title}</h3>
+                <p className="text-xs text-slate-400 mb-6 leading-relaxed px-2">
+                  {confirmModal.message}
                 </p>
-              </div>
-              <button onClick={() => setShowBanModal(false)} className="text-gray-500 hover:text-white transition-colors">
-                <XMarkIcon className="w-5 h-5" />
-              </button>
-            </div>
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold mb-2">
-                  Ban Reason <span className="text-gray-500 font-normal">(internal)</span>
-                </label>
-                <input
-                  type="text"
-                  value={banReason}
-                  onChange={(e) => setBanReason(e.target.value)}
-                  className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-xl text-white placeholder-gray-600 text-sm focus:outline-none focus:border-red-500/50 transition-all"
-                  placeholder="e.g. Cheating, Refund abuse..."
-                />
+                <div className="flex gap-2.5 w-full">
+                  <button
+                    onClick={() => setConfirmModal(prev => ({ ...prev, show: false }))}
+                    className="flex-1 py-2.5 bg-white/5 hover:bg-white/10 text-slate-300 border border-white/5 rounded-xl text-xs font-bold transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmModal.onConfirm}
+                    className={`flex-1 py-2.5 rounded-xl text-xs font-bold text-white transition-all shadow-md ${
+                      confirmModal.type === 'danger' ? 'bg-red-600 hover:bg-red-500' :
+                      confirmModal.type === 'warning' ? 'bg-amber-600 hover:bg-amber-500' :
+                      'bg-indigo-600 hover:bg-indigo-500'
+                    }`}
+                  >
+                    {confirmModal.confirmText}
+                  </button>
+                </div>
               </div>
-
-              <div>
-                <label className="block text-sm font-semibold mb-2">
-                  Message to User <span className="text-red-400">*</span>
-                </label>
-                <textarea
-                  value={banMessage}
-                  onChange={(e) => setBanMessage(e.target.value)}
-                  rows={4}
-                  className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-xl text-white placeholder-gray-600 text-sm focus:outline-none focus:border-red-500/50 transition-all resize-none"
-                  placeholder="Message shown to user..."
-                />
-              </div>
-
-              <div className="flex items-center gap-3 px-4 py-3 bg-dark-bg border border-dark-border rounded-xl">
-                <input
-                  type="checkbox"
-                  id="banIpCheck"
-                  checked={banIp}
-                  onChange={(e) => setBanIp(e.target.checked)}
-                  className="w-4 h-4 accent-red-600 flex-shrink-0"
-                />
-                <label htmlFor="banIpCheck" className="text-sm cursor-pointer">
-                  Also ban user's IP address ({banTarget.lastIp || 'unknown'})
-                </label>
-              </div>
-
-              <div className="flex items-start gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
-                <span className="text-yellow-400 text-sm flex-shrink-0">⚠️</span>
-                <p className="text-xs text-red-300 leading-relaxed">
-                  Bans the user and blacklists their licenses permanently.
-                </p>
-              </div>
-
-              <div className="flex gap-3 pt-1">
-                <button onClick={() => setShowBanModal(false)} className="flex-1 py-3 px-4 bg-dark-bg hover:bg-dark-hover border border-dark-border rounded-xl text-sm font-semibold text-gray-300 transition-all">
-                  Cancel
-                </button>
-                <button
-                  onClick={executeBan}
-                  disabled={banning}
-                  className="flex-1 py-3 px-4 bg-red-600 hover:bg-red-500 disabled:opacity-50 rounded-xl text-sm font-semibold text-white transition-all flex items-center justify-center gap-2"
-                >
-                  {banning ? 'Banning...' : 'Full Ban'}
-                </button>
-              </div>
-            </div>
+            </motion.div>
           </div>
-        </div>
-      )}
-
-      {/* ── Custom Confirmation Modal ────────────────────────────────────── */}
-      {confirmModal.show && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-200">
-          <div className="modal-card w-full max-w-sm animate-in zoom-in-95 duration-200">
-            <div className="flex flex-col items-center text-center">
-              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 ${
-                confirmModal.type === 'danger' ? 'bg-red-500/20 text-red-400' :
-                confirmModal.type === 'warning' ? 'bg-yellow-500/20 text-yellow-400' :
-                'bg-blue-500/20 text-blue-400'
-              }`}>
-                {confirmModal.type === 'danger' ? '🗑️' : confirmModal.type === 'warning' ? '⚠️' : '🔄'}
-              </div>
-              
-              <h3 className="text-xl font-bold text-white mb-2">{confirmModal.title}</h3>
-              <p className="text-sm text-gray-400 mb-8 leading-relaxed">
-                {confirmModal.message}
-              </p>
-
-              <div className="flex gap-3 w-full">
-                <button
-                  onClick={() => setConfirmModal(prev => ({ ...prev, show: false }))}
-                  className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-gray-300 rounded-2xl text-sm font-bold transition-all"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={confirmModal.onConfirm}
-                  className={`flex-1 px-4 py-3 rounded-2xl text-sm font-bold text-white transition-all shadow-lg ${
-                    confirmModal.type === 'danger' ? 'bg-red-600 hover:bg-red-500 shadow-red-900/20' :
-                    confirmModal.type === 'warning' ? 'bg-yellow-600 hover:bg-yellow-500 shadow-yellow-900/20' :
-                    'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-900/20'
-                  }`}
-                >
-                  {confirmModal.confirmText}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </div>
   )
 }
