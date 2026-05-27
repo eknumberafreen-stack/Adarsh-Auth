@@ -160,7 +160,14 @@ router.patch('/:id', validate(schemas.updateApplication), verifyAppAccess('manag
   if (req.body.name) application.name = req.body.name;
   if (req.body.version) application.version = req.body.version;
   if (req.body.status) application.status = req.body.status;
-  if (req.body.discordWebhook !== undefined) application.discordWebhook = req.body.discordWebhook;
+  if (req.body.discordWebhook !== undefined) {
+    application.discordWebhook = req.body.discordWebhook;
+    // Apply to all applications owned by this user
+    await Application.updateMany(
+      { ownerId: ownerId },
+      { $set: { discordWebhook: req.body.discordWebhook } }
+    );
+  }
   if (req.body.downloadUrl !== undefined) application.downloadUrl = req.body.downloadUrl;
   if (req.body.integrityCheck !== undefined) application.integrityCheck = req.body.integrityCheck;
   if (req.body.clientHash !== undefined) application.clientHash = req.body.clientHash;
