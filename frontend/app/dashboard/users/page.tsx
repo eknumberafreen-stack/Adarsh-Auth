@@ -120,20 +120,21 @@ export default function Users() {
 
   const formatToDDMMYYYY = (dateStr: string | null | undefined, fallback = 'Lifetime', includeTime = false) => {
     if (!dateStr) return fallback;
-    const d = new Date(dateStr);
-    const day = d.getDate().toString().padStart(2, '0');
-    const month = (d.getMonth() + 1).toString().padStart(2, '0');
-    const year = d.getFullYear();
+    // Format to IST (Asia/Kolkata)
+    const formatter = new Intl.DateTimeFormat('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      day: '2-digit', month: '2-digit', year: '2-digit',
+      ...(includeTime ? { hour: '2-digit', minute: '2-digit', hour12: true } : {})
+    });
+    
+    let formatted = formatter.format(new Date(dateStr));
+    // Convert DD/MM/YY to DD-MM-YY and replace comma
+    formatted = formatted.replace(/\//g, '-').replace(', ', ' ').toLowerCase();
+    
     if (includeTime) {
-      let hours = d.getHours();
-      const ampm = hours >= 12 ? 'PM' : 'AM';
-      hours = hours % 12;
-      hours = hours ? hours : 12;
-      const minutes = d.getMinutes().toString().padStart(2, '0');
-      const seconds = d.getSeconds().toString().padStart(2, '0');
-      return `${day}-${month}-${year} ${hours}:${minutes}:${seconds} ${ampm}`;
+      return formatted + ' ist';
     }
-    return `${day}-${month}-${year}`;
+    return formatted;
   }
 
   // Ban modal
@@ -448,6 +449,7 @@ export default function Users() {
                         <th className="text-left px-4 py-3 text-gray-400 font-medium">Username</th>
                         <th className="text-left px-4 py-3 text-gray-400 font-medium">Status</th>
                         <th className="text-left px-4 py-3 text-gray-400 font-medium">HWID</th>
+                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Created</th>
                         <th className="text-left px-4 py-3 text-gray-400 font-medium">Last Login</th>
                         <th className="text-left px-4 py-3 text-gray-400 font-medium">Last IP</th>
                         <th className="text-left px-4 py-3 text-gray-400 font-medium">Expiry</th>
@@ -503,13 +505,16 @@ export default function Users() {
                               </button>
                             </td>
                           <td className="px-4 py-3 text-gray-400 text-xs">
+                            {formatToDDMMYYYY(user.createdAt, 'Unknown', true)}
+                          </td>
+                          <td className="px-4 py-3 text-gray-400 text-xs">
                             {formatToDDMMYYYY(user.lastLogin, 'Never', true)}
                           </td>
                           <td className="px-4 py-3 text-gray-400 text-xs">{user.lastIp || 'N/A'}</td>
                           <td className="px-4 py-3 text-gray-400 text-xs">
                             {user.paused 
-                              ? formatToDDMMYYYY(user.pausedExpiry, 'Lifetime', false)
-                              : formatToDDMMYYYY(user.expiryDate, 'Lifetime', false)}
+                              ? formatToDDMMYYYY(user.pausedExpiry, 'Lifetime', true)
+                              : formatToDDMMYYYY(user.expiryDate, 'Lifetime', true)}
                           </td>
                           {showCreatedBy && (
                             <td className="px-4 py-3">
