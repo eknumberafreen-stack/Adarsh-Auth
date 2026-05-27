@@ -127,12 +127,12 @@ export default function Users() {
     
     if (includeTime) {
       let hours = d.getHours();
-      const ampm = hours >= 12 ? 'AM' : 'AM'; // Will be replaced below correctly
       const actualAmPm = hours >= 12 ? 'PM' : 'AM';
       hours = hours % 12;
       hours = hours ? hours : 12;
+      const hoursStr = hours.toString().padStart(2, '0');
       const minutes = d.getMinutes().toString().padStart(2, '0');
-      return `${day}-${month}-${year}, ${hours}:${minutes} ${actualAmPm}`;
+      return `${day}-${month}-${year}, ${hoursStr}:${minutes} ${actualAmPm}`;
     }
     return `${day}-${month}-${year}`;
   }

@@ -51,8 +51,9 @@ const formatExpiry = (expiry) => {
   const ampm = h >= 12 ? 'PM' : 'AM';
   h = h % 12;
   h = h ? h : 12;
+  const hoursStr = h.toString().padStart(2, '0');
   
-  return `\`${pad(nd.getDate())}-${pad(nd.getMonth()+1)}-${nd.getFullYear()}, ${h}:${pad(nd.getMinutes())} ${ampm} IST\``;
+  return `\`${pad(nd.getDate())}-${pad(nd.getMonth()+1)}-${nd.getFullYear()}, ${hoursStr}:${pad(nd.getMinutes())} ${ampm} IST\``;
 };
 
 // ── Event Embeds ──────────────────────────────────────────────
