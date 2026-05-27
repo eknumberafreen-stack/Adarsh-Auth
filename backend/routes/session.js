@@ -49,7 +49,7 @@ router.get('/application/:applicationId', verifyAppAccess(), asyncHandler(async 
   const redis = getRedisClient();
   const activeSessions = [];
 
-  const users = await AppUser.find({ applicationId }).select('_id username lastLogin');
+  const users = await AppUser.find({ applicationId }).select('_id username lastLogin expiryDate');
 
   for (const user of users) {
     const userKey = `user_sess:${user._id}:${applicationId}`;
@@ -66,7 +66,7 @@ router.get('/application/:applicationId', verifyAppAccess(), asyncHandler(async 
           ping: sessionData.ping || 'N/A',
           lastHeartbeat: sessionData.lastHeartbeat ? parseInt(sessionData.lastHeartbeat) : Date.now(),
           createdAt: Date.now(), 
-          expiresAt: Date.now() + 24 * 60 * 60 * 1000
+          expiresAt: user.expiryDate ? new Date(user.expiryDate).getTime() : Date.now() + 24 * 60 * 60 * 1000
         });
       }
     }
