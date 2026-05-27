@@ -38,6 +38,13 @@ const sendDiscordWebhook = async (webhookUrl, embed) => {
   }
 };
 
+const formatExpiry = (expiry) => {
+  if (!expiry) return '`Lifetime`';
+  const d = new Date(expiry);
+  const pad = (n) => n.toString().padStart(2, '0');
+  return `\`${pad(d.getUTCDate())}-${pad(d.getUTCMonth()+1)}-${d.getUTCFullYear().toString().slice(-2)} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())} UTC\``;
+};
+
 // ── Event Embeds ──────────────────────────────────────────────
 
 const loginEmbed = (username, ip, hwid, appName, expiry) => ({
@@ -48,7 +55,7 @@ const loginEmbed = (username, ip, hwid, appName, expiry) => ({
     { name: '🏠 App',         value: `\`${appName}\``,   inline: true },
     { name: '🌐 IP',          value: `\`${ip}\``,        inline: true },
     { name: '💻 HWID',        value: `\`${hwid || 'N/A'}\``, inline: false },
-    { name: '📅 Expiry',      value: expiry ? `\`${new Date(expiry).toLocaleDateString()}\`` : '`Lifetime`', inline: true },
+    { name: '📅 Expiry',      value: formatExpiry(expiry), inline: true },
   ],
   timestamp: new Date().toISOString(),
   footer: { text: 'AdarshAuth • Login Event' },
