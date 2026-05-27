@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore, useAppStore } from '@/lib/store'
 import api, { clearStoredAuth, refreshAccessToken } from '@/lib/api'
+import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import ParticleField from '@/components/ParticleField'
 import {
@@ -343,7 +344,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
           </header>
 
-          <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+          <AnimatePresence mode="wait">
+            <motion.main 
+              key={pathname}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
+              className="flex-1 px-4 py-6 sm:px-6 lg:px-8"
+            >
+              {children}
+            </motion.main>
+          </AnimatePresence>
 
           <footer className="border-t border-white/10 px-4 py-4 text-center text-xs text-slate-500 sm:px-6 lg:px-8">
            |    © 2026    •    Developed By Adarsh Cheats    •    Dev - Hariom    |

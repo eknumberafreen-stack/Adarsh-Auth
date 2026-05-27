@@ -56,6 +56,12 @@ export default function Applications() {
     loadApplications(1, search)
   }, [search])
 
+  useEffect(() => {
+    if (selectedApp && !credentials) {
+      selectApp(selectedApp)
+    }
+  }, [selectedApp])
+
   const loadApplications = async (page = currentPage, searchTerm = search) => {
     setLoading(true)
     try {
