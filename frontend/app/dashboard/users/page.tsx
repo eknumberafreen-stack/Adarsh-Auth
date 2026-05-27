@@ -120,21 +120,21 @@ export default function Users() {
 
   const formatToDDMMYYYY = (dateStr: string | null | undefined, fallback = 'Lifetime', includeTime = false) => {
     if (!dateStr) return fallback;
-    // Format to IST (Asia/Kolkata)
-    const formatter = new Intl.DateTimeFormat('en-IN', {
-      timeZone: 'Asia/Kolkata',
-      day: '2-digit', month: '2-digit', year: '2-digit',
-      ...(includeTime ? { hour: '2-digit', minute: '2-digit', hour12: true } : {})
-    });
-    
-    let formatted = formatter.format(new Date(dateStr));
-    // Convert DD/MM/YY to DD-MM-YY and replace comma
-    formatted = formatted.replace(/\//g, '-').replace(', ', ' ').toLowerCase();
+    const d = new Date(dateStr);
+    const day = d.getDate().toString().padStart(2, '0');
+    const month = (d.getMonth() + 1).toString().padStart(2, '0');
+    const year = d.getFullYear();
     
     if (includeTime) {
-      return formatted + ' ist';
+      let hours = d.getHours();
+      const ampm = hours >= 12 ? 'AM' : 'AM'; // Will be replaced below correctly
+      const actualAmPm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours ? hours : 12;
+      const minutes = d.getMinutes().toString().padStart(2, '0');
+      return `${day}-${month}-${year}, ${hours}:${minutes} ${actualAmPm}`;
     }
-    return formatted;
+    return `${day}-${month}-${year}`;
   }
 
   // Ban modal

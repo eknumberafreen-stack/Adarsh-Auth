@@ -42,7 +42,17 @@ const formatExpiry = (expiry) => {
   if (!expiry) return '`Lifetime`';
   const d = new Date(expiry);
   const pad = (n) => n.toString().padStart(2, '0');
-  return `\`${pad(d.getUTCDate())}-${pad(d.getUTCMonth()+1)}-${d.getUTCFullYear().toString().slice(-2)} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())} UTC\``;
+  
+  // Convert to IST (+5:30)
+  const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
+  const nd = new Date(utc + (3600000 * 5.5));
+  
+  let h = nd.getHours();
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12;
+  h = h ? h : 12;
+  
+  return `\`${pad(nd.getDate())}-${pad(nd.getMonth()+1)}-${nd.getFullYear()}, ${h}:${pad(nd.getMinutes())} ${ampm} IST\``;
 };
 
 // ── Event Embeds ──────────────────────────────────────────────
