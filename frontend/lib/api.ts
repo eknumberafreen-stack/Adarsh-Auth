@@ -1,7 +1,7 @@
 import axios from 'axios'
 import React from 'react'
 import toast from 'react-hot-toast'
-import { useAuthStore, isTokenExpired } from '@/lib/store'
+import { useAuthStore } from '@/lib/store'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.adarshauth.online/api'
 
@@ -13,98 +13,10 @@ const api = axios.create({
   withCredentials: true,
 })
 
-// ── Token refresh queue ────────────────────────────────────────────────────────
-// Prevents multiple simultaneous refresh calls when many API requests fail
-// with 401 at the same time. Only ONE refresh is in-flight at any time.
-let isRefreshing = false
-let refreshSubscribers: Array<(token: string) => void> = []
-
-function subscribeToRefresh(cb: (token: string) => void) {
-  refreshSubscribers.push(cb)
-}
-
-function notifySubscribers(token: string) {
-  refreshSubscribers.forEach((cb) => cb(token))
-  refreshSubscribers = []
-}
-
-function notifySubscribersFailed() {
-  refreshSubscribers = []
-}
-
-// ── Proactive background refresh timer ─────────────────────────────────────────
-let proactiveRefreshTimer: ReturnType<typeof setTimeout> | null = null
-
-function getTokenExpiryMs(token: string): number | null {
-  try {
-    const [, payload] = token.split('.')
-    if (!payload) return null
-    const decoded = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')))
-    if (!decoded?.exp) return null
-    return decoded.exp * 1000 - Date.now()
-  } catch {
-    return null
-  }
-}
-
-/**
- * Schedules a proactive refresh 60 seconds before the access token expires.
- * This means if the token lasts 15 minutes, a silent refresh fires at ~14 min,
- * so the user never encounters a 401 while idle.
- */
-export function scheduleProactiveRefresh() {
-  // Clear any existing timer
-  if (proactiveRefreshTimer) {
-    clearTimeout(proactiveRefreshTimer)
-    proactiveRefreshTimer = null
-  }
-
-  const accessToken = localStorage.getItem('accessToken')
-  if (!accessToken) return
-
-  const remainingMs = getTokenExpiryMs(accessToken)
-  if (remainingMs === null || remainingMs <= 0) return
-
-  // Refresh 60 seconds before expiry, but at least 10 seconds from now
-  const refreshIn = Math.max(remainingMs - 60_000, 10_000)
-
-  proactiveRefreshTimer = setTimeout(async () => {
-    try {
-      await refreshAccessToken()
-      // After a successful refresh, schedule the next one
-      scheduleProactiveRefresh()
-    } catch {
-      // Refresh failed — token is likely invalid, user will be redirected on next action
-      console.warn('[Auth] Proactive token refresh failed')
-    }
-  }, refreshIn)
-}
-
-export function clearProactiveRefresh() {
-  if (proactiveRefreshTimer) {
-    clearTimeout(proactiveRefreshTimer)
-    proactiveRefreshTimer = null
-  }
-}
-
-// ── Request interceptor ────────────────────────────────────────────────────────
+// Request interceptor to add auth token
 api.interceptors.request.use(
-  async (config) => {
-    let token = localStorage.getItem('accessToken')
-
-    // If the token is expired but we have a refresh token, try to refresh
-    // proactively BEFORE sending the request (prevents the 401 round-trip)
-    if (token && isTokenExpired(token)) {
-      const refreshToken = getStoredRefreshToken()
-      if (refreshToken && !isRefreshing) {
-        try {
-          token = await refreshAccessToken()
-        } catch {
-          // Let the response interceptor handle it
-        }
-      }
-    }
-
+  (config) => {
+    const token = localStorage.getItem('accessToken')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -115,7 +27,6 @@ api.interceptors.request.use(
   }
 )
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
 function getStoredRefreshToken(): string | null {
   let refreshToken = localStorage.getItem('refreshToken')
   if (refreshToken) return refreshToken
@@ -131,7 +42,6 @@ function getStoredRefreshToken(): string | null {
 }
 
 export function clearStoredAuth(): void {
-  clearProactiveRefresh()
   localStorage.removeItem('accessToken')
   localStorage.removeItem('refreshToken')
   useAuthStore.setState({
@@ -149,7 +59,6 @@ export async function refreshAccessToken(): Promise<string> {
     throw new Error('No refresh token')
   }
 
-  // Use a raw axios call (not our `api` instance) to avoid interceptor loops
   const response = await axios.post(`${API_URL}/auth/refresh`, { refreshToken })
   const { accessToken, refreshToken: nextRefreshToken } = response.data
 
@@ -164,9 +73,6 @@ export async function refreshAccessToken(): Promise<string> {
     refreshToken: nextRefreshToken || refreshToken,
     isAuthenticated: true,
   }))
-
-  // Re-schedule the proactive timer for the new token
-  scheduleProactiveRefresh()
 
   return accessToken
 }
@@ -205,7 +111,7 @@ export function showUpgradePrompt(): void {
   )
 }
 
-// ── Response interceptor (401 queue-based refresh) ────────────────────────────
+// Response interceptor to handle token refresh
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -221,30 +127,12 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry && !isAuthRoute) {
       originalRequest._retry = true
 
-      // If a refresh is already in-flight, queue this request to retry after it completes
-      if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          subscribeToRefresh((newToken: string) => {
-            originalRequest.headers.Authorization = `Bearer ${newToken}`
-            resolve(api(originalRequest))
-          })
-        })
-      }
-
-      isRefreshing = true
-
       try {
         const accessToken = await refreshAccessToken()
-        isRefreshing = false
-
-        // Notify all queued requests that were waiting for the refresh
-        notifySubscribers(accessToken)
 
         originalRequest.headers.Authorization = `Bearer ${accessToken}`
         return api(originalRequest)
       } catch (refreshError) {
-        isRefreshing = false
-        notifySubscribersFailed()
         clearStoredAuth()
         window.location.href = '/login'
         return Promise.reject(refreshError)

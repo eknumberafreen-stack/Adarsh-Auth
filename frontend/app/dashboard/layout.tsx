@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore, useAppStore } from '@/lib/store'
-import api, { clearStoredAuth, refreshAccessToken, scheduleProactiveRefresh, clearProactiveRefresh } from '@/lib/api'
+import api, { clearStoredAuth, refreshAccessToken } from '@/lib/api'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import ParticleField from '@/components/ParticleField'
@@ -100,11 +100,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       if (!hasHydrated) return
 
       if (accessToken) {
-        if (active) {
-          setCheckingSession(false)
-          // Start the proactive background refresh timer
-          scheduleProactiveRefresh()
-        }
+        if (active) setCheckingSession(false)
         return
       }
 
@@ -129,7 +125,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     return () => {
       active = false
-      clearProactiveRefresh()
     }
   }, [accessToken, refreshToken, hasHydrated, router])
 
