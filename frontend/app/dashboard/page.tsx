@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import api from '@/lib/api'
 import { useAuthStore, useAppStore } from '@/lib/store'
 import { getDisplayName } from '@/lib/username'
+import { motion } from 'framer-motion'
+import { useRouter } from 'next/navigation'
 import {
   ArrowTrendingUpIcon,
   ChartBarIcon,
@@ -12,9 +14,26 @@ import {
   KeyIcon,
   ShieldCheckIcon,
   UsersIcon,
+  SignalIcon,
+  ExclamationTriangleIcon,
+  CheckCircleIcon,
+  ArrowRightIcon,
+  GlobeAltIcon,
+  BoltIcon,
+  ServerStackIcon,
 } from '@heroicons/react/24/outline'
 
+const fadeUp = {
+  initial: { opacity: 0, y: 18 },
+  animate: { opacity: 1, y: 0 },
+}
+
+const stagger = {
+  animate: { transition: { staggerChildren: 0.08 } },
+}
+
 export default function Dashboard() {
+  const router = useRouter()
   const { user } = useAuthStore()
   const { applications, loadingApplications, statsCache, setStatsCache } = useAppStore()
   const [stats, setStats] = useState(statsCache || {
@@ -24,16 +43,30 @@ export default function Dashboard() {
     sessions: 0,
     usedLicenses: 0,
     bannedUsers: 0,
+    activeSessions: 0,
   })
   const [recentApps, setRecentApps] = useState<any[]>(statsCache?.recentApps || [])
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [loading, setLoading] = useState(!statsCache)
-  const limit = 4
+  const [currentTime, setCurrentTime] = useState(new Date())
+  const limit = 5
+
+  // Live clock
+  useEffect(() => {
+    const interval = setInterval(() => setCurrentTime(new Date()), 1000)
+    return () => clearInterval(interval)
+  }, [])
 
   useEffect(() => {
     loadRecentApps(currentPage)
   }, [currentPage])
+
+  useEffect(() => {
+    if (!loadingApplications && applications.length > 0) {
+      loadStats(applications)
+    }
+  }, [loadingApplications, applications.length])
 
   const loadRecentApps = async (page = 1) => {
     setLoading(true)
@@ -41,10 +74,7 @@ export default function Dashboard() {
       const res = await api.get(`/applications?page=${page}&limit=${limit}`)
       setRecentApps(res.data.applications)
       setTotalPages(res.data.pagination.pages)
-      
-      // Update stats based on full application count if needed, 
-      // but here we just update the total from pagination metadata
-      setStats(prev => ({ ...prev, applications: res.data.pagination.total }))
+      setStats((prev: any) => ({ ...prev, applications: res.data.pagination.total }))
     } catch (err) {
       console.error('Failed to load recent apps:', err)
     } finally {
@@ -62,18 +92,16 @@ export default function Dashboard() {
       setLoading(false)
       return
     }
-    setRecentApps(appsToUse.slice(0, limit))
 
     try {
-
       let totalLicenses = 0
       let usedLicenses = 0
       let totalUsers = 0
       let bannedUsers = 0
       let totalSessions = 0
+      let activeSessions = 0
 
-      // Fetch all stats in parallel for all apps
-      const results = await Promise.all(appsToUse.map(app => 
+      const results = await Promise.all(appsToUse.map(app =>
         Promise.all([
           api.get(`/licenses/application/${app._id}`),
           api.get(`/users/application/${app._id}`),
@@ -93,6 +121,7 @@ export default function Dashboard() {
         }
         if (sRes) {
           totalSessions += sRes.data.sessions.length
+          activeSessions += sRes.data.sessions.filter((s: any) => Date.now() - new Date(s.lastHeartbeat).getTime() < 45000).length
         }
       })
 
@@ -103,6 +132,7 @@ export default function Dashboard() {
         sessions: totalSessions,
         usedLicenses,
         bannedUsers,
+        activeSessions,
         recentApps: appsToUse.slice(0, limit)
       }
 
@@ -116,64 +146,87 @@ export default function Dashboard() {
   }
 
   const statCards = [
-    {
-      name: 'Applications',
-      value: stats.applications,
-      icon: CubeIcon,
-      meta: `${recentApps.length} recently active`,
-      color: 'text-indigo-300',
-    },
-    {
-      name: 'Licenses',
-      value: stats.licenses,
-      icon: KeyIcon,
-      meta: `${stats.usedLicenses} activated`,
-      color: 'text-slate-200',
-    },
-    {
-      name: 'Users',
-      value: stats.users,
-      icon: UsersIcon,
-      meta: `${Math.max(stats.users - stats.bannedUsers, 0)} currently active`,
-      color: 'text-zinc-200',
-    },
-    {
-      name: 'Sessions',
-      value: stats.sessions,
-      icon: ClockIcon,
-      meta: 'Live authenticated client sessions',
-      color: 'text-indigo-200',
-    },
+    { name: 'Applications', value: stats.applications, icon: CubeIcon, color: 'from-indigo-500 to-purple-600', bg: 'bg-indigo-500/10', border: 'border-indigo-500/20', href: '/dashboard/applications' },
+    { name: 'Total Licenses', value: stats.licenses, icon: KeyIcon, color: 'from-amber-500 to-orange-600', bg: 'bg-amber-500/10', border: 'border-amber-500/20', href: '/dashboard/licenses' },
+    { name: 'Total Users', value: stats.users, icon: UsersIcon, color: 'from-cyan-500 to-blue-600', bg: 'bg-cyan-500/10', border: 'border-cyan-500/20', href: '/dashboard/users' },
+    { name: 'Active Sessions', value: stats.activeSessions || 0, icon: SignalIcon, color: 'from-emerald-500 to-green-600', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', href: '/dashboard/sessions' },
   ]
 
   const licenseUsage = stats.licenses > 0 ? Math.round((stats.usedLicenses / stats.licenses) * 100) : 0
   const healthyUsers = stats.users > 0 ? Math.round(((stats.users - stats.bannedUsers) / stats.users) * 100) : 100
 
+  const formatTime = (d: Date) => {
+    const hours = d.getHours().toString().padStart(2, '0')
+    const mins = d.getMinutes().toString().padStart(2, '0')
+    const secs = d.getSeconds().toString().padStart(2, '0')
+    return `${hours}:${mins}:${secs}`
+  }
+
+  const formatDate = (d: Date) => {
+    return d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+  }
+
+  const getGreeting = () => {
+    const hour = currentTime.getHours()
+    if (hour < 12) return 'Good Morning'
+    if (hour < 17) return 'Good Afternoon'
+    return 'Good Evening'
+  }
+
   return (
     <div className="space-y-8">
-      <section className="surface-panel px-6 py-8 md:px-8">
-        <div className="page-header">
+      {/* ── Hero Welcome Banner ── */}
+      <motion.section
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#0f0f1a] via-[#12121f] to-[#0d0d18] p-8 md:p-10"
+      >
+        {/* Decorative glow orbs */}
+        <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-indigo-500/8 blur-[100px]" />
+        <div className="pointer-events-none absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-purple-500/8 blur-[80px]" />
+
+        <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="page-eyebrow">Overview</p>
-            <h1 className="page-title">Manage authentication, licenses, users, and sessions from one workspace.</h1>
-            <p className="page-subtitle">
-              Welcome back, {getDisplayName(user?.username ?? null, user?.email ?? '')}. This view consolidates your applications,
-              license inventory, users, and active sessions with a cleaner classic dark layout.
-            </p>
+            <motion.p
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+              className="text-sm font-semibold text-indigo-400"
+            >
+              {getGreeting()},
+            </motion.p>
+            <motion.h1
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3 }}
+              className="mt-1 text-3xl font-bold text-white md:text-4xl"
+            >
+              {getDisplayName(user?.username ?? null, user?.email ?? '')}
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
+              className="mt-2 max-w-lg text-sm leading-relaxed text-slate-400"
+            >
+              Welcome to your Adarsh Auth control center. Monitor your applications, manage users and licenses, and track live sessions — all from one unified dashboard.
+            </motion.p>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl border border-indigo-400/20 bg-indigo-400/10 px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-indigo-200/80">Authentication</p>
-              <p className="mt-2 text-lg font-bold text-white">Secure sign-in, tokens, and request protection</p>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Dashboard</p>
-              <p className="mt-2 text-lg font-bold text-white">Clearer views for apps, licenses, users, and live sessions</p>
-            </div>
-          </div>
+          {/* Live Clock Card */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.5 }}
+            className="flex flex-col items-center gap-1 rounded-2xl border border-white/10 bg-white/[0.03] px-8 py-5 backdrop-blur-xl"
+          >
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Local Time</p>
+            <p className="font-mono text-3xl font-bold tracking-wider text-white">{formatTime(currentTime)}</p>
+            <p className="text-xs text-slate-400">{formatDate(currentTime)}</p>
+          </motion.div>
         </div>
-      </section>
+      </motion.section>
 
       {loading || loadingApplications ? (
         <div className="flex justify-center py-24">
@@ -181,62 +234,149 @@ export default function Dashboard() {
         </div>
       ) : (
         <>
-          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {/* ── Stat Cards ── */}
+          <motion.section
+            variants={stagger}
+            initial="initial"
+            animate="animate"
+            className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
+          >
             {statCards.map((stat) => (
-              <div key={stat.name} className="stat-tile">
-                <div className="flex items-center justify-between">
-                  <p className="stat-label">{stat.name}</p>
-                  <stat.icon className={`h-5 w-5 ${stat.color}`} />
-                </div>
-                <p className="stat-value">{stat.value}</p>
-                <p className="stat-meta">{stat.meta}</p>
-              </div>
-            ))}
-          </section>
+              <motion.div
+                variants={fadeUp}
+                transition={{ duration: 0.4 }}
+                key={stat.name}
+                onClick={() => router.push(stat.href)}
+                className={`group relative cursor-pointer overflow-hidden rounded-2xl border ${stat.border} bg-[#0e0e16] p-5 transition-all duration-300 hover:border-white/20 hover:shadow-lg hover:shadow-indigo-950/20`}
+              >
+                {/* Gradient glow on hover */}
+                <div className={`pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-gradient-to-br ${stat.color} opacity-0 blur-[40px] transition-opacity duration-500 group-hover:opacity-20`} />
 
+                <div className="relative z-10 flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{stat.name}</p>
+                  <div className={`rounded-xl ${stat.bg} p-2`}>
+                    <stat.icon className="h-5 w-5 text-white/70" />
+                  </div>
+                </div>
+                <p className="relative z-10 mt-3 text-3xl font-bold text-white">{stat.value}</p>
+                <div className="relative z-10 mt-2 flex items-center gap-1 text-xs text-slate-500 group-hover:text-indigo-400 transition-colors">
+                  <span>View details</span>
+                  <ArrowRightIcon className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+                </div>
+              </motion.div>
+            ))}
+          </motion.section>
+
+          {/* ── Quick Stats Ribbon ── */}
+          <motion.section
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.3 }}
+            className="grid gap-4 md:grid-cols-4"
+          >
+            {[
+              { label: 'Licenses Used', value: `${stats.usedLicenses}/${stats.licenses}`, percent: licenseUsage, color: 'bg-amber-400', icon: KeyIcon },
+              { label: 'Healthy Users', value: `${Math.max(stats.users - stats.bannedUsers, 0)}/${stats.users}`, percent: healthyUsers, color: 'bg-emerald-400', icon: CheckCircleIcon },
+              { label: 'Banned Users', value: stats.bannedUsers, percent: stats.users > 0 ? Math.round((stats.bannedUsers / stats.users) * 100) : 0, color: 'bg-red-400', icon: ExclamationTriangleIcon },
+              { label: 'Total Sessions', value: stats.sessions, percent: null, color: '', icon: ClockIcon },
+            ].map((item, i) => (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.35 + i * 0.08 }}
+                key={item.label}
+                className="rounded-2xl border border-white/10 bg-[#0e0e16] p-5"
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  <item.icon className="h-4 w-4 text-slate-500" />
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{item.label}</p>
+                </div>
+                <p className="text-2xl font-bold text-white">{item.value}</p>
+                {item.percent !== null && (
+                  <div className="mt-3">
+                    <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${item.percent}%` }}
+                        transition={{ duration: 1, delay: 0.6 + i * 0.1, ease: 'easeOut' }}
+                        className={`h-full rounded-full ${item.color}`}
+                      />
+                    </div>
+                    <p className="mt-1.5 text-right text-[11px] text-slate-500">{item.percent}%</p>
+                  </div>
+                )}
+              </motion.div>
+            ))}
+          </motion.section>
+
+          {/* ── Main Grid: Recent Apps + Health + Security ── */}
           <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-            <div className="card">
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-400/10 text-indigo-200">
-                  <ChartBarIcon className="h-5 w-5" />
+            {/* ── Recent Applications ── */}
+            <motion.div
+              initial={{ opacity: 0, x: -15 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+              className="card"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-400/10 text-indigo-200">
+                    <ChartBarIcon className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="page-eyebrow">Application Inventory</p>
+                    <h2 className="text-2xl font-bold text-white">Your Applications</h2>
+                  </div>
                 </div>
-                <div>
-                  <p className="page-eyebrow">Recent Applications</p>
-                  <h2 className="text-2xl font-bold text-white">Most recently managed apps</h2>
-                </div>
+                <button
+                  onClick={() => router.push('/dashboard/applications')}
+                  className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2 text-xs font-semibold text-slate-400 transition-all hover:bg-white/[0.06] hover:text-white"
+                >
+                  View All <ArrowRightIcon className="h-3 w-3" />
+                </button>
               </div>
 
               <div className="mt-6 space-y-3">
                 {recentApps.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-white/10 px-5 py-12 text-center text-sm text-slate-400">
-                    No applications yet. Create your first app to start issuing credentials and client sessions.
+                    No applications yet. Create your first app to start issuing credentials.
                   </div>
                 ) : (
-                  recentApps.map((app: any) => (
-                    <div key={app._id} className="rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4">
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  recentApps.map((app: any, i: number) => (
+                    <motion.div
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.5 + i * 0.06 }}
+                      key={app._id}
+                      className="group flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.02] px-5 py-4 transition-all hover:border-white/20 hover:bg-white/[0.04]"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-300 font-bold text-sm">
+                          {app.name?.[0]?.toUpperCase() || 'A'}
+                        </div>
                         <div>
-                          <p className="text-lg font-bold text-white">{app.name}</p>
-                          <p className="mt-1 text-sm text-slate-400">
-                            Version {app.version} • {app.userCount || 0} users currently linked
+                          <p className="font-semibold text-white">{app.name}</p>
+                          <p className="mt-0.5 text-xs text-slate-500">
+                            v{app.version} • {app.userCount || 0} users
                           </p>
                         </div>
-                        <span
-                          className={`badge ${
-                            app.status === 'active'
-                              ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-200'
-                              : 'border-zinc-400/20 bg-zinc-400/10 text-zinc-200'
-                          }`}
-                        >
-                          {app.status}
-                        </span>
                       </div>
-                    </div>
+                      <span
+                        className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-wider ${
+                          app.status === 'active'
+                            ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300'
+                            : 'border-zinc-500/20 bg-zinc-500/10 text-zinc-300'
+                        }`}
+                      >
+                        {app.status === 'active' && <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />}
+                        {app.status}
+                      </span>
+                    </motion.div>
                   ))
                 )}
               </div>
 
-              {/* Pagination Controls — KeyAuth Style */}
+              {/* Pagination */}
               {totalPages > 1 && (
                 <div className="flex items-center justify-between mt-6 pt-6 border-t border-white/5">
                   <button
@@ -246,11 +386,9 @@ export default function Dashboard() {
                   >
                     Previous
                   </button>
-                  
                   <div className="text-xs font-medium text-gray-500">
-                    Showing page <span className="text-gray-200">{currentPage}</span> of <span className="text-gray-200">{totalPages}</span>
+                    Page <span className="text-gray-200">{currentPage}</span> of <span className="text-gray-200">{totalPages}</span>
                   </div>
-
                   <button
                     onClick={() => handlePageChange(currentPage + 1)}
                     disabled={currentPage === totalPages}
@@ -260,72 +398,140 @@ export default function Dashboard() {
                   </button>
                 </div>
               )}
-            </div>
+            </motion.div>
 
+            {/* ── Right Side Column ── */}
             <div className="space-y-6">
-              <div className="card">
+              {/* ── Health Indicators ── */}
+              <motion.div
+                initial={{ opacity: 0, x: 15 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5, delay: 0.5 }}
+                className="card"
+              >
                 <div className="flex items-center gap-3">
                   <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-400/10 text-indigo-200">
                     <ArrowTrendingUpIcon className="h-5 w-5" />
                   </div>
                   <div>
                     <p className="page-eyebrow">Operational Ratios</p>
-                    <h2 className="text-2xl font-bold text-white">Health indicators</h2>
+                    <h2 className="text-2xl font-bold text-white">Health Indicators</h2>
                   </div>
                 </div>
 
                 <div className="mt-6 space-y-5">
                   {[
                     {
-                      label: 'License activation',
+                      label: 'License Activation',
                       value: licenseUsage,
-                      caption: `${stats.usedLicenses} of ${stats.licenses} licenses have been consumed`,
+                      caption: `${stats.usedLicenses} of ${stats.licenses} licenses consumed`,
                       color: 'bg-indigo-400',
                     },
                     {
-                      label: 'User health',
+                      label: 'User Health',
                       value: healthyUsers,
-                      caption: `${Math.max(stats.users - stats.bannedUsers, 0)} active versus ${stats.bannedUsers} banned`,
+                      caption: `${Math.max(stats.users - stats.bannedUsers, 0)} active vs ${stats.bannedUsers} banned`,
                       color: 'bg-emerald-400',
                     },
-                  ].map((item) => (
+                  ].map((item, i) => (
                     <div key={item.label}>
                       <div className="mb-2 flex items-center justify-between text-sm">
                         <span className="font-medium text-slate-300">{item.label}</span>
                         <span className="text-slate-400">{item.value}%</span>
                       </div>
                       <div className="h-2 overflow-hidden rounded-full bg-white/[0.05]">
-                        <div className={`h-full rounded-full ${item.color}`} style={{ width: `${item.value}%` }} />
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${item.value}%` }}
+                          transition={{ duration: 1, delay: 0.7 + i * 0.15, ease: 'easeOut' }}
+                          className={`h-full rounded-full ${item.color}`}
+                        />
                       </div>
                       <p className="mt-2 text-xs text-slate-500">{item.caption}</p>
                     </div>
                   ))}
                 </div>
-              </div>
+              </motion.div>
 
-              <div className="card">
+              {/* ── Security Features ── */}
+              <motion.div
+                initial={{ opacity: 0, x: 15 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5, delay: 0.6 }}
+                className="card"
+              >
                 <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.06] text-slate-200">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-200">
                     <ShieldCheckIcon className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="page-eyebrow">Security Summary</p>
-                    <h2 className="text-2xl font-bold text-white">Controls currently surfaced</h2>
+                    <p className="page-eyebrow">Platform Security</p>
+                    <h2 className="text-2xl font-bold text-white">Security Features</h2>
                   </div>
                 </div>
                 <div className="mt-6 grid gap-3">
                   {[
-                    'JWT access and refresh handling',
-                    'Signed client requests and replay protection',
-                    'HWID-aware session validation',
-                    'Audit visibility for authentication events',
-                  ].map((item) => (
-                    <div key={item} className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4 text-sm text-slate-300">
-                      {item}
-                    </div>
+                    { text: 'JWT Access & Refresh Token Handling', icon: KeyIcon },
+                    { text: 'Signed Client Requests & Replay Protection', icon: ShieldCheckIcon },
+                    { text: 'HWID-Aware Session Validation', icon: ServerStackIcon },
+                    { text: 'Real-time Webhook Notifications', icon: BoltIcon },
+                    { text: 'Encrypted API Communication (HTTPS)', icon: GlobeAltIcon },
+                  ].map((item, i) => (
+                    <motion.div
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.7 + i * 0.06 }}
+                      key={item.text}
+                      className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-3.5"
+                    >
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 shrink-0">
+                        <item.icon className="h-4 w-4 text-emerald-400" />
+                      </div>
+                      <span className="text-sm text-slate-300">{item.text}</span>
+                    </motion.div>
                   ))}
                 </div>
-              </div>
+              </motion.div>
+
+              {/* ── Quick Actions ── */}
+              <motion.div
+                initial={{ opacity: 0, x: 15 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5, delay: 0.7 }}
+                className="card"
+              >
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-purple-500/10 text-purple-200">
+                    <BoltIcon className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="page-eyebrow">Shortcuts</p>
+                    <h2 className="text-2xl font-bold text-white">Quick Actions</h2>
+                  </div>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {[
+                    { label: 'Create Application', href: '/dashboard/applications', icon: CubeIcon, color: 'from-indigo-600 to-purple-600' },
+                    { label: 'Manage Users', href: '/dashboard/users', icon: UsersIcon, color: 'from-cyan-600 to-blue-600' },
+                    { label: 'Generate License', href: '/dashboard/licenses', icon: KeyIcon, color: 'from-amber-600 to-orange-600' },
+                    { label: 'View Sessions', href: '/dashboard/sessions', icon: SignalIcon, color: 'from-emerald-600 to-green-600' },
+                  ].map((action, i) => (
+                    <motion.button
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.8 + i * 0.06 }}
+                      key={action.label}
+                      onClick={() => router.push(action.href)}
+                      className={`group flex items-center gap-3 rounded-xl border border-white/10 bg-gradient-to-r ${action.color} bg-opacity-5 p-3.5 text-left transition-all hover:border-white/20 hover:shadow-lg`}
+                    >
+                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 shrink-0">
+                        <action.icon className="h-4 w-4 text-white" />
+                      </div>
+                      <span className="text-sm font-semibold text-white">{action.label}</span>
+                    </motion.button>
+                  ))}
+                </div>
+              </motion.div>
             </div>
           </section>
         </>
