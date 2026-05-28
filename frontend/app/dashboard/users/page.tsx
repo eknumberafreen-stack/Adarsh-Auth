@@ -4,26 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 import api from '@/lib/api'
 import { useAppStore } from '@/lib/store'
 import toast from 'react-hot-toast'
-import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  PlusIcon, 
-  EyeIcon, 
-  EyeSlashIcon, 
-  XMarkIcon, 
-  EllipsisVerticalIcon,
-  PencilIcon,
-  PauseIcon,
-  PlayIcon,
-  ArrowPathIcon,
-  BoltIcon,
-  NoSymbolIcon,
-  ShieldExclamationIcon,
-  TrashIcon,
-  CheckCircleIcon,
-  MagnifyingGlassIcon,
-  DocumentDuplicateIcon,
-  CheckIcon
-} from '@heroicons/react/24/outline'
+import { motion } from 'framer-motion'
+import { PlusIcon, EyeIcon, EyeSlashIcon, XMarkIcon, EllipsisVerticalIcon } from '@heroicons/react/24/outline'
 
 // ── 3-dot dropdown per user row ───────────────────────────────────────────────
 function UserMenu({ user, onEdit, onBan, onPermanentBan, onUnban, onPause, onResetHwid, onDelete, onForceClose }: any) {
@@ -42,54 +24,47 @@ function UserMenu({ user, onEdit, onBan, onPermanentBan, onUnban, onPause, onRes
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
-        className="p-1.5 rounded-lg hover:bg-white/[0.06] text-gray-400 hover:text-white transition-all duration-200 active:scale-95"
+        className="p-2 rounded-lg hover:bg-dark-hover text-gray-400 hover:text-white transition-colors"
       >
-        <EllipsisVerticalIcon className="w-4.5 h-4.5" />
+        <EllipsisVerticalIcon className="w-5 h-5" />
       </button>
 
-      <AnimatePresence>
-        {open && (
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95, y: -4 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: -4 }}
-            transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed mt-1 w-44 bg-[#0e0e15]/95 backdrop-blur-xl border border-white/[0.08] rounded-xl shadow-[0_12px_30px_rgba(0,0,0,0.8)] z-[9999] overflow-hidden py-1"
-            style={{
-              top: ref.current ? ref.current.getBoundingClientRect().bottom + window.scrollY + 4 : 0,
-              right: window.innerWidth - (ref.current ? ref.current.getBoundingClientRect().right : 0)
-            }}
-          >
-            <button onClick={() => { setOpen(false); onEdit(user) }} className="w-full text-left px-3.5 py-2 text-xs font-medium text-slate-300 hover:bg-white/[0.04] hover:text-white transition-all flex items-center gap-2">
-              <PencilIcon className="w-3.5 h-3.5 text-slate-400" /> Edit
+      {open && (
+        <div className="fixed mt-1 w-44 bg-[#1a1a24] border border-dark-border rounded-xl shadow-2xl z-[9999] overflow-hidden py-1"
+          style={{
+            top: ref.current ? ref.current.getBoundingClientRect().bottom + window.scrollY + 4 : 0,
+            right: window.innerWidth - (ref.current ? ref.current.getBoundingClientRect().right : 0)
+          }}
+        >
+          <button onClick={() => { setOpen(false); onEdit(user) }} className="w-full text-left px-4 py-2.5 text-sm text-gray-200 hover:bg-dark-hover transition-colors flex items-center gap-2">
+            <span>✏️</span> Edit
+          </button>
+          <button onClick={() => { setOpen(false); onPause(user) }} className="w-full text-left px-4 py-2.5 text-sm text-yellow-400 hover:bg-yellow-500/10 transition-colors flex items-center gap-2">
+            <span>{user.paused ? '▶️' : '⏸️'}</span> {user.paused ? 'Unpause' : 'Pause'}
+          </button>
+          <button onClick={() => { setOpen(false); onResetHwid(user._id) }} className="w-full text-left px-4 py-2.5 text-sm text-blue-400 hover:bg-blue-500/10 transition-colors flex items-center gap-2">
+            <span>🔄</span> Reset HWID
+          </button>
+          <button onClick={() => { setOpen(false); onForceClose(user._id) }} className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors flex items-center gap-2">
+            <span>💥</span> Crash it
+          </button>
+          {user.banned ? (
+            <button onClick={() => { setOpen(false); onUnban(user._id) }} className="w-full text-left px-4 py-2.5 text-sm text-green-400 hover:bg-green-500/10 transition-colors flex items-center gap-2">
+              <span>✅</span> Unban
             </button>
-            <button onClick={() => { setOpen(false); onPause(user) }} className="w-full text-left px-3.5 py-2 text-xs font-medium text-amber-400 hover:bg-amber-500/[0.08] transition-all flex items-center gap-2">
-              {user.paused ? <PlayIcon className="w-3.5 h-3.5 text-amber-400" /> : <PauseIcon className="w-3.5 h-3.5 text-amber-400" />} {user.paused ? 'Unpause' : 'Pause'}
+          ) : (
+            <button onClick={() => { setOpen(false); onBan(user) }} className="w-full text-left px-4 py-2.5 text-sm text-orange-400 hover:bg-orange-500/10 transition-colors flex items-center gap-2">
+              <span>🚫</span> Ban
             </button>
-            <button onClick={() => { setOpen(false); onResetHwid(user._id) }} className="w-full text-left px-3.5 py-2 text-xs font-medium text-sky-400 hover:bg-sky-500/[0.08] transition-all flex items-center gap-2">
-              <ArrowPathIcon className="w-3.5 h-3.5 text-sky-400" /> Reset HWID
-            </button>
-            <button onClick={() => { setOpen(false); onForceClose(user._id) }} className="w-full text-left px-3.5 py-2 text-xs font-medium text-rose-400 hover:bg-rose-500/[0.08] transition-all flex items-center gap-2 border-b border-white/[0.04] pb-2">
-              <BoltIcon className="w-3.5 h-3.5 text-rose-400" /> Crash client
-            </button>
-            {user.banned ? (
-              <button onClick={() => { setOpen(false); onUnban(user._id) }} className="w-full text-left px-3.5 py-2 text-xs font-medium text-emerald-400 hover:bg-emerald-500/[0.08] transition-all flex items-center gap-2 mt-1">
-                <CheckCircleIcon className="w-3.5 h-3.5 text-emerald-400" /> Unban
-              </button>
-            ) : (
-              <button onClick={() => { setOpen(false); onBan(user) }} className="w-full text-left px-3.5 py-2 text-xs font-medium text-orange-400 hover:bg-orange-500/[0.08] transition-all flex items-center gap-2 mt-1">
-                <NoSymbolIcon className="w-3.5 h-3.5 text-orange-400" /> Soft Ban
-              </button>
-            )}
-            <button onClick={() => { setOpen(false); onPermanentBan(user) }} className="w-full text-left px-3.5 py-2 text-xs font-medium text-red-400 hover:bg-red-500/[0.08] transition-all flex items-center gap-2">
-              <ShieldExclamationIcon className="w-3.5 h-3.5 text-red-400" /> Permanent Ban
-            </button>
-            <button onClick={() => { setOpen(false); onDelete(user._id) }} className="w-full text-left px-3.5 py-2 text-xs font-medium text-rose-500 hover:bg-rose-500/[0.08] transition-all flex items-center gap-2">
-              <TrashIcon className="w-3.5 h-3.5 text-rose-500" /> Delete User
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+          <button onClick={() => { setOpen(false); onPermanentBan(user) }} className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors flex items-center gap-2">
+            <span>⛔</span> Full Ban
+          </button>
+          <button onClick={() => { setOpen(false); onDelete(user._id) }} className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-500/10 transition-colors flex items-center gap-2">
+            <span>🗑️</span> Delete
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -422,36 +397,27 @@ export default function Users() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="space-y-6">
+    <div>
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">Users</h1>
-          <p className="text-xs text-slate-400 mt-1">Manage, audit, and secure application client authorizations</p>
-        </div>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Users</h1>
         {selectedApp?._id && (
           <div className="flex items-center gap-3">
             <div className="relative group">
-              <div className="absolute inset-y-0 left-3.5 flex items-center pointer-events-none text-slate-500 group-focus-within:text-indigo-400 transition-colors">
-                <MagnifyingGlassIcon className="w-4 h-4" />
+              <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-gray-500 group-focus-within:text-primary-400 transition-colors">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
               </div>
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search users..."
-                className="w-64 pl-10 pr-12 py-2 bg-white/[0.02] border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/10 transition-all placeholder-slate-500"
+                className="w-64 pl-10 pr-4 py-2.5 bg-dark-bg border border-dark-border rounded-xl text-sm focus:outline-none focus:border-primary-500/50 transition-all placeholder-gray-500"
               />
-              <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
-                <kbd className="px-1.5 py-0.5 rounded border border-white/10 bg-white/5 text-[9px] font-mono text-slate-500 uppercase tracking-widest">
-                  /
-                </kbd>
-              </div>
             </div>
-            <button 
-              onClick={() => setShowCreateModal(true)} 
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-b from-indigo-500 to-indigo-600 hover:from-indigo-400 hover:to-indigo-500 text-xs font-semibold text-white shadow-[0_1px_rgba(255,255,255,0.2)_inset,0_4px_12px_rgba(99,102,241,0.2)] border border-indigo-600 rounded-xl transition-all duration-200 active:scale-[0.98]"
-            >
+            <button onClick={() => setShowCreateModal(true)} className="btn btn-primary flex items-center gap-2 py-2.5">
               <PlusIcon className="w-4 h-4" /> Create User
             </button>
           </div>
@@ -460,210 +426,155 @@ export default function Users() {
 
       {loadingApplications ? (
         <div className="flex justify-center py-24">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-400 border-t-transparent" />
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary-500 border-t-transparent" />
         </div>
       ) : applications.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-white/10 px-5 py-16 text-center text-sm text-slate-500">
-          Create an application first to begin managing user records.
-        </div>
+        <div className="text-center py-12 text-gray-400">Create an application first</div>
       ) : (
         <>
           {/* Users table */}
           {loading ? (
-            <div className="flex justify-center py-24">
-              <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-400 border-t-transparent" />
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary-500" />
             </div>
           ) : users.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-white/10 px-5 py-16 text-center text-sm text-slate-500">
-              No users found for this application yet.
-            </div>
+            <div className="text-center py-12 text-gray-400">No users yet</div>
           ) : (
-            <div className="overflow-hidden rounded-2xl border border-white/[0.05] bg-gradient-to-b from-[#0b0b0f] to-[#08080c] shadow-[0_20px_50px_-12px_rgba(0,0,0,0.8)]">
+            <div className="card overflow-visible p-0">
               {(() => {
                 const showCreatedBy = selectedApp?.team?.length > 0 || users.some(u => u.createdBy)
                 return (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className="border-b border-white/[0.06] bg-white/[0.01]">
-                          <th className="py-3.5 px-5 text-[11px] font-semibold text-slate-400 uppercase tracking-[0.12em]">Username</th>
-                          <th className="py-3.5 px-5 text-[11px] font-semibold text-slate-400 uppercase tracking-[0.12em]">Status</th>
-                          <th className="py-3.5 px-5 text-[11px] font-semibold text-slate-400 uppercase tracking-[0.12em]">HWID</th>
-                          <th className="py-3.5 px-5 text-[11px] font-semibold text-slate-400 uppercase tracking-[0.12em]">Created</th>
-                          <th className="py-3.5 px-5 text-[11px] font-semibold text-slate-400 uppercase tracking-[0.12em]">Last Login</th>
-                          <th className="py-3.5 px-5 text-[11px] font-semibold text-slate-400 uppercase tracking-[0.12em]">Last IP</th>
-                          <th className="py-3.5 px-5 text-[11px] font-semibold text-slate-400 uppercase tracking-[0.12em]">Expiry</th>
-                          {showCreatedBy && (
-                            <th className="py-3.5 px-5 text-[11px] font-semibold text-slate-400 uppercase tracking-[0.12em]">Created By</th>
-                          )}
-                          <th className="py-3.5 px-5 text-[11px] font-semibold text-slate-400 uppercase tracking-[0.12em]">HWID Bound</th>
-                          <th className="py-3.5 px-5" />
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-white/[0.04]">
-                        {users.map((user: any, i: number) => (
-                          <motion.tr 
-                            initial={{ opacity: 0, y: 8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.3, delay: i * 0.02, ease: [0.16, 1, 0.3, 1] }}
-                            key={user._id} 
-                            className="group hover:bg-white/[0.02] transition-colors"
-                          >
-                            {/* Username */}
-                            <td className="py-4 px-5 align-middle">
-                              <div className="flex items-center gap-2.5">
-                                {onlineUsers[user._id] !== undefined ? (
-                                  <span className="relative flex h-2 w-2 shrink-0">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
-                                  </span>
-                                ) : (
-                                  <span className="h-2 w-2 rounded-full bg-slate-600 shrink-0" />
-                                )}
-                                <span className="font-semibold text-white text-xs tracking-tight">{user.username}</span>
-                                {onlineUsers[user._id] !== undefined && (
-                                  <span className="inline-flex items-center text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded font-mono">
-                                    {onlineUsers[user._id] ? `${onlineUsers[user._id]}ms` : 'Live'}
-                                  </span>
-                                )}
-                              </div>
-                            </td>
-
-                            {/* Status */}
-                            <td className="py-4 px-5 align-middle">
-                              {user.banned ? (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-rose-500/[0.06] text-rose-400 border border-rose-500/20 text-[10px] font-bold rounded-lg uppercase tracking-wider">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
-                                  Banned
-                                </span>
-                              ) : user.paused ? (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-500/[0.06] text-purple-400 border border-purple-500/20 text-[10px] font-bold rounded-lg uppercase tracking-wider">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
-                                  Paused
-                                </span>
-                              ) : user.expiryDate && new Date(user.expiryDate) < new Date() ? (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-500/[0.06] text-amber-400 border border-amber-500/20 text-[10px] font-bold rounded-lg uppercase tracking-wider">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                                  Expired
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/[0.06] text-emerald-400 border border-emerald-500/20 text-[10px] font-bold rounded-lg uppercase tracking-wider">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                                  Active
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-dark-border">
+                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Username</th>
+                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Status</th>
+                        <th className="text-left px-4 py-3 text-gray-400 font-medium">HWID</th>
+                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Created</th>
+                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Last Login</th>
+                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Last IP</th>
+                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Expiry</th>
+                        {showCreatedBy && (
+                          <th className="text-left px-4 py-3 text-gray-400 font-medium">Created By</th>
+                        )}
+                        <th className="text-left px-4 py-3 text-gray-400 font-medium">HWID Affected</th>
+                        <th className="px-4 py-3" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {users.map((user: any, i: number) => (
+                        <motion.tr 
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.3, delay: i * 0.03 }}
+                          key={user._id} 
+                          className="border-b border-dark-border/50 hover:bg-dark-hover/30 transition-colors"
+                        >
+                          <td className="px-4 py-3 font-medium">
+                            <div className="flex items-center gap-2">
+                              {onlineUsers[user._id] !== undefined && (
+                                <span className="relative flex h-2 w-2 shrink-0">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-400"></span>
                                 </span>
                               )}
-                            </td>
-
-                            {/* HWID */}
-                            <td className="py-4 px-5 align-middle font-mono text-xs text-slate-400">
+                              <span>{user.username}</span>
+                              {onlineUsers[user._id] !== undefined && (
+                                <span className="text-[10px] text-green-400/80 font-normal">
+                                  {onlineUsers[user._id] ? `${onlineUsers[user._id]}ms` : 'Live'}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            {user.banned ? (
+                              <span className="px-2 py-1 bg-red-500/20 text-red-400 text-xs rounded-full font-medium">Banned</span>
+                            ) : user.paused ? (
+                              <span className="px-2 py-1 bg-purple-500/20 text-purple-400 text-xs rounded-full font-medium">Paused</span>
+                            ) : user.expiryDate && new Date(user.expiryDate) < new Date() ? (
+                              <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded-full font-medium">Expired</span>
+                            ) : (
+                              <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full font-medium">Active</span>
+                            )}
+                          </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400 font-mono">
                               <button
                                 onClick={() => {
                                   if (user.hwid) {
                                     navigator.clipboard.writeText(user.hwid);
-                                    toast.success('HWID copied!');
+                                    toast.success('HWID copied to clipboard!');
                                   }
                                 }}
-                                className="group/btn flex items-center gap-1.5 hover:text-indigo-400 transition-colors text-left"
-                                title="Copy full HWID"
+                                className="hover:text-primary-400 transition-colors cursor-pointer text-left"
+                                title="Click to copy full HWID"
                               >
-                                <span>{user.hwid ? `${user.hwid.substring(0, 10)}…` : 'Not set'}</span>
-                                {user.hwid && <DocumentDuplicateIcon className="w-3 h-3 opacity-0 group-hover/btn:opacity-100 transition-opacity" />}
+                                {user.hwid ? `${user.hwid.substring(0, 12)}...` : 'Not set'}
                               </button>
                             </td>
-
-                            {/* Created */}
-                            <td className="py-4 px-5 align-middle font-mono text-xs text-slate-400">
-                              {formatToDDMMYYYY(user.createdAt, 'Unknown', true)}
+                          <td className="px-4 py-3 text-gray-400 text-xs">
+                            {formatToDDMMYYYY(user.createdAt, 'Unknown', true)}
+                          </td>
+                          <td className="px-4 py-3 text-gray-400 text-xs">
+                            {formatToDDMMYYYY(user.lastLogin, 'Never', true)}
+                          </td>
+                          <td className="px-4 py-3 text-gray-400 text-xs">{user.lastIp || 'N/A'}</td>
+                          <td className="px-4 py-3 text-gray-400 text-xs">
+                            {user.paused 
+                              ? formatToDDMMYYYY(user.pausedExpiry, 'Lifetime', true)
+                              : formatToDDMMYYYY(user.expiryDate, 'Lifetime', true)}
+                          </td>
+                          {showCreatedBy && (
+                            <td className="px-4 py-3">
+                              <span className="px-2 py-0.5 rounded-full bg-white/5 text-gray-300 text-[11px] border border-white/10">
+                                {getCreatorDisplay(user.createdBy, selectedApp?.userId)}
+                              </span>
                             </td>
-
-                            {/* Last Login */}
-                            <td className="py-4 px-5 align-middle font-mono text-xs text-slate-400">
-                              {formatToDDMMYYYY(user.lastLogin, 'Never', true)}
-                            </td>
-
-                            {/* Last IP */}
-                            <td className="py-4 px-5 align-middle font-mono text-xs text-slate-400">
-                              <button
-                                onClick={() => {
-                                  if (user.lastIp && user.lastIp !== 'N/A') {
-                                    navigator.clipboard.writeText(user.lastIp);
-                                    toast.success('IP Address copied!');
-                                  }
-                                }}
-                                className="group/btn flex items-center gap-1.5 hover:text-indigo-400 transition-colors text-left"
-                              >
-                                <span>{user.lastIp || '—'}</span>
-                                {user.lastIp && user.lastIp !== 'N/A' && (
-                                  <DocumentDuplicateIcon className="w-3 h-3 opacity-0 group-hover/btn:opacity-100 transition-opacity" />
-                                )}
-                              </button>
-                            </td>
-
-                            {/* Expiry */}
-                            <td className="py-4 px-5 align-middle font-mono text-xs text-slate-400">
-                              {user.paused 
-                                ? formatToDDMMYYYY(user.pausedExpiry, 'Lifetime', true)
-                                : formatToDDMMYYYY(user.expiryDate, 'Lifetime', true)}
-                            </td>
-
-                            {/* Created By */}
-                            {showCreatedBy && (
-                              <td className="py-4 px-5 align-middle">
-                                <span className="inline-flex px-2 py-0.5 rounded-md bg-white/[0.04] text-slate-300 text-[10px] border border-white/[0.06] font-medium">
-                                  {getCreatorDisplay(user.createdBy, selectedApp?.userId)}
-                                </span>
-                              </td>
+                          )}
+                          <td className="px-4 py-3 text-gray-400 text-xs">
+                            {user.hwidAffected ? (
+                              <span className="text-indigo-400 font-medium">Yes</span>
+                            ) : (
+                              <span className="text-gray-500">No</span>
                             )}
-
-                            {/* HWID Affected */}
-                            <td className="py-4 px-5 align-middle text-xs">
-                              {user.hwidAffected ? (
-                                <span className="text-indigo-400 font-semibold">Yes</span>
-                              ) : (
-                                <span className="text-slate-500 font-medium">No</span>
-                              )}
-                            </td>
-
-                            {/* Actions Dropdown */}
-                            <td className="py-4 px-5 align-middle text-right">
-                              <UserMenu
-                                user={user}
-                                onEdit={openEditModal}
-                                onBan={softBan}
-                                onPermanentBan={openBanModal}
-                                onUnban={unbanUser}
-                                onPause={pauseUser}
-                                onResetHwid={resetHwid}
-                                onDelete={deleteUser}
-                                onForceClose={forceCloseUser}
-                              />
-                            </td>
-                          </motion.tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <UserMenu
+                              user={user}
+                              onEdit={openEditModal}
+                              onBan={softBan}
+                              onPermanentBan={openBanModal}
+                              onUnban={unbanUser}
+                              onPause={pauseUser}
+                              onResetHwid={resetHwid}
+                              onDelete={deleteUser}
+                              onForceClose={forceCloseUser}
+                            />
+                          </td>
+                        </motion.tr>
+                      ))}
+                    </tbody>
+                  </table>
                 )
               })()}
 
-              {/* Pagination Controls — Premium Stripe Style */}
-              <div className="flex items-center justify-between px-6 py-4 bg-white/[0.01] border-t border-white/[0.05]">
+              {/* Pagination Controls — KeyAuth Style */}
+              <div className="flex items-center justify-between px-6 py-4 bg-black/20 border-t border-white/5">
                 <button
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className="px-4 py-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.08] hover:border-white/20 text-xs font-semibold text-slate-300 disabled:opacity-30 disabled:hover:bg-white/[0.03] disabled:hover:border-white/[0.08] disabled:cursor-not-allowed transition-all duration-200 active:scale-[0.98]"
+                  className="px-5 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-gray-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                 >
                   Previous
                 </button>
                 
-                <div className="text-xs font-semibold text-slate-500">
-                  Showing page <span className="text-slate-300">{currentPage}</span> of <span className="text-slate-300">{totalPages}</span>
+                <div className="text-xs font-medium text-gray-500">
+                  Showing page <span className="text-gray-200">{currentPage}</span> of <span className="text-gray-200">{totalPages}</span>
                 </div>
 
                 <button
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === totalPages || totalPages === 0}
-                  className="px-4 py-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.08] hover:border-white/20 text-xs font-semibold text-slate-300 disabled:opacity-30 disabled:hover:bg-white/[0.03] disabled:hover:border-white/[0.08] disabled:cursor-not-allowed transition-all duration-200 active:scale-[0.98]"
+                  className="px-5 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-gray-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                 >
                   Next
                 </button>
