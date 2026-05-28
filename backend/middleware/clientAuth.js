@@ -183,11 +183,22 @@ const verifyClientRequest = async (req, res, next) => {
     const serverVersion = String(application.version || '1.0');
 
     if (clientVersion !== serverVersion) {
-      const msg = application.customMessages?.versionMismatch || 'Application version mismatch.';
+      const downloadUrl = application.downloadUrl || '';
+      
+      // If an auto-update download link is configured, show a friendly update message
+      if (downloadUrl) {
+        return res.status(403).json({ 
+          success: false, 
+          message: 'New update available! Redirecting to download link...',
+          downloadUrl
+        });
+      }
+
+      // No download link configured — show the standard version mismatch error
+      const msg = application.customMessages?.versionMismatch || 'Application version mismatch. Update your loader!';
       return res.status(403).json({ 
         success: false, 
-        message: msg,
-        downloadUrl: application.downloadUrl || ''
+        message: msg
       });
     }
     
