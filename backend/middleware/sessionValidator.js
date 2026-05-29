@@ -86,9 +86,24 @@ const requireSession = async (req, res, next) => {
 
     // ── Load user and check active ────────────────────────────────────────────
     const user = await AppUser.findById(session.userId);
-    if (!user || !user.isActive()) {
+    if (!user) {
       await redis.del(key);
-      return res.status(403).json({ success: false, message: 'Account is not active' });
+      return res.status(403).json({ success: false, message: 'Your account has been deleted' });
+    }
+
+    if (user.banned) {
+      await redis.del(key);
+      return res.status(403).json({ success: false, message: 'Your account is banned: ' + (user.banReason || 'No reason provided') });
+    }
+
+    if (user.paused) {
+      await redis.del(key);
+      return res.status(403).json({ success: false, message: 'Your account is paused' });
+    }
+
+    if (user.expiryDate && user.expiryDate < Date.now()) {
+      await redis.del(key);
+      return res.status(403).json({ success: false, message: 'Your subscription has expired. Please renew your subscription' });
     }
 
     req.sessionToken = session_token;

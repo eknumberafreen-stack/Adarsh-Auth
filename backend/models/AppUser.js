@@ -64,6 +64,7 @@ appUserSchema.methods.comparePassword = async function(candidatePassword) {
 
 appUserSchema.methods.isActive = function() {
   if (this.banned) return false;
+  if (this.paused) return false;
   if (this.expiryDate && this.expiryDate < Date.now()) return false;
   return true;
 };
