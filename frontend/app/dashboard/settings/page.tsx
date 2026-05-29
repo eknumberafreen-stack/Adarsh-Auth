@@ -216,10 +216,12 @@ export default function Settings() {
   const saveUsername = async () => {
     setUsernameSaving(true)
     try {
-      await api.patch('/auth/username', { username: newUsername })
+      const res = await api.patch('/auth/username', { username: newUsername })
+      const updatedUsername = res.data?.user?.username || newUsername
       useAuthStore.setState((state) => ({
-        user: state.user ? { ...state.user, username: newUsername } : state.user,
+        user: state.user ? { ...state.user, username: updatedUsername } : state.user,
       }))
+      setNewUsername(updatedUsername)
       toast.success('Username updated!')
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to update username')

@@ -380,10 +380,13 @@ router.patch('/username', verifyToken, validate(schemas.updateUsername), asyncHa
     return res.status(400).json({ error: 'Username already taken' });
   }
 
-  req.user.username = normalised;
-  await req.user.save();
+  const updatedUser = await User.findByIdAndUpdate(
+    req.userId,
+    { username: normalised },
+    { new: true }
+  );
 
-  res.json({ user: { id: req.user._id, username: req.user.username } });
+  res.json({ user: { id: updatedUser._id, username: updatedUser.username } });
 }));
 
 // Forgot Password - Send OTP
