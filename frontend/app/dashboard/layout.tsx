@@ -69,7 +69,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       { name: 'Licenses', href: '/dashboard/licenses', icon: KeyIcon, group: 'Operations' },
       { name: 'Users', href: '/dashboard/users', icon: UsersIcon, group: 'Operations' },
       { name: 'Sessions', href: '/dashboard/sessions', icon: ClockIcon, group: 'Operations' },
-      ...(planName !== 'free' ? [{ name: 'Offsets & Bones', href: '/dashboard/offsets', icon: CpuChipIcon, group: 'Operations' }] : []),
       { name: 'Billing', href: '/dashboard/billing', icon: CreditCardIcon, group: 'Account' },
 
       { name: 'My Payments', href: '/dashboard/my-payments', icon: BanknotesIcon, group: 'Account' },
