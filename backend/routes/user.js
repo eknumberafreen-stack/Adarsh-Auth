@@ -5,6 +5,7 @@ const Session = require('../models/Session');
 const IPBan = require('../models/IPBan');
 const AuditLog = require('../models/AuditLog');
 const Application = require('../models/Application');
+const User = require('../models/User');
 const { verifyToken, verifyAppAccess } = require('../middleware/auth');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { getRedisClient } = require('../config/redis');
@@ -342,7 +343,34 @@ router.post('/:id/force-close', asyncHandler(async (req, res) => {
   const token = await redis.get(userKey);
   
   if (token) {
+    const session = await redis.hGetAll(`sess:${token}`);
     await redis.hSet(`sess:${token}`, 'forceClose', 'true');
+
+    // Log the crash action
+    try {
+      const admin = await User.findById(req.userId).select('username email');
+      const adminName = admin ? (admin.username || admin.email) : 'Admin';
+
+      await AuditLog.create({
+        applicationId: user.applicationId._id,
+        userId: user._id,
+        action: 'session_crashed',
+        ip: req.ip || '127.0.0.1',
+        severity: 'info',
+        details: {
+          event: 'session_crashed',
+          crashedBy: adminName,
+          crashedById: req.userId,
+          clientUsername: user.username,
+          hwid: session ? session.hwid : user.hwid,
+          clientIp: session ? session.ip : user.lastIp,
+          sessionToken: token
+        }
+      });
+    } catch (logErr) {
+      console.error('Failed to log session crash:', logErr);
+    }
+
     return res.json({ message: 'Crash command sent successfully' });
   }
 

@@ -26,6 +26,7 @@ function formatDate(dateStr: string) {
 export default function Sessions() {
   const { applications, selectedApp } = useAppStore()
   const [sessions, setSessions] = useState<any[]>([])
+  const [history, setHistory] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
 
   const [confirmModal, setConfirmModal] = useState({
@@ -36,7 +37,11 @@ export default function Sessions() {
   useEffect(() => {
     if (selectedApp?._id) {
       loadSessions()
-      const interval = setInterval(() => loadSessions(true), 5000)
+      loadHistory()
+      const interval = setInterval(() => {
+        loadSessions(true)
+        loadHistory()
+      }, 5000)
       return () => clearInterval(interval)
     }
   }, [selectedApp?._id])
@@ -51,13 +56,26 @@ export default function Sessions() {
     finally { if (!background) setLoading(false) }
   }
 
+  const loadHistory = async () => {
+    if (!selectedApp?._id) return
+    try {
+      const res = await api.get(`/sessions/application/${selectedApp._id}/history`)
+      setHistory(res.data.history)
+    } catch { /* silent fail */ }
+  }
+
   const confirmAction = (title: string, message: string, type: 'danger' | 'warning' | 'info', confirmText: string, onConfirm: () => void) => {
     setConfirmModal({ show: true, title, message, type, confirmText, onConfirm })
   }
 
   const terminateSession = (id: string) => {
     confirmAction('Terminate Session?', 'Are you sure? The user will be disconnected immediately.', 'danger', 'Terminate', async () => {
-      try { await api.delete(`/sessions/${id}`); toast.success('Session terminated'); loadSessions() }
+      try { 
+        await api.delete(`/sessions/${id}`); 
+        toast.success('Session terminated'); 
+        loadSessions();
+        loadHistory();
+      }
       catch { toast.error('Failed to terminate session') }
       setConfirmModal(p => ({ ...p, show: false }))
     })
@@ -65,7 +83,12 @@ export default function Sessions() {
 
   const terminateAll = () => {
     confirmAction('Terminate All?', 'This will disconnect ALL active users from this application.', 'danger', 'Terminate All', async () => {
-      try { await api.delete(`/sessions/application/${selectedApp?._id}/all`); toast.success('All sessions terminated'); loadSessions() }
+      try { 
+        await api.delete(`/sessions/application/${selectedApp?._id}/all`); 
+        toast.success('All sessions terminated'); 
+        loadSessions();
+        loadHistory();
+      }
       catch { toast.error('Failed to terminate sessions') }
       setConfirmModal(p => ({ ...p, show: false }))
     })
@@ -248,6 +271,101 @@ export default function Sessions() {
                 </tbody>
               </table>
             )}
+          </div>
+
+          {/* ── Session History (Audit Logs) ── */}
+          <div className="mt-8 space-y-4">
+            <div>
+              <h2 className="text-lg font-bold text-white">Session Activity History</h2>
+              <p className="text-xs text-gray-400 mt-0.5">Audit log of all manual session kicks and force-closes</p>
+            </div>
+
+            <div className="card overflow-hidden p-0">
+              {history.length === 0 ? (
+                <div className="text-center py-10">
+                  <div className="text-3xl mb-2">📜</div>
+                  <p className="text-sm font-semibold text-gray-300">No session history yet</p>
+                  <p className="text-xs text-gray-500 mt-1">Logs of kicked or crashed sessions will appear here.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-dark-border bg-dark-hover/10">
+                        <th className="text-left px-5 py-3 text-gray-400 font-medium text-xs uppercase tracking-wider">User</th>
+                        <th className="text-left px-5 py-3 text-gray-400 font-medium text-xs uppercase tracking-wider">Action</th>
+                        <th className="text-left px-5 py-3 text-gray-400 font-medium text-xs uppercase tracking-wider">Performed By</th>
+                        <th className="text-left px-5 py-3 text-gray-400 font-medium text-xs uppercase tracking-wider">IP Address</th>
+                        <th className="text-left px-5 py-3 text-gray-400 font-medium text-xs uppercase tracking-wider">HWID</th>
+                        <th className="text-left px-5 py-3 text-gray-400 font-medium text-xs uppercase tracking-wider">Time</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {history.map((log: any, i: number) => {
+                        const actionType = log.action === 'session_crashed' ? 'Crash' : 'Kick';
+                        const isCrash = log.action === 'session_crashed';
+                        return (
+                          <motion.tr 
+                            initial={{ opacity: 0, y: 5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.2, delay: i * 0.02 }}
+                            key={log._id} 
+                            className="border-b border-dark-border/30 hover:bg-dark-hover/10 transition-colors"
+                          >
+                            {/* Client User */}
+                            <td className="px-5 py-3.5">
+                              <p className="font-semibold text-white">{log.details?.clientUsername || 'Unknown'}</p>
+                              <p className="text-[10px] text-gray-500 font-mono">{log.userId?.slice(-8)}</p>
+                            </td>
+
+                            {/* Action */}
+                            <td className="px-5 py-3.5">
+                              {isCrash ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-500/10 border border-red-500/20 text-[10px] font-bold text-red-400 uppercase tracking-wider">
+                                  💥 Crash It
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-[10px] font-bold text-amber-400 uppercase tracking-wider">
+                                  ⚡ Kick
+                                </span>
+                              )}
+                            </td>
+
+                            {/* Admin who performed it */}
+                            <td className="px-5 py-3.5">
+                              <div className="flex items-center gap-2">
+                                <span className="w-5 h-5 rounded-full bg-indigo-500/10 flex items-center justify-center text-[10px] font-bold text-indigo-400 border border-indigo-500/20">
+                                  A
+                                </span>
+                                <span className="font-medium text-gray-200">{log.details?.kickedBy || log.details?.crashedBy || 'Admin'}</span>
+                              </div>
+                            </td>
+
+                            {/* IP Address */}
+                            <td className="px-5 py-3.5 text-xs font-mono text-gray-400">
+                              {log.details?.clientIp || 'N/A'}
+                            </td>
+
+                            {/* HWID */}
+                            <td className="px-5 py-3.5 text-xs font-mono text-gray-400">
+                              <span title={log.details?.hwid}>
+                                {log.details?.hwid ? `${log.details.hwid.slice(0, 12)}…` : 'N/A'}
+                              </span>
+                            </td>
+
+                            {/* Time */}
+                            <td className="px-5 py-3.5 text-xs text-gray-300">
+                              <p>{timeAgo(log.timestamp)}</p>
+                              <p className="text-[10px] text-gray-500">{formatDate(log.timestamp)}</p>
+                            </td>
+                          </motion.tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
         </>
       )}

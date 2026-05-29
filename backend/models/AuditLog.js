@@ -25,7 +25,9 @@ const auditLogSchema = new mongoose.Schema({
       'invalid_signature',
       'replay_attack',
       'rate_limit_exceeded',
-      'suspicious_activity'
+      'suspicious_activity',
+      'session_kicked',
+      'session_crashed'
     ]
   },
   ip: {

@@ -5,6 +5,8 @@ const { verifyToken, verifyAppAccess } = require('../middleware/auth');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { getRedisClient } = require('../config/redis');
 const AppUser = require('../models/AppUser');
+const User = require('../models/User');
+const AuditLog = require('../models/AuditLog');
 
 const router = express.Router();
 
@@ -75,6 +77,20 @@ router.get('/application/:applicationId', verifyAppAccess(), asyncHandler(async 
   res.json({ sessions: activeSessions.sort((a, b) => b.lastHeartbeat - a.lastHeartbeat) });
 }));
 
+// Get terminated session logs for an application
+router.get('/application/:applicationId/history', verifyAppAccess(), asyncHandler(async (req, res) => {
+  const { applicationId } = req.params;
+  const history = await AuditLog.find({
+    applicationId,
+    action: { $in: ['session_kicked', 'session_crashed'] }
+  })
+  .sort({ timestamp: -1 })
+  .limit(50)
+  .lean();
+
+  res.json({ history });
+}));
+
 // Terminate session
 router.delete('/:id', asyncHandler(async (req, res) => {
   const token = req.params.id;
@@ -86,6 +102,35 @@ router.delete('/:id', asyncHandler(async (req, res) => {
   }
 
   await redis.hSet(`sess:${token}`, 'forceClose', 'true');
+
+  // Log who did the kick and when
+  try {
+    const admin = await User.findById(req.userId).select('username email');
+    const adminName = admin ? (admin.username || admin.email) : 'Admin';
+
+    const client = await AppUser.findById(session.userId).select('username');
+    const clientName = client ? client.username : 'Unknown';
+
+    await AuditLog.create({
+      applicationId: session.applicationId,
+      userId: session.userId,
+      action: 'session_kicked',
+      ip: req.ip || '127.0.0.1',
+      severity: 'info',
+      details: {
+        event: 'session_kicked',
+        kickedBy: adminName,
+        kickedById: req.userId,
+        clientUsername: clientName,
+        hwid: session.hwid,
+        clientIp: session.ip,
+        sessionToken: token
+      }
+    });
+  } catch (logErr) {
+    console.error('Failed to log session kick:', logErr);
+  }
+
   res.json({ message: 'Session terminated successfully (Force close signal sent)' });
 }));
 
@@ -96,13 +141,45 @@ router.delete('/application/:applicationId/all', verifyAppAccess('manage_users')
   const users = await AppUser.find({ applicationId }).select('_id');
   let count = 0;
 
-  for (const user of users) {
-    const userKey = `user_sess:${user._id}:${applicationId}`;
-    const token = await redis.get(userKey);
-    if (token) {
-      await redis.hSet(`sess:${token}`, 'forceClose', 'true');
-      count++;
+  try {
+    const admin = await User.findById(req.userId).select('username email');
+    const adminName = admin ? (admin.username || admin.email) : 'Admin';
+
+    for (const user of users) {
+      const userKey = `user_sess:${user._id}:${applicationId}`;
+      const token = await redis.get(userKey);
+      if (token) {
+        const session = await redis.hGetAll(`sess:${token}`);
+        await redis.hSet(`sess:${token}`, 'forceClose', 'true');
+        count++;
+
+        try {
+          const client = await AppUser.findById(user._id).select('username');
+          const clientName = client ? client.username : 'Unknown';
+
+          await AuditLog.create({
+            applicationId,
+            userId: user._id,
+            action: 'session_kicked',
+            ip: req.ip || '127.0.0.1',
+            severity: 'info',
+            details: {
+              event: 'session_kicked_all',
+              kickedBy: adminName,
+              kickedById: req.userId,
+              clientUsername: clientName,
+              hwid: session ? session.hwid : 'N/A',
+              clientIp: session ? session.ip : 'N/A',
+              sessionToken: token
+            }
+          });
+        } catch (err) {
+          console.error('Error logging kick-all for user:', user._id, err);
+        }
+      }
     }
+  } catch (adminErr) {
+    console.error('Failed to get admin details for global termination:', adminErr);
   }
 
   res.json({
