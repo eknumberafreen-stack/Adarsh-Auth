@@ -28,6 +28,10 @@ export default function Sessions() {
   const [sessions, setSessions] = useState<any[]>([])
   const [history, setHistory] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
+  const [sessionsPage, setSessionsPage] = useState(1)
+  const [historyPage, setHistoryPage] = useState(1)
+  const [historyTotalPages, setHistoryTotalPages] = useState(1)
+  const limit = 10
 
   const [confirmModal, setConfirmModal] = useState({
     show: false, title: '', message: '', onConfirm: () => {},
@@ -36,15 +40,22 @@ export default function Sessions() {
 
   useEffect(() => {
     if (selectedApp?._id) {
+      setSessionsPage(1)
+      setHistoryPage(1)
       loadSessions()
-      loadHistory()
-      const interval = setInterval(() => {
-        loadSessions(true)
-        loadHistory()
-      }, 5000)
+      loadHistory(1)
+      const interval = setInterval(() => loadSessions(true), 5000)
       return () => clearInterval(interval)
     }
   }, [selectedApp?._id])
+
+  useEffect(() => {
+    if (selectedApp?._id) {
+      loadHistory(historyPage)
+      const interval = setInterval(() => loadHistory(historyPage), 5000)
+      return () => clearInterval(interval)
+    }
+  }, [selectedApp?._id, historyPage])
 
   const loadSessions = async (background = false) => {
     if (!selectedApp?._id) return
@@ -56,11 +67,12 @@ export default function Sessions() {
     finally { if (!background) setLoading(false) }
   }
 
-  const loadHistory = async () => {
+  const loadHistory = async (page = historyPage) => {
     if (!selectedApp?._id) return
     try {
-      const res = await api.get(`/sessions/application/${selectedApp._id}/history`)
+      const res = await api.get(`/sessions/application/${selectedApp._id}/history?page=${page}&limit=${limit}`)
       setHistory(res.data.history)
+      setHistoryTotalPages(res.data.pagination.pages)
     } catch { /* silent fail */ }
   }
 
@@ -74,7 +86,7 @@ export default function Sessions() {
         await api.delete(`/sessions/${id}`); 
         toast.success('Session terminated'); 
         loadSessions();
-        loadHistory();
+        loadHistory(historyPage);
       }
       catch { toast.error('Failed to terminate session') }
       setConfirmModal(p => ({ ...p, show: false }))
@@ -87,7 +99,7 @@ export default function Sessions() {
         await api.delete(`/sessions/application/${selectedApp?._id}/all`); 
         toast.success('All sessions terminated'); 
         loadSessions();
-        loadHistory();
+        loadHistory(historyPage);
       }
       catch { toast.error('Failed to terminate sessions') }
       setConfirmModal(p => ({ ...p, show: false }))
@@ -96,6 +108,9 @@ export default function Sessions() {
 
   const activeSessions = sessions.filter(s => Date.now() - new Date(s.lastHeartbeat).getTime() < 45000)
   const offlineSessions = sessions.filter(s => Date.now() - new Date(s.lastHeartbeat).getTime() >= 45000)
+
+  const totalSessionsPages = Math.ceil(sessions.length / limit)
+  const paginatedSessions = sessions.slice((sessionsPage - 1) * limit, sessionsPage * limit)
 
   return (
     <div className="space-y-6">
@@ -182,7 +197,7 @@ export default function Sessions() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sessions.map((session: any, i: number) => {
+                  {paginatedSessions.map((session: any, i: number) => {
                     const isLive = Date.now() - new Date(session.lastHeartbeat).getTime() < 45000
                     const ping = session.ping && session.ping !== 'N/A' ? parseInt(session.ping) : null
                     const pingColor = ping === null ? 'text-gray-500' : ping < 100 ? 'text-green-400' : ping < 300 ? 'text-yellow-400' : 'text-red-400'
@@ -270,6 +285,31 @@ export default function Sessions() {
                   })}
                 </tbody>
               </table>
+            )}
+
+            {/* Pagination Controls — KeyAuth Style */}
+            {totalSessionsPages > 1 && (
+              <div className="flex items-center justify-between px-6 py-4 bg-black/20 border-t border-white/5">
+                <button
+                  onClick={() => setSessionsPage(p => Math.max(1, p - 1))}
+                  disabled={sessionsPage === 1}
+                  className="px-5 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-gray-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                >
+                  Previous
+                </button>
+                
+                <div className="text-xs font-medium text-gray-500">
+                  Showing page <span className="text-gray-200">{sessionsPage}</span> of <span className="text-gray-200">{totalSessionsPages}</span>
+                </div>
+
+                <button
+                  onClick={() => setSessionsPage(p => Math.min(totalSessionsPages, p + 1))}
+                  disabled={sessionsPage === totalSessionsPages}
+                  className="px-5 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-gray-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                >
+                  Next
+                </button>
+              </div>
             )}
           </div>
 
@@ -363,6 +403,31 @@ export default function Sessions() {
                       })}
                     </tbody>
                   </table>
+                </div>
+              )}
+
+              {/* Pagination Controls — KeyAuth Style */}
+              {historyTotalPages > 1 && (
+                <div className="flex items-center justify-between px-6 py-4 bg-black/20 border-t border-white/5">
+                  <button
+                    onClick={() => setHistoryPage(p => Math.max(1, p - 1))}
+                    disabled={historyPage === 1}
+                    className="px-5 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-gray-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                  >
+                    Previous
+                  </button>
+                  
+                  <div className="text-xs font-medium text-gray-500">
+                    Showing page <span className="text-gray-200">{historyPage}</span> of <span className="text-gray-200">{historyTotalPages}</span>
+                  </div>
+
+                  <button
+                    onClick={() => setHistoryPage(p => Math.min(historyTotalPages, p + 1))}
+                    disabled={historyPage === historyTotalPages}
+                    className="px-5 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-gray-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                  >
+                    Next
+                  </button>
                 </div>
               )}
             </div>

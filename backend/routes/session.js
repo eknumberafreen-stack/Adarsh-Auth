@@ -91,15 +91,32 @@ router.get('/application/:applicationId', verifyAppAccess(), asyncHandler(async 
 // Get terminated session logs for an application
 router.get('/application/:applicationId/history', verifyAppAccess(), asyncHandler(async (req, res) => {
   const { applicationId } = req.params;
-  const history = await AuditLog.find({
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  const query = {
     applicationId,
     action: { $in: ['session_kicked', 'session_crashed'] }
-  })
-  .sort({ timestamp: -1 })
-  .limit(50)
-  .lean();
+  };
 
-  res.json({ history });
+  const [history, total] = await Promise.all([
+    AuditLog.find(query)
+      .sort({ timestamp: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    AuditLog.countDocuments(query)
+  ]);
+
+  res.json({
+    history,
+    pagination: {
+      total,
+      page,
+      pages: Math.ceil(total / limit)
+    }
+  });
 }));
 
 // Terminate session
