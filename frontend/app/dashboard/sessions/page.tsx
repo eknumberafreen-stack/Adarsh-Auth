@@ -164,11 +164,8 @@ export default function Sessions() {
                 {activeSessions.length === 0
                   ? 'N/A'
                   : `${Math.round(
-                      activeSessions.filter(s => s.ping && s.ping !== 'N/A').reduce((a, s) => {
-                        const raw = parseInt(s.ping);
-                        const scaled = Math.round(raw / 12);
-                        return a + (scaled < 15 ? 15 + (raw % 8) : scaled);
-                      }, 0) / (activeSessions.filter(s => s.ping && s.ping !== 'N/A').length || 1)
+                      activeSessions.filter(s => s.ping && s.ping !== 'N/A').reduce((a, s) => a + parseInt(s.ping), 0) /
+                      (activeSessions.filter(s => s.ping && s.ping !== 'N/A').length || 1)
                     )}ms`
                 }
               </p>
@@ -205,12 +202,7 @@ export default function Sessions() {
                 <tbody>
                   {paginatedSessions.map((session: any, i: number) => {
                     const isLive = Date.now() - new Date(session.lastHeartbeat).getTime() < 45000
-                    const rawPing = session.ping && session.ping !== 'N/A' ? parseInt(session.ping) : null
-                    let ping = rawPing
-                    if (ping !== null) {
-                      const scaled = Math.round(ping / 12)
-                      ping = scaled < 15 ? 15 + (rawPing! % 8) : scaled
-                    }
+                    const ping = session.ping && session.ping !== 'N/A' ? parseInt(session.ping) : null
                     const pingColor = ping === null ? 'text-gray-500' : ping < 100 ? 'text-green-400' : ping < 300 ? 'text-yellow-400' : 'text-red-400'
                     return (
                       <motion.tr 
