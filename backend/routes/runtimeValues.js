@@ -3,6 +3,15 @@ const router = express.Router();
 const RuntimeValues = require('../models/RuntimeValues');
 const { verifyToken, verifyAppAccess, requirePaidPlan } = require('../middleware/auth');
 const { asyncHandler } = require('../middleware/errorHandler');
+const { getRedisClient } = require('../utils/redis');
+
+// Helper to invalidate runtime values cache in Redis
+const clearCache = async (applicationId) => {
+  try {
+    const redis = getRedisClient();
+    await redis.del(`cache:runtime_vals:${applicationId}`);
+  } catch (e) { /* ignore */ }
+};
 
 // Require login for all routes
 router.use(verifyToken);
@@ -42,6 +51,7 @@ router.patch('/:applicationId/initbase', verifyAppAccess('manage_settings'), asy
     { $set: { initBase: value, updatedAt: Date.now() } },
     { upsert: true, new: true }
   );
+  await clearCache(applicationId);
   res.json({ success: true, data: doc });
 }));
 
@@ -70,6 +80,7 @@ router.patch('/:applicationId/offsets/:category', verifyAppAccess('manage_settin
   }
 
   await doc.save();
+  await clearCache(applicationId);
   res.json({ success: true, data: doc });
 }));
 
@@ -95,6 +106,7 @@ router.patch('/:applicationId/bones', verifyAppAccess('manage_settings'), asyncH
   }
 
   await doc.save();
+  await clearCache(applicationId);
   res.json({ success: true, data: doc });
 }));
 
@@ -107,6 +119,7 @@ router.delete('/:applicationId/offsets/:category/:offsetId', verifyAppAccess('ma
   if (doc && doc[category]) {
     doc[category].pull({ _id: offsetId });
     await doc.save();
+    await clearCache(applicationId);
   }
   res.json({ success: true });
 }));
@@ -120,6 +133,7 @@ router.delete('/:applicationId/bones/:boneId', verifyAppAccess('manage_settings'
   if (doc) {
     doc.bones.pull({ _id: boneId });
     await doc.save();
+    await clearCache(applicationId);
   }
   res.json({ success: true });
 }));
@@ -130,6 +144,7 @@ router.delete('/:applicationId/bones/:boneId', verifyAppAccess('manage_settings'
 router.delete('/:applicationId/reset', verifyAppAccess('manage_settings'), asyncHandler(async (req, res) => {
   const { applicationId } = req.params;
   await RuntimeValues.deleteOne({ applicationId });
+  await clearCache(applicationId);
   res.json({ success: true });
 }));
 

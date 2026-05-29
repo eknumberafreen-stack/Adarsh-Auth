@@ -571,8 +571,23 @@ router.post('/heartbeat',
       await redis.hSet(key, 'ping', req.clientBody.ping.toString());
     }
 
-    // Check client offset version & status
-    const doc = await RuntimeValues.findOne({ applicationId: req.application._id });
+    // Check client offset version & status — cached in Redis for 10s to ensure sub-millisecond response
+    const cacheKey = `cache:runtime_vals:${req.application._id}`;
+    let doc = null;
+    try {
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        doc = JSON.parse(cached);
+      } else {
+        doc = await RuntimeValues.findOne({ applicationId: req.application._id }).lean();
+        if (doc) {
+          await redis.set(cacheKey, JSON.stringify(doc), { EX: 10 });
+        }
+      }
+    } catch (e) {
+      doc = await RuntimeValues.findOne({ applicationId: req.application._id }).lean();
+    }
+
     let offsetVersion = 0;
     let offsetStatus = 'valid';
 
