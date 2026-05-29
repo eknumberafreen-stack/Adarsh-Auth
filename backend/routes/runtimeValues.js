@@ -3,7 +3,7 @@ const router = express.Router();
 const RuntimeValues = require('../models/RuntimeValues');
 const { verifyToken, verifyAppAccess, requirePaidPlan } = require('../middleware/auth');
 const { asyncHandler } = require('../middleware/errorHandler');
-const { getRedisClient } = require('../utils/redis');
+const { getRedisClient } = require('../config/redis');
 
 // Helper to invalidate runtime values cache in Redis
 const clearCache = async (applicationId) => {
