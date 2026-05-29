@@ -99,7 +99,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const ensureSession = async () => {
       if (!hasHydrated) return
 
+      const fetchFreshProfile = async () => {
+        try {
+          const res = await api.get('/auth/me')
+          if (res.data?.user) {
+            useAuthStore.setState((state) => ({
+              user: state.user ? {
+                ...state.user,
+                email: res.data.user.email,
+                username: res.data.user.username || null,
+              } : {
+                id: res.data.user.id,
+                email: res.data.user.email,
+                username: res.data.user.username || null,
+              }
+            }))
+          }
+        } catch (err) {
+          console.error('Failed to sync fresh profile:', err)
+        }
+      }
+
       if (accessToken) {
+        await fetchFreshProfile()
         if (active) setCheckingSession(false)
         return
       }
@@ -107,6 +129,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       if (refreshToken) {
         try {
           await refreshAccessToken()
+          await fetchFreshProfile()
           if (active) {
             setCheckingSession(false)
             return

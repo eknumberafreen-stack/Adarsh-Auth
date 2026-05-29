@@ -363,6 +363,7 @@ router.get('/me', verifyToken, asyncHandler(async (req, res) => {
   res.json({
     user: {
       id: req.user._id,
+      email: req.user.email,
       username: req.user.username,
       createdAt: req.user.createdAt
     }
