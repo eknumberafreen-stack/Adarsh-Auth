@@ -238,8 +238,8 @@ export default function Sessions() {
 
                         {/* Ping */}
                         <td className="px-5 py-4">
-                          <span className={`font-mono font-semibold text-sm ${pingColor}`}>
-                            {ping !== null ? `${ping} ms` : '—'}
+                          <span className={`font-mono font-semibold text-sm ${isLive && ping !== null ? pingColor : 'text-gray-500'}`}>
+                            {isLive && ping !== null ? `${ping} ms` : '—'}
                           </span>
                         </td>
 
