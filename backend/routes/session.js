@@ -49,32 +49,43 @@ const verifySessionActionAccess = async (req, res, session, requiredPermission) 
 router.get('/application/:applicationId', verifyAppAccess(), asyncHandler(async (req, res) => {
   const { applicationId } = req.params;
   const redis = getRedisClient();
-  const activeSessions = [];
 
-  const users = await AppUser.find({ applicationId }).select('_id username lastLogin expiryDate');
+  const users = await AppUser.find({ applicationId })
+    .select('_id username lastLogin expiryDate')
+    .lean();
 
-  for (const user of users) {
+  // Run user session token lookups in parallel
+  const userTokens = await Promise.all(users.map(async (user) => {
     const userKey = `user_sess:${user._id}:${applicationId}`;
     const token = await redis.get(userKey);
-    if (token) {
-      const sessionData = await redis.hGetAll(`sess:${token}`);
-      if (sessionData && Object.keys(sessionData).length > 0) {
-        activeSessions.push({
-          _id: token,
-          userId: { _id: user._id, username: user.username, lastLogin: user.lastLogin },
-          applicationId,
-          hwid: sessionData.hwid,
-          ip: sessionData.ip,
-          ping: sessionData.ping || 'N/A',
-          lastHeartbeat: sessionData.lastHeartbeat ? parseInt(sessionData.lastHeartbeat) : Date.now(),
-          createdAt: Date.now(), 
-          expiresAt: user.expiryDate ? new Date(user.expiryDate).getTime() : Date.now() + 24 * 60 * 60 * 1000
-        });
-      }
-    }
-  }
+    return { user, token };
+  }));
 
-  res.json({ sessions: activeSessions.sort((a, b) => b.lastHeartbeat - a.lastHeartbeat) });
+  // Filter out users with active tokens and fetch their session data in parallel
+  const activeTokens = userTokens.filter(item => item.token);
+  
+  const sessionDetails = await Promise.all(activeTokens.map(async (item) => {
+    const { user, token } = item;
+    const sessionData = await redis.hGetAll(`sess:${token}`);
+    if (sessionData && Object.keys(sessionData).length > 0) {
+      return {
+        _id: token,
+        userId: { _id: user._id, username: user.username, lastLogin: user.lastLogin },
+        applicationId,
+        hwid: sessionData.hwid,
+        ip: sessionData.ip,
+        ping: sessionData.ping || 'N/A',
+        lastHeartbeat: sessionData.lastHeartbeat ? parseInt(sessionData.lastHeartbeat) : Date.now(),
+        createdAt: Date.now(), 
+        expiresAt: user.expiryDate ? new Date(user.expiryDate).getTime() : Date.now() + 24 * 60 * 60 * 1000
+      };
+    }
+    return null;
+  }));
+
+  const validSessions = sessionDetails.filter(Boolean);
+
+  res.json({ sessions: validSessions.sort((a, b) => b.lastHeartbeat - a.lastHeartbeat) });
 }));
 
 // Get terminated session logs for an application
