@@ -19,7 +19,6 @@ import {
   CheckBadgeIcon,
 } from '@heroicons/react/24/outline'
 import { getAvatarInitial, getDisplayName } from '@/lib/username'
-import { motion } from 'framer-motion'
 
 interface ProfileData {
   username: string | null
@@ -49,14 +48,14 @@ function formatLimit(v: number) {
 }
 
 const PLAN_GRADIENT: Record<string, string> = {
-  free: 'from-slate-500/10 to-slate-600/5 border-slate-500/10',
-  pro: 'from-indigo-500/10 to-purple-600/5 border-indigo-500/10',
-  enterprise: 'from-amber-500/10 to-orange-600/5 border-amber-500/10',
+  free: 'from-gray-500/20 to-gray-600/10 border-gray-500/20',
+  pro: 'from-indigo-500/20 to-purple-600/10 border-indigo-500/20',
+  enterprise: 'from-amber-500/20 to-orange-600/10 border-amber-500/20',
 }
 const PLAN_TEXT: Record<string, string> = {
-  free: 'text-slate-300',
-  pro: 'text-indigo-300 drop-shadow-[0_0_6px_rgba(99,102,241,0.2)]',
-  enterprise: 'text-amber-300 drop-shadow-[0_0_6px_rgba(245,158,11,0.2)]',
+  free: 'text-gray-300',
+  pro: 'text-indigo-300',
+  enterprise: 'text-amber-300',
 }
 
 export default function ProfilePage() {
@@ -105,10 +104,10 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
+      <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-xs text-slate-500 font-semibold tracking-wide">Retrieving account telemetries...</p>
+          <p className="text-sm text-gray-500">Loading profile...</p>
         </div>
       </div>
     )
@@ -124,53 +123,57 @@ export default function ProfilePage() {
     : '—'
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
+    <div className="space-y-5">
+
       {/* ── Hero Banner ── */}
-      <div className="relative rounded-[32px] overflow-hidden border border-white/[0.04] bg-[#090912]/80 shadow-2xl">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/[0.04] via-purple-500/[0.02] to-transparent pointer-events-none" />
+      <div className="relative rounded-2xl overflow-hidden border border-white/[0.06] bg-gradient-to-br from-indigo-600/10 via-purple-600/5 to-transparent">
+        {/* Background pattern */}
+        <div className="absolute inset-0 opacity-[0.03]"
+          style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '24px 24px' }} />
+
         <div className="relative p-6 md:p-8">
           <div className="flex flex-col md:flex-row md:items-center gap-6">
 
             {/* Avatar */}
             <div className="relative flex-shrink-0">
-              <div className="w-20 h-20 md:w-24 md:h-24 rounded-3xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-3xl md:text-4xl font-black text-white shadow-2xl shadow-indigo-500/20">
+              <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-3xl md:text-4xl font-black text-white shadow-2xl shadow-indigo-500/30">
                 {avatarInitial}
               </div>
               {profile.plan && (
-                <div className={`absolute -bottom-1.5 -right-1.5 px-3 py-1 rounded-xl text-[9px] font-extrabold border bg-[#0a0a14] uppercase tracking-wider ${PLAN_TEXT[planName]} border-indigo-500/25`}>
+                <div className={`absolute -bottom-2 -right-2 px-2 py-0.5 rounded-full text-[10px] font-bold border bg-[#09090e] ${PLAN_TEXT[planName]} border-current`}>
                   {profile.plan.displayName}
                 </div>
               )}
             </div>
 
             {/* Info */}
-            <div className="flex-grow min-w-0">
-              <div className="flex flex-wrap items-center gap-2.5 mb-1.5">
-                <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">{displayName}</h1>
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-center gap-3 mb-1">
+                <h1 className="text-2xl md:text-3xl font-black text-white">{displayName}</h1>
                 {profile.username && (
-                  <span className="flex items-center gap-1 text-xs font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-lg border border-indigo-500/20 uppercase tracking-wider">
-                    <CheckBadgeIcon className="w-3.5 h-3.5" />
+                  <span className="flex items-center gap-1 text-sm text-indigo-400">
+                    <CheckBadgeIcon className="w-4 h-4" />
                     verified
                   </span>
                 )}
               </div>
 
               {profile.username && (
-                <p className="text-slate-400 text-xs font-semibold mb-3.5">@{profile.username}</p>
+                <p className="text-gray-400 text-sm mb-3">@{profile.username}</p>
               )}
 
-              <div className="flex flex-wrap gap-4 text-xs font-semibold text-slate-500">
+              <div className="flex flex-wrap gap-4 text-sm text-gray-500">
                 <span className="flex items-center gap-1.5">
-                  <EnvelopeIcon className="w-4 h-4 text-slate-600" />
+                  <EnvelopeIcon className="w-3.5 h-3.5" />
                   {profile.email}
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <CalendarIcon className="w-4 h-4 text-slate-600" />
+                  <CalendarIcon className="w-3.5 h-3.5" />
                   Joined {joinDate}
                 </span>
-                <span className="flex items-center gap-1.5 font-mono">
-                  <IdentificationIcon className="w-4 h-4 text-slate-600" />
-                  Identity: {profile.id.slice(0, 16)}…
+                <span className="flex items-center gap-1.5 font-mono text-xs">
+                  <IdentificationIcon className="w-3.5 h-3.5" />
+                  {profile.id.slice(0, 16)}…
                 </span>
               </div>
             </div>
@@ -178,10 +181,10 @@ export default function ProfilePage() {
             {/* Edit button */}
             <Link
               href="/dashboard/settings"
-              className="flex-shrink-0 flex items-center gap-2 px-5 py-3 rounded-xl bg-white/[0.02] border border-white/[0.06] text-slate-200 hover:text-white hover:bg-white/[0.05] transition-all text-xs font-black uppercase tracking-wider"
+              className="flex-shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/[0.06] border border-white/[0.10] text-white hover:bg-white/[0.10] transition-all text-sm font-medium"
             >
               <PencilSquareIcon className="w-4 h-4" />
-              Edit Account
+              Edit Profile
             </Link>
           </div>
         </div>
@@ -190,20 +193,20 @@ export default function ProfilePage() {
       {/* ── Stats ── */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: 'Workspaces', value: profile.stats.applications, icon: CubeIcon, color: 'text-indigo-400', bg: 'bg-indigo-500/10', border: 'border-indigo-500/20 shadow-indigo-500/5', href: '/dashboard/applications' },
-          { label: 'License Keys', value: profile.stats.licenses, icon: KeyIcon, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20 shadow-emerald-500/5', href: '/dashboard/licenses' },
-          { label: 'Registered Users', value: profile.stats.users, icon: UsersIcon, color: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/20 shadow-violet-500/5', href: '/dashboard/users' },
+          { label: 'Applications', value: profile.stats.applications, icon: CubeIcon, color: 'text-indigo-400', bg: 'bg-indigo-500/10', border: 'border-indigo-500/15', href: '/dashboard/applications' },
+          { label: 'Total Licenses', value: profile.stats.licenses, icon: KeyIcon, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/15', href: '/dashboard/licenses' },
+          { label: 'Total Users', value: profile.stats.users, icon: UsersIcon, color: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/15', href: '/dashboard/users' },
         ].map((s) => (
           <Link key={s.label} href={s.href}
-            className={`group bg-[#0a0a14]/60 border ${s.border} rounded-3xl p-5 hover:border-white/15 transition-all shadow-lg`}>
+            className={`group bg-white/[0.02] border ${s.border} rounded-2xl p-5 hover:bg-white/[0.04] transition-all`}>
             <div className="flex items-center justify-between mb-4">
-              <div className={`p-2 rounded-xl ${s.bg} border border-white/[0.02]`}>
+              <div className={`p-2.5 rounded-xl ${s.bg}`}>
                 <s.icon className={`w-5 h-5 ${s.color}`} />
               </div>
-              <ArrowRightIcon className="w-3.5 h-3.5 text-slate-500 group-hover:text-slate-200 transition-colors" />
+              <ArrowRightIcon className="w-3.5 h-3.5 text-gray-600 group-hover:text-gray-400 transition-colors" />
             </div>
-            <p className="text-3xl font-black text-white font-mono">{s.value}</p>
-            <p className="text-[10px] text-slate-500 mt-1 font-bold uppercase tracking-wider">{s.label}</p>
+            <p className="text-3xl font-black text-white">{s.value}</p>
+            <p className="text-xs text-gray-500 mt-1 font-medium">{s.label}</p>
           </Link>
         ))}
       </div>
@@ -212,36 +215,36 @@ export default function ProfilePage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
         {/* Plan Card */}
-        <div className={`rounded-3xl border bg-gradient-to-br p-6 shadow-2xl ${PLAN_GRADIENT[planName] ?? PLAN_GRADIENT.free}`}>
+        <div className={`rounded-2xl border bg-gradient-to-br p-5 ${PLAN_GRADIENT[planName] ?? PLAN_GRADIENT.free}`}>
           <div className="flex items-center justify-between mb-5">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-                <CreditCardIcon className="w-4 h-4 text-slate-400" />
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-white/[0.06]">
+                <CreditCardIcon className="w-4 h-4 text-gray-300" />
               </div>
               <div>
-                <p className="text-[10px] text-slate-500 uppercase tracking-wider font-extrabold">Subscription</p>
-                <p className={`text-base font-black tracking-tight ${PLAN_TEXT[planName]}`}>
-                  {profile.plan?.displayName ?? 'Free'} subscription
+                <p className="text-xs text-gray-500 uppercase tracking-wider">Subscription</p>
+                <p className={`text-base font-bold ${PLAN_TEXT[planName]}`}>
+                  {profile.plan?.displayName ?? 'Free'} Plan
                 </p>
               </div>
             </div>
             <Link href="/dashboard/billing"
-              className="text-xs font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors uppercase tracking-wide">
-              Upgrade <ArrowRightIcon className="w-3 h-3" />
+              className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors">
+              Manage <ArrowRightIcon className="w-3 h-3" />
             </Link>
           </div>
 
           {profile.plan && (
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-2 gap-2">
               {[
-                { label: 'Workspaces', value: profile.plan.limits.maxApplications },
+                { label: 'Apps', value: profile.plan.limits.maxApplications },
                 { label: 'Users / App', value: profile.plan.limits.maxUsersPerApp },
                 { label: 'Licenses / App', value: profile.plan.limits.maxLicensesPerApp },
-                { label: 'API Limits Daily', value: profile.plan.limits.maxApiCallsPerDay },
+                { label: 'API Calls / Day', value: profile.plan.limits.maxApiCallsPerDay },
               ].map((item) => (
-                <div key={item.label} className="bg-black/40 border border-white/[0.03] rounded-2xl p-3.5 text-center">
-                  <p className="text-base font-black text-white font-mono">{formatLimit(item.value)}</p>
-                  <p className="text-[10px] text-slate-500 mt-1 uppercase font-bold tracking-wider">{item.label}</p>
+                <div key={item.label} className="bg-black/20 rounded-xl p-3 text-center">
+                  <p className="text-xl font-black text-white">{formatLimit(item.value)}</p>
+                  <p className="text-[10px] text-gray-500 mt-0.5 uppercase tracking-wider">{item.label}</p>
                 </div>
               ))}
             </div>
@@ -249,14 +252,14 @@ export default function ProfilePage() {
         </div>
 
         {/* Account Details */}
-        <div className="bg-[#0a0a14]/60 border border-white/[0.04] rounded-3xl p-6 space-y-5 shadow-2xl">
-          <div className="flex items-center gap-3 mb-1">
-            <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.05]">
+        <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5 space-y-4">
+          <div className="flex items-center gap-2.5 mb-5">
+            <div className="p-2 rounded-xl bg-white/[0.04]">
               <ShieldCheckIcon className="w-4 h-4 text-emerald-400" />
             </div>
             <div>
-              <p className="text-[10px] text-slate-500 uppercase tracking-wider font-extrabold">Account details</p>
-              <p className="text-base font-black text-white tracking-tight">Security details</p>
+              <p className="text-xs text-gray-500 uppercase tracking-wider">Account</p>
+              <p className="text-base font-bold text-white">Details & Security</p>
             </div>
           </div>
 
@@ -264,14 +267,14 @@ export default function ProfilePage() {
             {[
               { label: 'Email', value: profile.email, icon: EnvelopeIcon },
               { label: 'Username', value: profile.username ? `@${profile.username}` : 'Not set', icon: IdentificationIcon, muted: !profile.username },
-              { label: 'User ID', value: profile.id, icon: IdentificationIcon, mono: true },
-              { label: 'Registration Date', value: joinDate, icon: CalendarIcon },
+              { label: 'User ID', value: profile.id, icon: IdentificationIcon, mono: true, truncate: true },
+              { label: 'Member Since', value: joinDate, icon: CalendarIcon },
             ].map((item) => (
-              <div key={item.label} className="flex items-center gap-3 p-3 bg-black/40 border border-white/[0.03] rounded-2xl">
-                <item.icon className="w-4 h-4 text-slate-600 flex-shrink-0" />
-                <div className="flex-grow min-w-0">
-                  <p className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider">{item.label}</p>
-                  <p className={`text-xs font-bold mt-0.5 truncate ${item.mono ? 'font-mono text-indigo-300' : 'text-slate-200'} ${item.muted ? 'text-slate-600 italic' : ''}`}>
+              <div key={item.label} className="flex items-center gap-3 p-3 bg-white/[0.02] border border-white/[0.04] rounded-xl">
+                <item.icon className="w-4 h-4 text-gray-600 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] text-gray-600 uppercase tracking-wider">{item.label}</p>
+                  <p className={`text-sm mt-0.5 truncate ${item.mono ? 'font-mono text-xs' : 'font-medium'} ${item.muted ? 'text-gray-600 italic' : 'text-gray-200'}`}>
                     {item.value}
                   </p>
                 </div>
@@ -280,28 +283,28 @@ export default function ProfilePage() {
           </div>
 
           <Link href="/dashboard/settings"
-            className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-white/[0.02] border border-white/[0.06] text-slate-300 hover:text-white hover:bg-white/[0.05] transition-all text-xs font-black uppercase tracking-wider mt-2">
-            <PencilSquareIcon className="w-4.5 h-4.5" />
-            Configure Account Settings
+            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.07] text-gray-300 hover:bg-white/[0.07] transition-all text-sm font-medium mt-2">
+            <PencilSquareIcon className="w-4 h-4" />
+            Edit Account Settings
           </Link>
         </div>
       </div>
 
       {/* No username prompt */}
       {!profile.username && (
-        <div className="flex items-center justify-between gap-4 p-5 rounded-3xl bg-indigo-500/[0.02] border border-indigo-500/20 shadow-xl">
-          <div className="flex items-center gap-3.5">
+        <div className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/15">
+          <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-indigo-500/10 flex items-center justify-center flex-shrink-0">
-              <IdentificationIcon className="w-4.5 h-4.5 text-indigo-400" />
+              <IdentificationIcon className="w-4 h-4 text-indigo-400" />
             </div>
             <div>
-              <p className="text-sm font-black text-white">Set Account Username</p>
-              <p className="text-xs text-slate-500 font-semibold mt-0.5">Define a custom unique username for your user profile credentials.</p>
+              <p className="text-sm font-semibold text-white">Set your username</p>
+              <p className="text-xs text-gray-500 mt-0.5">Personalise your profile with a unique username</p>
             </div>
           </div>
           <Link href="/dashboard/settings"
-            className="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-300 hover:bg-indigo-600/30 transition-all text-xs font-black uppercase tracking-wider">
-            Configure <ArrowRightIcon className="w-3.5 h-3.5" />
+            className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-300 hover:bg-indigo-600/30 transition-all text-sm font-medium">
+            Set Username <ArrowRightIcon className="w-3.5 h-3.5" />
           </Link>
         </div>
       )}
