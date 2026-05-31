@@ -21,9 +21,6 @@ import {
   GlobeAltIcon,
   BoltIcon,
   ServerStackIcon,
-  DocumentDuplicateIcon,
-  CheckIcon,
-  CommandLineIcon,
 } from '@heroicons/react/24/outline'
 
 const fadeUp = {
@@ -54,154 +51,6 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(!statsCache)
   const [currentTime, setCurrentTime] = useState(new Date())
   const limit = 5
-
-  // Left Column States (Dev Playground & Activity)
-  const [selectedAppId, setSelectedAppId] = useState('')
-  const [selectedLanguage, setSelectedLanguage] = useState<'csharp' | 'python' | 'nodejs'>('csharp')
-  const [copied, setCopied] = useState(false)
-  const [logs, setLogs] = useState<any[]>([])
-
-  // Initialize selectedAppId once applications are fetched
-  useEffect(() => {
-    const appsList = applications.length > 0 ? applications : recentApps
-    if (appsList.length > 0 && !selectedAppId) {
-      setSelectedAppId(appsList[0]._id)
-    }
-  }, [applications, recentApps, selectedAppId])
-
-  // Simulated NOC terminal activity feed
-  useEffect(() => {
-    const actions = [
-      { type: 'GATEWAY', msg: 'Client authenticated successfully', severity: 'info', prefix: '🔑' },
-      { type: 'LICENSE', msg: 'Key verified and consumed', severity: 'success', prefix: '✅' },
-      { type: 'SECURITY', msg: 'HWID check passed. No debugger detected', severity: 'success', prefix: '🛡️' },
-      { type: 'SESSION', msg: 'Heartbeat response sent', severity: 'info', prefix: '📡' },
-      { type: 'WEBHOOK', msg: 'Discord notification payload dispatched', severity: 'info', prefix: '⚡' },
-    ]
-
-    const getRandomApp = () => {
-      const appsList = applications.length > 0 ? applications : recentApps
-      if (appsList && appsList.length > 0) {
-        return appsList[Math.floor(Math.random() * appsList.length)].name
-      }
-      return 'Adarsh App'
-    }
-
-    const generateLog = () => {
-      const time = new Date().toLocaleTimeString('en-US', { hour12: false })
-      const action = actions[Math.floor(Math.random() * actions.length)]
-      const app = getRandomApp()
-      let detail = ''
-      if (action.type === 'GATEWAY') {
-        const hwid = Math.random().toString(16).substring(2, 8).toUpperCase()
-        detail = `in '${app}' (HWID: ${hwid}...${hwid})`
-      } else if (action.type === 'LICENSE') {
-        const key = `KEY-${Math.random().toString(36).substring(2, 6).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`
-        detail = `for '${app}' (${key})`
-      } else if (action.type === 'SECURITY') {
-        detail = `for '${app}' - Signature matching OK`
-      } else if (action.type === 'SESSION') {
-        const latency = Math.floor(Math.random() * 20) + 10
-        detail = `in '${app}' (latency: ${latency}ms)`
-      } else {
-        detail = `for action: client_authorized in '${app}'`
-      }
-
-      return {
-        time,
-        type: action.type,
-        msg: `${action.msg} ${detail}`,
-        severity: action.severity,
-        prefix: action.prefix
-      }
-    }
-
-    // Generate initial sequential logs
-    const initialLogs = Array.from({ length: 5 }).map((_, idx) => {
-      const d = new Date()
-      d.setSeconds(d.getSeconds() - (5 - idx) * 12)
-      const time = d.toLocaleTimeString('en-US', { hour12: false })
-      const log = generateLog()
-      log.time = time
-      return log
-    })
-    setLogs(initialLogs)
-
-    const interval = setInterval(() => {
-      setLogs((prev) => {
-        const next = [...prev, generateLog()]
-        if (next.length > 6) {
-          next.shift()
-        }
-        return next
-      })
-    }, 6000)
-
-    return () => clearInterval(interval)
-  }, [applications, recentApps])
-
-  const getCodeSnippet = () => {
-    const appsList = applications.length > 0 ? applications : recentApps
-    const selectedApp = appsList.find((a: any) => a._id === selectedAppId) || appsList[0]
-    const appId = selectedApp?._id || 'APP_ID_PLACEHOLDER'
-    const appVersion = selectedApp?.version || '1.0'
-
-    if (selectedLanguage === 'csharp') {
-      return `// Initialize AdarshAuth Client
-var client = new AdarshAuth.Client(
-    appId: "${appId}",
-    version: "${appVersion}"
-);
-
-if (client.Initialize()) {
-    Console.WriteLine("Connection secure.");
-    if (client.Authenticate(licenseKey)) {
-        Console.WriteLine($"Welcome back, {client.User.Username}!");
-        // Run protected code
-    }
-}`
-    }
-
-    if (selectedLanguage === 'python') {
-      return `import adarsh_auth
-
-# Initialize Connection
-client = adarsh_auth.Client(
-    app_id="${appId}",
-    version="${appVersion}"
-)
-
-if client.initialize():
-    print("Connection secure.")
-    if client.authenticate(license_key):
-        print(f"Welcome back, {client.user.username}!")
-        # Run protected code`
-    }
-
-    return `const AdarshAuth = require('adarsh-auth-node');
-
-const client = new AdarshAuth({
-  appId: '${appId}',
-  version: '${appVersion}'
-});
-
-async function start() {
-  const secure = await client.initialize();
-  if (secure) {
-    console.log('Connection secure.');
-    const user = await client.authenticate(licenseKey);
-    if (user) {
-      console.log(\`Welcome back, \${user.username}!\`);
-    }
-  }
-}`
-  }
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(getCodeSnippet())
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
 
   // Live clock
   useEffect(() => {
@@ -462,270 +311,94 @@ async function start() {
 
           {/* ── Main Grid: Recent Apps + Health + Security ── */}
           <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-            {/* ── Left Column: Applications Inventory + Symmetrical Dev Playground ── */}
-            <div className="space-y-6">
-              {/* ── Recent Applications ── */}
-              <motion.div
-                initial={{ opacity: 0, x: -15 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5, delay: 0.4 }}
-                className="card"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-400/10 text-indigo-200">
-                      <ChartBarIcon className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <p className="page-eyebrow">Application Inventory</p>
-                      <h2 className="text-2xl font-bold text-white">Your Applications</h2>
-                    </div>
+            {/* ── Recent Applications ── */}
+            <motion.div
+              initial={{ opacity: 0, x: -15 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+              className="card"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-400/10 text-indigo-200">
+                    <ChartBarIcon className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="page-eyebrow">Application Inventory</p>
+                    <h2 className="text-2xl font-bold text-white">Your Applications</h2>
+                  </div>
+                </div>
+                <button
+                  onClick={() => router.push('/dashboard/applications')}
+                  className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2 text-xs font-semibold text-slate-400 transition-all hover:bg-white/[0.06] hover:text-white"
+                >
+                  View All <ArrowRightIcon className="h-3 w-3" />
+                </button>
+              </div>
+
+              <div className="mt-6 space-y-3">
+                {recentApps.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-white/10 px-5 py-12 text-center text-sm text-slate-400">
+                    No applications yet. Create your first app to start issuing credentials.
+                  </div>
+                ) : (
+                  recentApps.map((app: any, i: number) => (
+                    <motion.div
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.5 + i * 0.06 }}
+                      key={app._id}
+                      className="group flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.02] px-5 py-4 transition-all hover:border-white/20 hover:bg-white/[0.04]"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-300 font-bold text-sm">
+                          {app.name?.[0]?.toUpperCase() || 'A'}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-white">{app.name}</p>
+                          <p className="mt-0.5 text-xs text-slate-500">
+                            v{app.version} • {app.userCount || 0} users
+                          </p>
+                        </div>
+                      </div>
+                      <span
+                        className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-wider ${
+                          app.status === 'active'
+                            ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300'
+                            : 'border-zinc-500/20 bg-zinc-500/10 text-zinc-300'
+                        }`}
+                      >
+                        {app.status === 'active' && <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />}
+                        {app.status}
+                      </span>
+                    </motion.div>
+                  ))
+                )}
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between mt-6 pt-6 border-t border-white/5">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="px-5 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-gray-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                  >
+                    Previous
+                  </button>
+                  <div className="text-xs font-medium text-gray-500">
+                    Page <span className="text-gray-200">{currentPage}</span> of <span className="text-gray-200">{totalPages}</span>
                   </div>
                   <button
-                    onClick={() => router.push('/dashboard/applications')}
-                    className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2 text-xs font-semibold text-slate-400 transition-all hover:bg-white/[0.06] hover:text-white"
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="px-5 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-gray-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                   >
-                    View All <ArrowRightIcon className="h-3 w-3" />
+                    Next
                   </button>
                 </div>
-
-                <div className="mt-6 space-y-3">
-                  {recentApps.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-white/10 px-5 py-12 text-center text-sm text-slate-400">
-                      No applications yet. Create your first app to start issuing credentials.
-                    </div>
-                  ) : (
-                    recentApps.map((app: any, i: number) => (
-                      <motion.div
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.5 + i * 0.06 }}
-                        key={app._id}
-                        className="group flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.02] px-5 py-4 transition-all hover:border-white/20 hover:bg-white/[0.04]"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-300 font-bold text-sm">
-                            {app.name?.[0]?.toUpperCase() || 'A'}
-                          </div>
-                          <div>
-                            <p className="font-semibold text-white">{app.name}</p>
-                            <p className="mt-0.5 text-xs text-slate-500">
-                              v{app.version} • {app.userCount || 0} users
-                            </p>
-                          </div>
-                        </div>
-                        <span
-                          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-wider ${
-                            app.status === 'active'
-                              ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300'
-                              : 'border-zinc-500/20 bg-zinc-500/10 text-zinc-300'
-                          }`}
-                        >
-                          {app.status === 'active' && <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />}
-                          {app.status}
-                        </span>
-                      </motion.div>
-                    ))
-                  )}
-                </div>
-
-                {/* Pagination */}
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-between mt-6 pt-6 border-t border-white/5">
-                    <button
-                      onClick={() => handlePageChange(currentPage - 1)}
-                      disabled={currentPage === 1}
-                      className="px-5 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-gray-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                    >
-                      Previous
-                    </button>
-                    <div className="text-xs font-medium text-gray-500">
-                      Page <span className="text-gray-200">{currentPage}</span> of <span className="text-gray-200">{totalPages}</span>
-                    </div>
-                    <button
-                      onClick={() => handlePageChange(currentPage + 1)}
-                      disabled={currentPage === totalPages}
-                      className="px-5 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-gray-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                    >
-                      Next
-                    </button>
-                  </div>
-                )}
-              </motion.div>
-
-              {/* ── Two Symmetrical Cards: Developer Integration & Live System Stream ── */}
-              <div className="grid gap-6 md:grid-cols-2">
-                
-                {/* ── CARD A: Developer Integration Playground ── */}
-                <motion.div
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.45 }}
-                  className="card flex flex-col justify-between"
-                >
-                  <div>
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2.5">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-300">
-                          <CommandLineIcon className="h-4.5 w-4.5" />
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Integration SDK</p>
-                          <h3 className="text-lg font-bold text-white leading-tight">Code Generator</h3>
-                        </div>
-                      </div>
-                      
-                      {/* App Selector */}
-                      {(applications.length > 0 || recentApps.length > 0) && (
-                        <select
-                          value={selectedAppId}
-                          onChange={(e) => setSelectedAppId(e.target.value)}
-                          className="rounded-xl border border-white/10 bg-white/5 px-2.5 py-1.5 text-[11px] text-white outline-none focus:border-indigo-500/40 transition-colors"
-                        >
-                          {(applications.length > 0 ? applications : recentApps).map((app: any) => (
-                            <option key={app._id} value={app._id} className="bg-[#0e0e16] text-white">
-                              {app.name}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                    </div>
-
-                    {/* Language Tabs */}
-                    <div className="mt-4 flex gap-1 rounded-xl bg-white/[0.03] p-1 border border-white/5">
-                      {(['csharp', 'python', 'nodejs'] as const).map((lang) => (
-                        <button
-                          key={lang}
-                          onClick={() => setSelectedLanguage(lang)}
-                          className={`flex-1 rounded-lg py-1.5 text-center text-xs font-semibold uppercase tracking-wide transition-all ${
-                            selectedLanguage === lang
-                              ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-950/50'
-                              : 'text-slate-400 hover:text-white hover:bg-white/5'
-                          }`}
-                        >
-                          {lang === 'csharp' ? 'C#' : lang === 'nodejs' ? 'Node' : 'Python'}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Code Window */}
-                    <div className="relative mt-4 group">
-                      <pre className="overflow-x-auto rounded-xl bg-[#06060c] p-4 font-mono text-[11px] text-indigo-200 border border-white/5 h-[160px] leading-relaxed select-all scrollbar-thin">
-                        <code>{getCodeSnippet()}</code>
-                      </pre>
-                      
-                      {/* Copy Action */}
-                      <button
-                        onClick={handleCopy}
-                        className="absolute right-2 top-2 rounded-lg border border-white/10 bg-white/5 p-1.5 text-slate-400 backdrop-blur-md transition-all hover:bg-white/10 hover:text-white"
-                        title="Copy Code"
-                      >
-                        {copied ? (
-                          <CheckIcon className="h-4 w-4 text-emerald-400" />
-                        ) : (
-                          <DocumentDuplicateIcon className="h-4 w-4" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-[11px] text-slate-500">
-                    <span>SDK Version v2.4.1</span>
-                    <a
-                      href="/dashboard/developers"
-                      className="text-indigo-400 hover:text-indigo-300 font-semibold hover:underline"
-                    >
-                      Read full API docs →
-                    </a>
-                  </div>
-                </motion.div>
-
-                {/* ── CARD B: Live System Stream & API Health ── */}
-                <motion.div
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.5 }}
-                  className="card flex flex-col justify-between"
-                >
-                  <div>
-                    {/* Header */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-300">
-                          <SignalIcon className="h-4.5 w-4.5" />
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Operational NOC</p>
-                          <h3 className="text-lg font-bold text-white leading-tight">Live Activity</h3>
-                        </div>
-                      </div>
-                      
-                      {/* Pulse Status */}
-                      <div className="flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-emerald-400 animate-pulse">
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                        Connected
-                      </div>
-                    </div>
-
-                    {/* Gateway Health Indicator Row */}
-                    <div className="mt-4 grid grid-cols-3 gap-2 rounded-xl bg-white/[0.02] p-2.5 border border-white/5 text-center">
-                      {[
-                        { name: 'Auth API', ping: '14ms' },
-                        { name: 'License Svc', ping: '11ms' },
-                        { name: 'Session WS', ping: '24ms' },
-                      ].map((gw) => (
-                        <div key={gw.name} className="flex flex-col items-center">
-                          <span className="text-[9px] text-slate-500 uppercase font-semibold tracking-wider">{gw.name}</span>
-                          <span className="mt-0.5 text-xs text-emerald-400 font-mono font-bold flex items-center gap-1">
-                            <span className="h-1 w-1 rounded-full bg-emerald-400 inline-block animate-ping" />
-                            {gw.ping}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Terminal Display */}
-                    <div className="mt-4 rounded-xl bg-[#06060c] p-3 font-mono text-[10px] border border-white/5 h-[160px] flex flex-col justify-start overflow-hidden gap-1.5">
-                      {logs.map((log, i) => (
-                        <div key={i} className="flex items-start gap-1.5 leading-relaxed text-slate-300 text-left border-b border-white/[0.01] pb-1">
-                          <span className="text-slate-600 shrink-0 font-medium">{log.time}</span>
-                          <span
-                            className={`px-1 rounded text-[9px] font-extrabold uppercase shrink-0 tracking-wider ${
-                              log.type === 'GATEWAY'
-                                ? 'bg-indigo-500/10 text-indigo-300'
-                                : log.type === 'LICENSE'
-                                ? 'bg-amber-500/10 text-amber-300'
-                                : log.type === 'SECURITY'
-                                ? 'bg-red-500/10 text-red-300'
-                                : 'bg-emerald-500/10 text-emerald-300'
-                            }`}
-                          >
-                            {log.type}
-                          </span>
-                          <span className="truncate text-slate-200">
-                            {log.msg}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-[11px] text-slate-500">
-                    <span className="flex items-center gap-1">
-                      <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
-                      Audits Sync: Active
-                    </span>
-                    <a
-                      href="/dashboard/sessions"
-                      className="text-emerald-400 hover:text-emerald-300 font-semibold hover:underline"
-                    >
-                      Monitor active sessions →
-                    </a>
-                  </div>
-                </motion.div>
-                
-              </div>
-            </div>
+              )}
+            </motion.div>
 
             {/* ── Right Side Column ── */}
             <div className="space-y-6">
