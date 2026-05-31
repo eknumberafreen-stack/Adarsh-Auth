@@ -4,9 +4,24 @@ import { useEffect, useRef, useState } from 'react'
 import api from '@/lib/api'
 import { useAppStore } from '@/lib/store'
 import toast from 'react-hot-toast'
-import { PlusIcon, XMarkIcon, EllipsisVerticalIcon, DocumentDuplicateIcon } from '@heroicons/react/24/outline'
+import { motion, AnimatePresence } from 'framer-motion'
+import { 
+  PlusIcon, 
+  XMarkIcon, 
+  EllipsisVerticalIcon, 
+  DocumentDuplicateIcon,
+  KeyIcon,
+  TagIcon,
+  ClockIcon,
+  UserIcon,
+  InformationCircleIcon,
+  ArrowDownTrayIcon,
+  ClipboardDocumentCheckIcon,
+  ShieldCheckIcon,
+  TrashIcon,
+} from '@heroicons/react/24/outline'
 
-// ── 3-dot dropdown per license row ───────────────────────────────────────────
+// ── Custom Dropdown Menu per license row ───────────────────────────────────────────
 function LicenseMenu({ license, onEdit, onPause, onRevoke, onBlacklist, onDelete, onCopy }: any) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -23,45 +38,52 @@ function LicenseMenu({ license, onEdit, onPause, onRevoke, onBlacklist, onDelete
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
-        className="p-2 rounded-lg hover:bg-dark-hover text-gray-400 hover:text-white transition-colors"
+        className="p-2 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.08] text-slate-400 hover:text-white transition-all"
       >
-        <EllipsisVerticalIcon className="w-5 h-5" />
+        <EllipsisVerticalIcon className="w-4 h-4" />
       </button>
 
-      {open && (
-        <div
-          className="fixed w-44 bg-[#1a1a24] border border-dark-border rounded-xl shadow-2xl z-[9999] overflow-hidden py-1"
-          style={{
-            top: ref.current ? ref.current.getBoundingClientRect().bottom + window.scrollY + 4 : 0,
-            right: window.innerWidth - (ref.current ? ref.current.getBoundingClientRect().right : 0)
-          }}
-        >
-          <button onClick={() => { setOpen(false); onCopy(license.key) }} className="w-full text-left px-4 py-2.5 text-sm text-gray-200 hover:bg-dark-hover transition-colors flex items-center gap-2">
-            <span>📋</span> Copy Key
-          </button>
-          <button onClick={() => { setOpen(false); onEdit(license) }} className="w-full text-left px-4 py-2.5 text-sm text-gray-200 hover:bg-dark-hover transition-colors flex items-center gap-2">
-            <span>✏️</span> Edit
-          </button>
-          <button onClick={() => { setOpen(false); onPause(license) }} className="w-full text-left px-4 py-2.5 text-sm text-yellow-400 hover:bg-yellow-500/10 transition-colors flex items-center gap-2">
-            <span>{license.paused ? '▶️' : '⏸️'}</span> {license.paused ? 'Unpause' : 'Pause'}
-          </button>
-          {!license.revoked ? (
-            <button onClick={() => { setOpen(false); onRevoke(license._id) }} className="w-full text-left px-4 py-2.5 text-sm text-orange-400 hover:bg-orange-500/10 transition-colors flex items-center gap-2">
-              <span>🚫</span> Ban
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: -10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: -10 }}
+            transition={{ duration: 0.15 }}
+            className="fixed w-48 bg-[#0a0a14]/90 backdrop-blur-xl border border-white/[0.08] rounded-2xl shadow-2xl z-[9999] overflow-hidden py-1.5"
+            style={{
+              top: ref.current ? ref.current.getBoundingClientRect().bottom + window.scrollY + 6 : 0,
+              right: window.innerWidth - (ref.current ? ref.current.getBoundingClientRect().right : 0)
+            }}
+          >
+            <button onClick={() => { setOpen(false); onCopy(license.key) }} className="w-full text-left px-4 py-2.5 text-xs font-bold text-slate-200 hover:bg-indigo-500/10 hover:text-indigo-300 transition-colors flex items-center gap-2.5">
+              <span>📋</span> Copy Key
             </button>
-          ) : (
-            <button onClick={() => { setOpen(false); onRevoke(license._id, true) }} className="w-full text-left px-4 py-2.5 text-sm text-green-400 hover:bg-green-500/10 transition-colors flex items-center gap-2">
-              <span>✅</span> Unban
+            <button onClick={() => { setOpen(false); onEdit(license) }} className="w-full text-left px-4 py-2.5 text-xs font-bold text-slate-200 hover:bg-indigo-500/10 hover:text-indigo-300 transition-colors flex items-center gap-2.5">
+              <span>✏️</span> Edit License
             </button>
-          )}
-          <button onClick={() => { setOpen(false); onBlacklist(license) }} className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors flex items-center gap-2">
-            <span>⛔</span> Full Ban
-          </button>
-          <button onClick={() => { setOpen(false); onDelete(license._id) }} className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-500/10 transition-colors flex items-center gap-2">
-            <span>🗑️</span> Delete
-          </button>
-        </div>
-      )}
+            <button onClick={() => { setOpen(false); onPause(license) }} className="w-full text-left px-4 py-2.5 text-xs font-bold text-amber-400 hover:bg-amber-500/10 transition-colors flex items-center gap-2.5">
+              <span>{license.paused ? '▶️' : '⏸️'}</span> {license.paused ? 'Unpause Key' : 'Pause Key'}
+            </button>
+            {!license.revoked ? (
+              <button onClick={() => { setOpen(false); onRevoke(license._id) }} className="w-full text-left px-4 py-2.5 text-xs font-bold text-orange-400 hover:bg-orange-500/10 transition-colors flex items-center gap-2.5">
+                <span>🚫</span> Ban/Revoke
+              </button>
+            ) : (
+              <button onClick={() => { setOpen(false); onRevoke(license._id, true) }} className="w-full text-left px-4 py-2.5 text-xs font-bold text-emerald-400 hover:bg-emerald-500/10 transition-colors flex items-center gap-2.5">
+                <span>✅</span> Unban Key
+              </button>
+            )}
+            <button onClick={() => { setOpen(false); onBlacklist(license) }} className="w-full text-left px-4 py-2.5 text-xs font-bold text-red-400 hover:bg-red-500/10 transition-colors flex items-center gap-2.5">
+              <span>⛔</span> Hardware Ban
+            </button>
+            <div className="h-px bg-white/[0.05] my-1" />
+            <button onClick={() => { setOpen(false); onDelete(license._id) }} className="w-full text-left px-4 py-2.5 text-xs font-bold text-red-500 hover:bg-red-500/15 transition-colors flex items-center gap-2.5">
+              <span>🗑️</span> Delete
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
@@ -350,19 +372,27 @@ export default function Licenses() {
   }
 
   const getStatusBadge = (license: any) => {
-    if (license.blacklisted) return <span className="px-2 py-0.5 bg-red-900/40 text-red-400 text-xs rounded-full font-medium">Blacklisted</span>
-    if (license.revoked) return <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full font-medium">Revoked</span>
-    if (license.paused) return <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 text-xs rounded-full font-medium">Paused</span>
-    if (license.used) return <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full font-medium">Used</span>
-    return <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 text-xs rounded-full font-medium">Available</span>
+    if (license.blacklisted) return <span className="px-2.5 py-1 bg-red-950/40 border border-red-500/20 text-red-400 text-[10px] uppercase font-extrabold tracking-wider rounded-full flex items-center gap-1.5 w-fit"><span className="w-1.5 h-1.5 rounded-full bg-red-500" />Hardware Ban</span>
+    if (license.revoked) return <span className="px-2.5 py-1 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[10px] uppercase font-extrabold tracking-wider rounded-full flex items-center gap-1.5 w-fit"><span className="w-1.5 h-1.5 rounded-full bg-rose-500" />Banned</span>
+    if (license.paused) return <span className="px-2.5 py-1 bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-[10px] uppercase font-extrabold tracking-wider rounded-full flex items-center gap-1.5 w-fit"><span className="w-1.5 h-1.5 rounded-full bg-yellow-400" />Paused</span>
+    if (license.used) return <span className="px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] uppercase font-extrabold tracking-wider rounded-full flex items-center gap-1.5 w-fit"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />Used</span>
+    return <span className="px-2.5 py-1 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] uppercase font-extrabold tracking-wider rounded-full flex items-center gap-1.5 w-fit"><span className="w-1.5 h-1.5 rounded-full bg-blue-400" />Active</span>
   }
 
   return (
-    <div>
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Licenses</h1>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-black text-white tracking-tight">Licenses</h1>
+          <p className="text-xs text-slate-500 font-semibold tracking-wide">Manage, edit, pause, or blacklist application keys</p>
+        </div>
         <div className="flex items-center gap-3">
+          {licenses.length > 0 && (
+            <button onClick={handleDeleteAllLicenses} className="flex items-center gap-2 px-4 py-2.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 text-xs font-bold rounded-xl transition-all">
+              <TrashIcon className="w-4 h-4" /> Purge Keys
+            </button>
+          )}
           <button onClick={() => setShowGenerateModal(true)} className="btn btn-primary flex items-center gap-2 py-2.5" disabled={!selectedApp?._id}>
             <PlusIcon className="w-4 h-4" /> Generate Licenses
           </button>
@@ -370,123 +400,138 @@ export default function Licenses() {
       </div>
 
       {applications.length === 0 ? (
-        <div className="text-center py-12 text-gray-400">Create an application first</div>
+        <div className="rounded-[32px] border border-dashed border-white/5 bg-white/[0.01] px-5 py-16 text-center text-sm text-slate-500 font-semibold">
+          Create an application first to manage license credentials.
+        </div>
       ) : (
         <>
           {loading ? (
-            <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary-500" />
+            <div className="flex justify-center py-24">
+              <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-500 border-t-transparent" />
             </div>
           ) : licenses.length === 0 ? (
-            <div className="text-center py-12 text-gray-400">No licenses yet. Generate your first one!</div>
+            <div className="rounded-[32px] border border-dashed border-white/5 bg-white/[0.01] px-5 py-16 text-center text-sm text-slate-500 font-semibold">
+              No licenses generated yet. Generate your first one to issue access keys.
+            </div>
           ) : (
-            <div className="card overflow-visible p-0 relative">
+            <div className="card overflow-visible p-0 relative shadow-2xl">
               {(() => {
                 const showCreatedBy = !!(selectedApp?.team && selectedApp.team.length > 0)
                 return (
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-dark-border">
-                        <th className="px-4 py-3 text-left w-10">
-                          <input 
-                            type="checkbox"
-                            checked={licenses.length > 0 && selectedLicenseIds.length === licenses.length}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedLicenseIds(licenses.map(l => l._id))
-                              } else {
-                                setSelectedLicenseIds([])
-                              }
-                            }}
-                            className="w-4 h-4 rounded border-dark-border bg-dark-bg text-primary-600 accent-primary-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
-                          />
-                        </th>
-                        <th className="text-left px-4 py-3 text-gray-400 font-medium">License Key</th>
-                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Status</th>
-                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Expiry</th>
-                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Used By</th>
-                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Note</th>
-                        {showCreatedBy && (
-                          <th className="text-left px-4 py-3 text-gray-400 font-medium">Created By</th>
-                        )}
-                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Created</th>
-                        <th className="px-4 py-3" />
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {licenses.map((license: any) => (
-                        <tr key={license._id} className={`border-b border-dark-border/50 hover:bg-dark-hover/30 transition-colors ${selectedLicenseIds.includes(license._id) ? 'bg-primary-950/10' : ''}`}>
-                          <td className="px-4 py-3 w-10">
+                  <div className="overflow-x-auto w-full scrollbar-thin">
+                    <table className="w-full text-sm table-modern text-left">
+                      <thead>
+                        <tr className="border-b border-white/[0.05]">
+                          <th className="px-5 py-4 w-10">
                             <input 
                               type="checkbox"
-                              checked={selectedLicenseIds.includes(license._id)}
+                              checked={licenses.length > 0 && selectedLicenseIds.length === licenses.length}
                               onChange={(e) => {
                                 if (e.target.checked) {
-                                  setSelectedLicenseIds([...selectedLicenseIds, license._id])
+                                  setSelectedLicenseIds(licenses.map(l => l._id))
                                 } else {
-                                  setSelectedLicenseIds(selectedLicenseIds.filter(id => id !== license._id))
+                                  setSelectedLicenseIds([])
                                 }
                               }}
-                              className="w-4 h-4 rounded border-dark-border bg-dark-bg text-primary-600 accent-primary-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                              className="w-4 h-4 rounded border-white/10 bg-black/40 text-indigo-600 accent-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
                             />
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-2">
-                              <code className="font-mono text-xs text-gray-300 truncate max-w-[180px]">{license.key}</code>
-                              <button onClick={() => copyKey(license.key)} className="text-gray-500 hover:text-gray-300 flex-shrink-0">
-                                <DocumentDuplicateIcon className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3">{getStatusBadge(license)}</td>
-                          <td className="px-4 py-3 text-gray-400 text-xs">
-                            {license.expiryUnit === 'lifetime' ? 'Lifetime' : `${license.expiryDuration} ${license.expiryUnit}`}
-                          </td>
-                          <td className="px-4 py-3 text-gray-400 text-xs">
-                            {license.usedBy?.username || '—'}
-                          </td>
-                          <td className="px-4 py-3 text-gray-400 text-xs">{license.note || '—'}</td>
+                          </th>
+                          <th className="px-5 py-4 text-slate-400 font-bold uppercase tracking-wider text-[10px]">License Key</th>
+                          <th className="px-5 py-4 text-slate-400 font-bold uppercase tracking-wider text-[10px]">Status</th>
+                          <th className="px-5 py-4 text-slate-400 font-bold uppercase tracking-wider text-[10px]">Expiry</th>
+                          <th className="px-5 py-4 text-slate-400 font-bold uppercase tracking-wider text-[10px]">Used By</th>
+                          <th className="px-5 py-4 text-slate-400 font-bold uppercase tracking-wider text-[10px]">Note</th>
                           {showCreatedBy && (
-                            <td className="px-4 py-3">
-                              <span className="px-2 py-0.5 rounded-full bg-white/5 text-gray-300 text-[11px] border border-white/10">
-                                {getCreatorDisplay(license.createdBy, selectedApp?.userId)}
-                              </span>
-                            </td>
+                            <th className="px-5 py-4 text-slate-400 font-bold uppercase tracking-wider text-[10px]">Created By</th>
                           )}
-                          <td className="px-4 py-3 text-gray-400 text-xs">
-                            {formatToDDMMYYYY(license.createdAt, 'N/A', true)}
-                          </td>
-                          <td className="px-4 py-3">
-                            <LicenseMenu
-                              license={license}
-                              onCopy={copyKey}
-                              onEdit={openEditModal}
-                              onPause={pauseLicense}
-                              onRevoke={revokeLicense}
-                              onBlacklist={openBlacklistModal}
-                              onDelete={deleteLicense}
-                            />
-                          </td>
+                          <th className="px-5 py-4 text-slate-400 font-bold uppercase tracking-wider text-[10px]">Created</th>
+                          <th className="px-5 py-4 w-12" />
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {licenses.map((license: any) => (
+                          <tr key={license._id} className={`border-b border-white/[0.03] hover:bg-white/[0.01] transition-colors ${selectedLicenseIds.includes(license._id) ? 'bg-indigo-500/[0.04]' : ''}`}>
+                            <td className="px-5 py-4 w-10">
+                              <input 
+                                type="checkbox"
+                                checked={selectedLicenseIds.includes(license._id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedLicenseIds([...selectedLicenseIds, license._id])
+                                  } else {
+                                    setSelectedLicenseIds(selectedLicenseIds.filter(id => id !== license._id))
+                                  }
+                                }}
+                                className="w-4 h-4 rounded border-white/10 bg-black/40 text-indigo-600 accent-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                              />
+                            </td>
+                            <td className="px-5 py-4">
+                              <div className="flex items-center gap-2">
+                                <code className="font-mono text-xs font-bold text-indigo-300 drop-shadow-[0_0_6px_rgba(99,102,241,0.15)] bg-indigo-500/5 px-2 py-1 border border-indigo-500/10 rounded-lg max-w-[200px] truncate">{license.key}</code>
+                                <button onClick={() => copyKey(license.key)} className="text-slate-500 hover:text-white transition-colors flex-shrink-0">
+                                  <DocumentDuplicateIcon className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
+                            <td className="px-5 py-4">{getStatusBadge(license)}</td>
+                            <td className="px-5 py-4 text-slate-300 text-xs font-bold">
+                              {license.expiryUnit === 'lifetime' ? (
+                                <span className="text-gradient-purple uppercase tracking-wider text-[10px]">Lifetime</span>
+                              ) : (
+                                `${license.expiryDuration} ${license.expiryUnit}`
+                              )}
+                            </td>
+                            <td className="px-5 py-4 text-slate-300 text-xs font-semibold">
+                              {license.usedBy?.username ? (
+                                <span className="flex items-center gap-1 text-slate-200">
+                                  <UserIcon className="w-3.5 h-3.5 text-slate-500" />
+                                  {license.usedBy.username}
+                                </span>
+                              ) : '—'}
+                            </td>
+                            <td className="px-5 py-4 text-slate-400 text-xs truncate max-w-[140px]">{license.note || '—'}</td>
+                            {showCreatedBy && (
+                              <td className="px-5 py-4">
+                                <span className="px-2.5 py-0.5 rounded-full bg-white/[0.04] text-slate-300 text-[10px] font-bold border border-white/[0.05]">
+                                  {getCreatorDisplay(license.createdBy, selectedApp?.userId)}
+                                </span>
+                              </td>
+                            )}
+                            <td className="px-5 py-4 text-slate-400 text-xs font-medium">
+                              {formatToDDMMYYYY(license.createdAt, 'N/A', true)}
+                            </td>
+                            <td className="px-5 py-4">
+                              <LicenseMenu
+                                license={license}
+                                onCopy={copyKey}
+                                onEdit={openEditModal}
+                                onPause={pauseLicense}
+                                onRevoke={revokeLicense}
+                                onBlacklist={openBlacklistModal}
+                                onDelete={deleteLicense}
+                              />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 )
               })()}
 
               {/* Bulk Controls Panel */}
               {selectedLicenseIds.length > 0 && (
-                <div className="fixed bottom-16 left-1/2 -translate-x-1/2 bg-[#101018]/95 backdrop-blur-xl border border-primary-500/30 px-6 py-3.5 rounded-2xl shadow-2xl flex items-center gap-4 z-[999]">
-                  <div className="text-sm font-semibold text-gray-300">
-                    Selected: <span className="text-primary-400 font-mono">{selectedLicenseIds.length}</span> keys
+                <div className="fixed bottom-16 left-1/2 -translate-x-1/2 bg-[#08080f]/95 backdrop-blur-2xl border border-indigo-500/25 px-6 py-4 rounded-[24px] shadow-2xl shadow-black/80 flex items-center gap-5 z-[999] animate-in slide-in-from-bottom duration-300">
+                  <div className="text-xs font-extrabold uppercase tracking-wider text-slate-300">
+                    Selected: <span className="text-indigo-400 font-mono text-sm font-black">{selectedLicenseIds.length}</span> keys
                   </div>
-                  <div className="h-6 w-px bg-dark-border" />
+                  <div className="h-6 w-px bg-white/10" />
                   <div className="flex items-center gap-2">
                     <button 
                       onClick={handleBulkCopyKeys}
                       className="px-4 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-indigo-400 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5"
                     >
-                      📋 Copy Keys
+                      📋 Copy
                     </button>
                     <button 
                       onClick={() => handleBulkAction('revoke')}
@@ -498,7 +543,7 @@ export default function Licenses() {
                       onClick={() => handleBulkAction('unrevoke')}
                       className="px-4 py-2 bg-green-500/10 hover:bg-green-500/20 border border-green-500/20 text-green-400 text-xs font-bold rounded-xl transition-all"
                     >
-                      ✅ Unrevoke
+                      ✅ Unban
                     </button>
                     <button 
                       onClick={() => handleBulkAction('pause')}
@@ -519,10 +564,10 @@ export default function Licenses() {
                       🗑️ Delete
                     </button>
                   </div>
-                  <div className="h-6 w-px bg-dark-border" />
+                  <div className="h-6 w-px bg-white/10" />
                   <button 
                     onClick={() => setSelectedLicenseIds([])}
-                    className="text-xs font-bold text-gray-500 hover:text-gray-300 transition-colors"
+                    className="text-xs font-bold text-slate-400 hover:text-white transition-colors"
                   >
                     Cancel
                   </button>
@@ -531,17 +576,17 @@ export default function Licenses() {
 
               {/* Pagination Controls */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-between px-4 py-3 border-t border-dark-border">
+                <div className="flex items-center justify-between px-6 py-4 border-t border-white/[0.04] bg-black/10">
                   <div className="flex items-center gap-2">
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-slate-500 font-semibold">
                       Showing <span className="text-white">{(currentPage - 1) * limit + 1}</span> to <span className="text-white">{Math.min(currentPage * limit, totalLicenses)}</span> of <span className="text-white">{totalLicenses}</span> keys
                     </p>
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1.5">
                     <button
                       onClick={() => handlePageChange(currentPage - 1)}
                       disabled={currentPage === 1}
-                      className="px-3 py-1.5 rounded-lg bg-dark-bg border border-dark-border text-xs font-medium hover:bg-dark-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="px-4 py-2 rounded-xl bg-white/[0.02] border border-white/[0.05] text-xs font-bold text-slate-300 hover:bg-white/[0.05] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                     >
                       Previous
                     </button>
@@ -552,24 +597,24 @@ export default function Licenses() {
                           <button
                             key={page}
                             onClick={() => handlePageChange(page)}
-                            className={`w-8 h-8 rounded-lg text-xs font-medium transition-colors ${
+                            className={`w-9 h-9 rounded-xl text-xs font-black transition-all ${
                               currentPage === page
-                                ? 'bg-primary-600 text-white shadow-lg shadow-primary-900/20'
-                                : 'bg-dark-bg border border-dark-border text-gray-400 hover:bg-dark-hover'
+                                ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/20'
+                                : 'bg-white/[0.02] border border-white/[0.05] text-slate-400 hover:bg-white/[0.05] hover:text-white'
                             }`}
                           >
                             {page}
                           </button>
                         );
                       } else if (page === currentPage - 2 || page === currentPage + 2) {
-                        return <span key={page} className="px-1 text-gray-600">...</span>;
+                        return <span key={page} className="px-1 text-slate-600 font-bold">...</span>;
                       }
                       return null;
                     })}
                     <button
                       onClick={() => handlePageChange(currentPage + 1)}
                       disabled={currentPage === totalPages}
-                      className="px-3 py-1.5 rounded-lg bg-dark-bg border border-dark-border text-xs font-medium hover:bg-dark-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="px-4 py-2 rounded-xl bg-white/[0.02] border border-white/[0.05] text-xs font-bold text-slate-300 hover:bg-white/[0.05] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                     >
                       Next
                     </button>
@@ -584,202 +629,222 @@ export default function Licenses() {
       {/* ── Generate Modal ────────────────────────────────────────────── */}
       {showGenerateModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
-          <div className="modal-card max-w-md w-full">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">Generate Licenses</h2>
-              <button onClick={() => setShowGenerateModal(false)} className="text-gray-400 hover:text-white"><XMarkIcon className="w-5 h-5" /></button>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.96, y: 15 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="modal-card max-w-md w-full p-6 md:p-8"
+          >
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-xl font-black text-white tracking-tight">Generate Licenses</h2>
+                <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-wide">Key Generation Panel</p>
+              </div>
+              <button onClick={() => setShowGenerateModal(false)} className="text-slate-400 hover:text-white p-2 bg-white/[0.02] border border-white/[0.05] rounded-xl transition-all"><XMarkIcon className="w-5 h-5" /></button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2">Amount <span className="text-red-400">*</span></label>
+                <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-400 mb-2">Amount <span className="text-red-400">*</span></label>
                 <input type="number" value={form.count} onChange={(e) => setForm({ ...form, count: parseInt(e.target.value) })} className="input" min="1" max="100" />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">License Mask</label>
-                <input type="text" value={form.mask} onChange={(e) => setForm({ ...form, mask: e.target.value })} className="input" placeholder="Enter mask pattern" />
-                <p className="text-xs text-gray-500 mt-1">Use # for random characters. Leave empty for default format.</p>
-                <div className="flex gap-4 mt-2">
-                  <label className="flex items-center gap-2 text-sm cursor-pointer">
-                    <input type="radio" checked={!form.uppercase} onChange={() => setForm({ ...form, uppercase: false })} /> Lowercase
+                <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-400 mb-2">License Mask</label>
+                <input type="text" value={form.mask} onChange={(e) => setForm({ ...form, mask: e.target.value })} className="input" placeholder="e.g. ADARSH-####-####" />
+                <p className="text-[10px] text-slate-500 font-semibold mt-1.5 flex items-center gap-1"><InformationCircleIcon className="w-3.5 h-3.5" /> Use # for random characters. Leave empty for default format.</p>
+                <div className="flex gap-4 mt-3">
+                  <label className="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer">
+                    <input type="radio" checked={!form.uppercase} onChange={() => setForm({ ...form, uppercase: false })} className="accent-indigo-500" /> Lowercase
                   </label>
-                  <label className="flex items-center gap-2 text-sm cursor-pointer">
-                    <input type="radio" checked={form.uppercase} onChange={() => setForm({ ...form, uppercase: true })} /> Uppercase
+                  <label className="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer">
+                    <input type="radio" checked={form.uppercase} onChange={() => setForm({ ...form, uppercase: true })} className="accent-indigo-500" /> Uppercase
                   </label>
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">Subscription Level</label>
+                <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-400 mb-2">Subscription Level</label>
                 <select value={form.subscriptionLevel} onChange={(e) => setForm({ ...form, subscriptionLevel: parseInt(e.target.value) })} className="input">
-                  {[1,2,3,4,5].map(n => <option key={n} value={n}>{n} {n === 1 ? '(default)' : ''}</option>)}
+                  {[1,2,3,4,5].map(n => <option key={n} value={n} className="bg-[#0b0b14]">{n} {n === 1 ? '(default)' : ''}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">Note</label>
-                <input type="text" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} className="input" placeholder="Optional note" />
+                <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-400 mb-2">Note</label>
+                <input type="text" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} className="input" placeholder="e.g. Summer Promotion" />
               </div>
               <div className="flex gap-4">
                 <div className="flex-1">
-                  <label className="block text-sm font-medium mb-2">Expiry Unit <span className="text-red-400">*</span></label>
+                  <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-400 mb-2">Expiry Unit <span className="text-red-400">*</span></label>
                   <select value={form.expiryUnit} onChange={(e) => setForm({ ...form, expiryUnit: e.target.value })} className="input">
-                    <option value="hours">Hours</option>
-                    <option value="days">Days</option>
-                    <option value="weeks">Weeks</option>
-                    <option value="months">Months</option>
-                    <option value="lifetime">Lifetime</option>
+                    <option value="hours" className="bg-[#0b0b14]">Hours</option>
+                    <option value="days" className="bg-[#0b0b14]">Days</option>
+                    <option value="weeks" className="bg-[#0b0b14]">Weeks</option>
+                    <option value="months" className="bg-[#0b0b14]">Months</option>
+                    <option value="lifetime" className="bg-[#0b0b14]">Lifetime</option>
                   </select>
                 </div>
                 {form.expiryUnit !== 'lifetime' && (
                   <div className="flex-1">
-                    <label className="block text-sm font-medium mb-2">Duration <span className="text-red-400">*</span></label>
+                    <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-400 mb-2">Duration <span className="text-red-400">*</span></label>
                     <input type="number" value={form.expiryDuration} onChange={(e) => setForm({ ...form, expiryDuration: parseInt(e.target.value) })} className="input" min="1" />
                   </div>
                 )}
               </div>
-              <div className="flex gap-2 pt-2">
+              <div className="flex gap-3 pt-4">
                 <button onClick={() => setShowGenerateModal(false)} className="btn btn-secondary flex-1">Cancel</button>
                 <button onClick={generateLicenses} className="btn btn-primary flex-1">Generate</button>
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
 
       {/* ── Edit Modal ────────────────────────────────────────────────── */}
       {showEditModal && editTarget && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
-          <div className="modal-card max-w-md w-full">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">Edit License</h2>
-              <button onClick={() => setShowEditModal(false)} className="text-gray-400 hover:text-white"><XMarkIcon className="w-5 h-5" /></button>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.96, y: 15 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="modal-card max-w-md w-full p-6 md:p-8"
+          >
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-xl font-black text-white tracking-tight">Edit License</h2>
+                <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-wide font-mono text-xs truncate max-w-[240px]">{editTarget.key}</p>
+              </div>
+              <button onClick={() => setShowEditModal(false)} className="text-slate-400 hover:text-white p-2 bg-white/[0.02] border border-white/[0.05] rounded-xl transition-all"><XMarkIcon className="w-5 h-5" /></button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2">Note</label>
-                <input type="text" value={editData.note} onChange={(e) => setEditData({ ...editData, note: e.target.value })} className="input" placeholder="Optional note" />
+                <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-400 mb-2">Note</label>
+                <input type="text" value={editData.note} onChange={(e) => setEditData({ ...editData, note: e.target.value })} className="input" placeholder="Enter note" />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">Subscription Level</label>
+                <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-400 mb-2">Subscription Level</label>
                 <select value={editData.subscriptionLevel} onChange={(e) => setEditData({ ...editData, subscriptionLevel: parseInt(e.target.value) })} className="input">
-                  {[1,2,3,4,5].map(n => <option key={n} value={n}>{n}</option>)}
+                  {[1,2,3,4,5].map(n => <option key={n} value={n} className="bg-[#0b0b14]">{n}</option>)}
                 </select>
               </div>
               <div className="flex gap-4">
                 <div className="flex-1">
-                  <label className="block text-sm font-medium mb-2">Expiry Unit</label>
+                  <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-400 mb-2">Expiry Unit</label>
                   <select value={editData.expiryUnit} onChange={(e) => setEditData({ ...editData, expiryUnit: e.target.value })} className="input">
-                    <option value="hours">Hours</option>
-                    <option value="days">Days</option>
-                    <option value="weeks">Weeks</option>
-                    <option value="months">Months</option>
-                    <option value="lifetime">Lifetime</option>
+                    <option value="hours" className="bg-[#0b0b14]">Hours</option>
+                    <option value="days" className="bg-[#0b0b14]">Days</option>
+                    <option value="weeks" className="bg-[#0b0b14]">Weeks</option>
+                    <option value="months" className="bg-[#0b0b14]">Months</option>
+                    <option value="lifetime" className="bg-[#0b0b14]">Lifetime</option>
                   </select>
                 </div>
                 {editData.expiryUnit !== 'lifetime' && (
                   <div className="flex-1">
-                    <label className="block text-sm font-medium mb-2">Duration</label>
+                    <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-400 mb-2">Duration</label>
                     <input type="number" value={editData.expiryDuration} onChange={(e) => setEditData({ ...editData, expiryDuration: parseInt(e.target.value) })} className="input" min="1" />
                   </div>
                 )}
               </div>
-              <div className="flex gap-2 pt-2">
+              <div className="flex gap-3 pt-4">
                 <button onClick={() => setShowEditModal(false)} className="btn btn-secondary flex-1">Cancel</button>
                 <button onClick={saveEdit} className="btn btn-primary flex-1">Save</button>
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
 
       {/* ── Blacklist Modal ───────────────────────────────────────────── */}
       {showBlacklistModal && blacklistTarget && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
-          <div className="w-full max-w-md bg-[#13131a] border border-dark-border rounded-2xl p-6 shadow-2xl">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.96, y: 15 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="w-full max-w-md bg-[#0a0a14]/90 backdrop-blur-xl border border-red-500/20 rounded-3xl p-6 md:p-8 shadow-2xl shadow-red-950/20"
+          >
             <div className="flex justify-between items-start mb-5">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <div className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0">
-                    <span className="text-white text-xs font-bold">—</span>
+                  <div className="w-6 h-6 rounded-xl bg-red-500/20 border border-red-500/40 flex items-center justify-center flex-shrink-0">
+                    <span className="text-red-400 text-xs font-black">—</span>
                   </div>
-                  <h2 className="text-xl font-bold text-red-400">Full Ban</h2>
+                  <h2 className="text-lg font-black text-red-400 uppercase tracking-wide">Hardware Ban</h2>
                 </div>
-                <p className="text-sm text-gray-400 ml-8 font-mono text-xs">{blacklistTarget.key.slice(0, 20)}...</p>
+                <p className="text-xs text-slate-400 font-mono mt-2 bg-red-500/5 border border-red-500/10 px-3 py-1.5 rounded-xl truncate max-w-[280px]">{blacklistTarget.key}</p>
               </div>
-              <button onClick={() => setShowBlacklistModal(false)} className="text-gray-500 hover:text-white">
+              <button onClick={() => setShowBlacklistModal(false)} className="text-slate-500 hover:text-white transition-colors p-1.5 bg-white/[0.02] border border-white/[0.05] rounded-xl">
                 <XMarkIcon className="w-5 h-5" />
               </button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-semibold mb-2">
-                  Ban Reason <span className="text-gray-500 font-normal">(internal)</span>
+                <label className="block text-xs font-extrabold uppercase tracking-wide text-slate-400 mb-2">
+                  Ban Reason <span className="text-slate-500 font-normal">(internal log)</span>
                 </label>
                 <input
                   type="text"
                   value={blacklistReason}
                   onChange={(e) => setBlacklistReason(e.target.value)}
-                  className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-xl text-white placeholder-gray-600 text-sm focus:outline-none focus:border-red-500/50 transition-all"
-                  placeholder="Reason for banning..."
+                  className="w-full px-4 py-3 bg-black/40 border border-white/[0.06] rounded-xl text-white placeholder-slate-600 text-xs focus:outline-none focus:border-red-500/40 transition-all font-bold"
+                  placeholder="e.g. Suspicious debug attempts, leaks..."
                 />
               </div>
-              <div className="flex items-start gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
-                <span className="text-yellow-400 text-sm flex-shrink-0">⚠️</span>
-                <p className="text-xs text-red-300 leading-relaxed">
-                  Ban this license. It can never be used again, even after PC reset.
+              <div className="flex items-start gap-2.5 px-4 py-3.5 bg-red-500/5 border border-red-500/10 rounded-2xl">
+                <span className="text-red-400 text-sm flex-shrink-0">⚠️</span>
+                <p className="text-xs text-red-300 leading-relaxed font-semibold">
+                  This action permanently bans this license. Any client device associated with this hardware blueprint will be locked out immediately.
                 </p>
               </div>
-              <div className="flex gap-3 pt-1">
-                <button onClick={() => setShowBlacklistModal(false)} className="flex-1 py-3 px-4 bg-dark-bg hover:bg-dark-hover border border-dark-border rounded-xl text-sm font-semibold text-gray-300 transition-all">
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => setShowBlacklistModal(false)} className="flex-1 py-3 px-4 bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.05] rounded-2xl text-xs font-bold text-slate-300 transition-all">
                   Cancel
                 </button>
-                <button onClick={executeBlacklist} className="flex-1 py-3 px-4 bg-red-600 hover:bg-red-500 rounded-xl text-sm font-semibold text-white transition-all flex items-center justify-center gap-2">
-                  <div className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center">
-                    <span className="text-xs font-bold">—</span>
-                  </div>
-                  Ban License
+                <button onClick={executeBlacklist} className="flex-1 py-3 px-4 bg-red-600 hover:bg-red-500 rounded-2xl text-xs font-bold text-white transition-all flex items-center justify-center gap-2 shadow-lg shadow-red-950/40">
+                  Hardware Ban License
                 </button>
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
+
       {/* ── Custom Confirmation Modal ────────────────────────────────────── */}
       {confirmModal.show && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-200">
-          <div className="w-full max-w-sm bg-[#13131a] border border-white/5 rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-[9999]">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-sm bg-[#08080e]/95 border border-white/[0.05] rounded-[28px] p-6 shadow-2xl shadow-black/80"
+          >
             <div className="flex flex-col items-center text-center">
-              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 ${
-                confirmModal.type === 'danger' ? 'bg-red-500/20 text-red-400' :
-                confirmModal.type === 'warning' ? 'bg-yellow-500/20 text-yellow-400' :
-                'bg-blue-500/20 text-blue-400'
+              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 border ${
+                confirmModal.type === 'danger' ? 'bg-red-500/10 border-red-500/20 text-red-400' :
+                confirmModal.type === 'warning' ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400' :
+                'bg-indigo-500/10 border-indigo-500/20 text-indigo-400'
               }`}>
                 {confirmModal.type === 'danger' ? '🗑️' : confirmModal.type === 'warning' ? '⚠️' : '🔄'}
               </div>
               
-              <h3 className="text-xl font-bold text-white mb-2">{confirmModal.title}</h3>
-              <p className="text-sm text-gray-400 mb-8 leading-relaxed">
+              <h3 className="text-lg font-black text-white mb-2 tracking-tight">{confirmModal.title}</h3>
+              <p className="text-xs text-slate-400 mb-8 font-semibold leading-relaxed">
                 {confirmModal.message}
               </p>
 
               <div className="flex gap-3 w-full">
                 <button
                   onClick={() => setConfirmModal(prev => ({ ...prev, show: false }))}
-                  className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-gray-300 rounded-2xl text-sm font-bold transition-all"
+                  className="flex-1 px-4 py-3 bg-white/[0.02] hover:bg-white/[0.05] text-slate-300 rounded-2xl text-xs font-bold transition-all border border-white/[0.05]"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={confirmModal.onConfirm}
-                  className={`flex-1 px-4 py-3 rounded-2xl text-sm font-bold text-white transition-all shadow-lg ${
-                    confirmModal.type === 'danger' ? 'bg-red-600 hover:bg-red-500 shadow-red-900/20' :
-                    confirmModal.type === 'warning' ? 'bg-yellow-600 hover:bg-yellow-500 shadow-yellow-900/20' :
-                    'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-900/20'
+                  className={`flex-1 px-4 py-3 rounded-2xl text-xs font-bold text-white transition-all shadow-lg ${
+                    confirmModal.type === 'danger' ? 'bg-red-600 hover:bg-red-500 shadow-red-950/40' :
+                    confirmModal.type === 'warning' ? 'bg-yellow-600 hover:bg-yellow-500 shadow-yellow-950/40' :
+                    'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-950/40'
                   }`}
                 >
                   {confirmModal.confirmText}
                 </button>
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
     </div>

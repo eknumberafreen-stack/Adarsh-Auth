@@ -186,7 +186,7 @@
   }
 
   .table-modern td {
-    @apply px-6 py-4.5 align-middle text-slate-300 border-b border-white/[0.04] transition-all;
+    @apply px-6 py-4 align-middle text-slate-300 border-b border-white/[0.04] transition-all;
   }
 
   .table-modern tbody tr {
