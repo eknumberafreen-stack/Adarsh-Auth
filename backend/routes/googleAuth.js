@@ -11,31 +11,43 @@ const SubscriptionPlan = require('../models/SubscriptionPlan');
 
 const router = express.Router();
 
+// Clean and sanitize copy-pasted environment variables (removes quotes, whitespaces, and newlines)
+const cleanEnvVar = (str) => {
+  if (!str) return '';
+  let cleaned = str.trim();
+  // Strip enclosing double or single quotes if present
+  if ((cleaned.startsWith('"') && cleaned.endsWith('"')) || 
+      (cleaned.startsWith("'") && cleaned.endsWith("'"))) {
+    cleaned = cleaned.substring(1, cleaned.length - 1);
+  }
+  return cleaned.trim();
+};
+
+const googleClientID = cleanEnvVar(process.env.GOOGLE_CLIENT_ID);
+const googleClientSecret = cleanEnvVar(process.env.GOOGLE_CLIENT_SECRET);
+const googleCallbackURL = cleanEnvVar(process.env.GOOGLE_CALLBACK_URL);
+
 // Safe logger helper for environment variables
 const logOauthConfig = () => {
-  const clientID = process.env.GOOGLE_CLIENT_ID || '';
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET || '';
-  const callbackURL = process.env.GOOGLE_CALLBACK_URL || '';
-
   const redact = (str) => {
     if (!str) return '(not set)';
     if (str.length <= 10) return '***';
     return `${str.substring(0, 5)}...${str.substring(str.length - 5)}`;
   };
 
-  console.log('[Google Auth] Initializing Google strategy with config:');
-  console.log('  - Client ID:    ', redact(clientID));
-  console.log('  - Client Secret:', redact(clientSecret));
-  console.log('  - Callback URL: ', callbackURL || '(not set)');
+  console.log('[Google Auth] Initializing Google strategy with CLEANED config:');
+  console.log('  - Client ID:    ', redact(googleClientID), `(len: ${googleClientID.length}, raw len: ${(process.env.GOOGLE_CLIENT_ID || '').length})`);
+  console.log('  - Client Secret:', redact(googleClientSecret), `(len: ${googleClientSecret.length}, raw len: ${(process.env.GOOGLE_CLIENT_SECRET || '').length})`);
+  console.log('  - Callback URL: ', googleCallbackURL || '(not set)', `(len: ${googleCallbackURL.length}, raw len: ${(process.env.GOOGLE_CALLBACK_URL || '').length})`);
 };
 
 logOauthConfig();
 
 // ── Configure Passport Google Strategy ───────────────────────
 passport.use(new GoogleStrategy({
-  clientID:     process.env.GOOGLE_CLIENT_ID,
-  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL:  process.env.GOOGLE_CALLBACK_URL,
+  clientID:     googleClientID,
+  clientSecret: googleClientSecret,
+  callbackURL:  googleCallbackURL,
   proxy:        true,
 }, async (accessToken, refreshToken, profile, done) => {
   try {
@@ -109,6 +121,20 @@ router.get('/', passport.authenticate('google', {
 // Step 2: Google callback (with custom callback for robust error handling)
 router.get('/callback', async (req, res, next) => {
   const code = req.query.code;
+  
+  console.log('[Google Callback Debug] Incoming Callback Request:');
+  console.log('  - req.url:           ', req.url);
+  console.log('  - req.originalUrl:   ', req.originalUrl);
+  console.log('  - X-Forwarded-Proto: ', req.headers['x-forwarded-proto']);
+  console.log('  - X-Forwarded-Host:  ', req.headers['x-forwarded-host']);
+  console.log('  - Code present:      ', !!code);
+  if (code) {
+    console.log('  - Code length:       ', code.length);
+    console.log('  - Code start/end:    ', `${code.substring(0, 10)}...${code.substring(code.length - 10)}`);
+    console.log('  - Code has spaces:   ', /\s/.test(code));
+    console.log('  - Code has newlines: ', /[\r\n]/.test(code));
+  }
+
   if (!code) {
     console.warn('⚠️ [Google Callback] No code parameter present in callback request.');
     return res.redirect(`${FRONTEND_URL}/login?error=google_failed`);
