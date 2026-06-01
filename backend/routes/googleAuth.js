@@ -11,6 +11,26 @@ const SubscriptionPlan = require('../models/SubscriptionPlan');
 
 const router = express.Router();
 
+// Safe logger helper for environment variables
+const logOauthConfig = () => {
+  const clientID = process.env.GOOGLE_CLIENT_ID || '';
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET || '';
+  const callbackURL = process.env.GOOGLE_CALLBACK_URL || '';
+
+  const redact = (str) => {
+    if (!str) return '(not set)';
+    if (str.length <= 10) return '***';
+    return `${str.substring(0, 5)}...${str.substring(str.length - 5)}`;
+  };
+
+  console.log('[Google Auth] Initializing Google strategy with config:');
+  console.log('  - Client ID:    ', redact(clientID));
+  console.log('  - Client Secret:', redact(clientSecret));
+  console.log('  - Callback URL: ', callbackURL || '(not set)');
+};
+
+logOauthConfig();
+
 // ── Configure Passport Google Strategy ───────────────────────
 passport.use(new GoogleStrategy({
   clientID:     process.env.GOOGLE_CLIENT_ID,
@@ -86,13 +106,25 @@ router.get('/', passport.authenticate('google', {
   session: false,
 }));
 
-// Step 2: Google callback
-router.get('/callback',
-  passport.authenticate('google', { session: false, failureRedirect: `${FRONTEND_URL}/login?error=google_failed` }),
-  async (req, res) => {
-    try {
-      const user = req.user;
+// Step 2: Google callback (with custom callback for robust error handling)
+router.get('/callback', (req, res, next) => {
+  passport.authenticate('google', { session: false }, async (err, user, info) => {
+    if (err) {
+      console.error('❌ [Google Callback Error] Authentication failed during token exchange:', err.message || err);
+      if (err.stack) {
+        console.error(err.stack);
+      }
+      const errorMsg = err.message || 'unknown_error';
+      // Redirect back to login with a descriptive error query parameter
+      return res.redirect(`${FRONTEND_URL}/login?error=google_auth_failed&details=${encodeURIComponent(errorMsg)}`);
+    }
 
+    if (!user) {
+      console.warn('⚠️ [Google Callback Warning] No user was returned by Google strategy.');
+      return res.redirect(`${FRONTEND_URL}/login?error=google_failed`);
+    }
+
+    try {
       const accessToken = jwt.sign(
         { userId: user._id, email: user.email },
         process.env.JWT_ACCESS_SECRET,
@@ -108,11 +140,11 @@ router.get('/callback',
       res.redirect(
         `${FRONTEND_URL}/auth/google/success?accessToken=${accessToken}&refreshToken=${refreshToken}&userId=${user._id}&email=${encodeURIComponent(user.email)}`
       );
-    } catch (err) {
-      console.error('Google Callback Error:', err);
+    } catch (tokenErr) {
+      console.error('❌ [Google Callback JWT Error] Failed to sign tokens:', tokenErr);
       res.redirect(`${FRONTEND_URL}/login?error=google_failed`);
     }
-  }
-);
+  })(req, res, next);
+});
 
 module.exports = router;

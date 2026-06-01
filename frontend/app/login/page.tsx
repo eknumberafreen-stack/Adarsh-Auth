@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { EyeIcon, EyeSlashIcon, FingerPrintIcon, KeyIcon, LockClosedIcon, ShieldCheckIcon } from '@heroicons/react/24/outline'
@@ -31,6 +31,7 @@ function slowHash(salt: string, nonce: string): number {
 
 export default function Login() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { setAuth, accessToken, refreshToken, hasHydrated } = useAuthStore()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -83,6 +84,24 @@ export default function Login() {
       active = false
     }
   }, [accessToken, refreshToken, hasHydrated, router])
+
+  useEffect(() => {
+    const error = searchParams.get('error')
+    const details = searchParams.get('details')
+    if (error) {
+      if (error === 'google_failed') {
+        toast.error('Google authentication failed. Please try again.')
+      } else if (error === 'google_auth_failed') {
+        toast.error(`Google Auth Error: ${details || 'Authentication failed'}`)
+      } else {
+        toast.error(error)
+      }
+      
+      // Clean up the URL parameters so the error toast doesn't re-trigger on reload/refresh
+      const newUrl = window.location.pathname
+      window.history.replaceState({}, '', newUrl)
+    }
+  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
