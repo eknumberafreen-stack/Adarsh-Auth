@@ -107,7 +107,33 @@ router.get('/', passport.authenticate('google', {
 }));
 
 // Step 2: Google callback (with custom callback for robust error handling)
-router.get('/callback', (req, res, next) => {
+router.get('/callback', async (req, res, next) => {
+  const code = req.query.code;
+  if (!code) {
+    console.warn('⚠️ [Google Callback] No code parameter present in callback request.');
+    return res.redirect(`${FRONTEND_URL}/login?error=google_failed`);
+  }
+
+  try {
+    const { getRedisClient } = require('../config/redis');
+    const redis = getRedisClient();
+    const codeKey = `oauth:code:${code}`;
+
+    // 1. Check if this authorization code has already been successfully exchanged
+    const cachedResult = await redis.get(codeKey);
+    if (cachedResult) {
+      console.log('🔄 [Google Callback] Duplicate request detected. Serving cached session tokens from Redis.');
+      const data = JSON.parse(cachedResult);
+      return res.redirect(
+        `${FRONTEND_URL}/auth/google/success?accessToken=${data.accessToken}&refreshToken=${data.refreshToken}&userId=${data.userId}&email=${encodeURIComponent(data.email)}`
+      );
+    }
+  } catch (redisErr) {
+    // Fail open if Redis is down/disconnected during lookup
+    console.error('⚠️ [Google Callback] Redis lookup failed, continuing with regular passport exchange:', redisErr.message);
+  }
+
+  // 2. Perform the regular passport authenticate if not cached
   passport.authenticate('google', { session: false }, async (err, user, info) => {
     if (err) {
       console.error('❌ [Google Callback Error] Authentication failed during token exchange:', err.message || err);
@@ -136,6 +162,21 @@ router.get('/callback', (req, res, next) => {
         process.env.JWT_REFRESH_SECRET,
         { expiresIn: process.env.JWT_REFRESH_EXPIRY || '7d' }
       );
+
+      // Cache the result in Redis for 30 seconds to block duplicate requests from breaking the login flow
+      try {
+        const { getRedisClient } = require('../config/redis');
+        const redis = getRedisClient();
+        const codeKey = `oauth:code:${code}`;
+        await redis.setEx(codeKey, 30, JSON.stringify({
+          accessToken,
+          refreshToken,
+          userId: user._id,
+          email: user.email
+        }));
+      } catch (cacheErr) {
+        console.error('⚠️ [Google Callback] Failed to cache tokens in Redis:', cacheErr.message);
+      }
 
       res.redirect(
         `${FRONTEND_URL}/auth/google/success?accessToken=${accessToken}&refreshToken=${refreshToken}&userId=${user._id}&email=${encodeURIComponent(user.email)}`
