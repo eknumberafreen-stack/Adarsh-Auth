@@ -171,28 +171,61 @@ router.get('/callback', async (req, res, next) => {
     const { getRedisClient } = require('../config/redis');
     const redis = getRedisClient();
     const codeKey = `oauth:code:${code}`;
+    const lockKey = `oauth:lock:${code}`;
 
     // 1. Check if this authorization code has already been successfully exchanged
     const cachedResult = await redis.get(codeKey);
     if (cachedResult) {
-      console.log('🔄 [Google Callback] Duplicate request detected. Serving cached session tokens from Redis.');
+      console.log('🔄 [Google Callback] Duplicate request detected (cache hit). Serving cached session tokens.');
       const data = JSON.parse(cachedResult);
       return res.redirect(
         `${FRONTEND_URL}/auth/google/success?accessToken=${data.accessToken}&refreshToken=${data.refreshToken}&userId=${data.userId}&email=${encodeURIComponent(data.email)}`
       );
     }
+
+    // 2. Try to acquire lock to handle concurrent requests (race conditions)
+    const acquiredLock = await redis.set(lockKey, '1', { NX: true, EX: 10 });
+    if (!acquiredLock) {
+      console.log('⏳ [Google Callback] Concurrent request detected. Waiting for in-flight request to complete...');
+      
+      // Poll Redis for the result of the in-flight request
+      const maxRetries = 25; // 25 * 200ms = 5 seconds
+      for (let i = 0; i < maxRetries; i++) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        const currentCachedResult = await redis.get(codeKey);
+        if (currentCachedResult) {
+          console.log('🔄 [Google Callback] In-flight request completed. Serving cached tokens.');
+          const data = JSON.parse(currentCachedResult);
+          return res.redirect(
+            `${FRONTEND_URL}/auth/google/success?accessToken=${data.accessToken}&refreshToken=${data.refreshToken}&userId=${data.userId}&email=${encodeURIComponent(data.email)}`
+          );
+        }
+      }
+      
+      // If we timeout and still no cached result, proceed with fallback authenticate
+      console.warn('⚠️ [Google Callback] Timeout waiting for in-flight request. Proceeding with fallback exchange.');
+    }
   } catch (redisErr) {
-    // Fail open if Redis is down/disconnected during lookup
-    console.error('⚠️ [Google Callback] Redis lookup failed, continuing with regular passport exchange:', redisErr.message);
+    // Fail open if Redis is down/disconnected during lookup or lock
+    console.error('⚠️ [Google Callback] Redis lock/lookup failed, continuing with regular exchange:', redisErr.message);
   }
 
-  // 2. Perform the regular passport authenticate if not cached
+  // 3. Perform the regular passport authenticate if not cached / acquired lock
   passport.authenticate('google', { session: false }, async (err, user, info) => {
     if (err) {
       console.error('❌ [Google Callback Error] Authentication failed during token exchange:', err.message || err);
       if (err.stack) {
         console.error(err.stack);
       }
+      
+      // Clean up the lock in case of failure so the user can immediately try again
+      try {
+        const { getRedisClient } = require('../config/redis');
+        const redis = getRedisClient();
+        const lockKey = `oauth:lock:${code}`;
+        await redis.del(lockKey);
+      } catch (lockErr) {}
+
       const errorMsg = err.message || 'unknown_error';
       // Redirect back to login with a descriptive error query parameter
       return res.redirect(`${FRONTEND_URL}/login?error=google_auth_failed&details=${encodeURIComponent(errorMsg)}`);
@@ -200,6 +233,12 @@ router.get('/callback', async (req, res, next) => {
 
     if (!user) {
       console.warn('⚠️ [Google Callback Warning] No user was returned by Google strategy.');
+      try {
+        const { getRedisClient } = require('../config/redis');
+        const redis = getRedisClient();
+        const lockKey = `oauth:lock:${code}`;
+        await redis.del(lockKey);
+      } catch (lockErr) {}
       return res.redirect(`${FRONTEND_URL}/login?error=google_failed`);
     }
 
@@ -216,17 +255,19 @@ router.get('/callback', async (req, res, next) => {
         { expiresIn: process.env.JWT_REFRESH_EXPIRY || '7d' }
       );
 
-      // Cache the result in Redis for 30 seconds to block duplicate requests from breaking the login flow
+      // Cache the result in Redis for 30 seconds and clean up the lock
       try {
         const { getRedisClient } = require('../config/redis');
         const redis = getRedisClient();
         const codeKey = `oauth:code:${code}`;
+        const lockKey = `oauth:lock:${code}`;
         await redis.setEx(codeKey, 30, JSON.stringify({
           accessToken,
           refreshToken,
           userId: user._id,
           email: user.email
         }));
+        await redis.del(lockKey);
       } catch (cacheErr) {
         console.error('⚠️ [Google Callback] Failed to cache tokens in Redis:', cacheErr.message);
       }
@@ -236,6 +277,12 @@ router.get('/callback', async (req, res, next) => {
       );
     } catch (tokenErr) {
       console.error('❌ [Google Callback JWT Error] Failed to sign tokens:', tokenErr);
+      try {
+        const { getRedisClient } = require('../config/redis');
+        const redis = getRedisClient();
+        const lockKey = `oauth:lock:${code}`;
+        await redis.del(lockKey);
+      } catch (lockErr) {}
       res.redirect(`${FRONTEND_URL}/login?error=google_failed`);
     }
   })(req, res, next);
