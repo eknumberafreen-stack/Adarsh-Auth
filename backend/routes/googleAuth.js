@@ -44,7 +44,7 @@ const logOauthConfig = () => {
 logOauthConfig();
 
 // ── Configure Passport Google Strategy ───────────────────────
-passport.use(new GoogleStrategy({
+const googleStrategy = new GoogleStrategy({
   clientID:     googleClientID,
   clientSecret: googleClientSecret,
   callbackURL:  googleCallbackURL,
@@ -106,7 +106,34 @@ passport.use(new GoogleStrategy({
     console.error('Google Strategy Error:', err);
     return done(err, null);
   }
-}));
+});
+
+// Override getOAuthAccessToken for deep request/response diagnostics
+const originalGetOAuthAccessToken = googleStrategy._oauth2.getOAuthAccessToken;
+googleStrategy._oauth2.getOAuthAccessToken = function (code, params, callback) {
+  console.log('[OAuth2 Diagnostic] Executing Token Exchange Request:');
+  console.log('  - code (auth code):  ', code);
+  console.log('  - params (payload):  ', JSON.stringify(params));
+  console.log('  - client_id:         ', this._clientId);
+  console.log('  - client_secret:     ', this._clientSecret ? `${this._clientSecret.substring(0, 5)}...` : '(not set)');
+  console.log('  - baseSite URL:      ', this._baseSite);
+  console.log('  - accessTokenUrl:    ', this._accessTokenUrl);
+
+  originalGetOAuthAccessToken.call(this, code, params, function (err, accessToken, refreshToken, results) {
+    if (err) {
+      console.error('[OAuth2 Diagnostic] Token Exchange API Call FAILED:');
+      console.error('  - Error Message:     ', err.message || err);
+      console.error('  - Error StatusCode:  ', err.statusCode);
+      console.error('  - Error Raw Data:    ', err.data);
+    } else {
+      console.log('[OAuth2 Diagnostic] Token Exchange API Call SUCCESS:');
+      console.log('  - Results:           ', JSON.stringify(results));
+    }
+    callback(err, accessToken, refreshToken, results);
+  });
+};
+
+passport.use(googleStrategy);
 
 // ── Routes ────────────────────────────────────────────────────
 
