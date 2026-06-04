@@ -48,8 +48,8 @@ const fail = async (req, res, code = 401, msgKey = 'invalidCreds', defaultMsg = 
   return res.status(code).json({ success: false, message: message });
 };
 
-/** Create session — invalidates any existing session for user+app in Redis */
-const createSession = async (userId, appId, hwid, ip) => {
+/** Create session — invalidates any existing session for user+app in Redis if single session is enforced */
+const createSession = async (userId, appId, hwid, ip, enforceSingleSession = true) => {
   const redis = getRedisClient();
   const token = crypto.randomBytes(32).toString('hex');
 
@@ -66,13 +66,19 @@ const createSession = async (userId, appId, hwid, ip) => {
   await redis.hSet(key, sessionData);
   await redis.expire(key, 24 * 60 * 60);
 
-  // Optional: Track user's active session to allow only one session at a time
-  const userKey = `user_sess:${userId}:${appId}`;
-  const oldSess = await redis.get(userKey);
-  if (oldSess) {
-    await redis.del(`sess:${oldSess}`);
+  // Add to app sessions set
+  await redis.sAdd(`app_sessions:${appId}`, token);
+
+  if (enforceSingleSession) {
+    // Track user's active session to allow only one session at a time
+    const userKey = `user_sess:${userId}:${appId}`;
+    const oldSess = await redis.get(userKey);
+    if (oldSess) {
+      await redis.del(`sess:${oldSess}`);
+      await redis.sRem(`app_sessions:${appId}`, oldSess);
+    }
+    await redis.set(userKey, token, { EX: 24 * 60 * 60 });
   }
-  await redis.set(userKey, token, { EX: 24 * 60 * 60 });
 
   return token;
 };
@@ -194,7 +200,8 @@ router.post('/register',
     // Link license to user
     await License.findByIdAndUpdate(license._id, { usedBy: user._id, expiryDate });
 
-    const sessionToken = await createSession(user._id, req.application._id, hwid, ip);
+    const enforceSingleSession = req.application.hwidLock && user.hwidAffected;
+    const sessionToken = await createSession(user._id, req.application._id, hwid, ip, enforceSingleSession);
 
     await AuditLog.create({
       applicationId: req.application._id,
@@ -350,7 +357,8 @@ router.post('/login',
     // Anomaly detection
     await checkAnomaly(user, req.application._id, ip);
 
-    const sessionToken = await createSession(user._id, req.application._id, hwid, ip);
+    const enforceSingleSession = req.application.hwidLock && user.hwidAffected;
+    const sessionToken = await createSession(user._id, req.application._id, hwid, ip, enforceSingleSession);
 
     await AuditLog.create({
       applicationId: req.application._id,
@@ -441,7 +449,8 @@ router.post('/license',
       user.lastIp = ip;
       await user.save();
 
-      const sessionToken = await createSession(user._id, req.application._id, hwid, ip);
+      const enforceSingleSession = req.application.hwidLock && user.hwidAffected;
+      const sessionToken = await createSession(user._id, req.application._id, hwid, ip, enforceSingleSession);
 
       sendDiscordWebhook(req.application.discordWebhook,
         loginEmbed(user.username, ip, hwid, req.application.name, user.expiryDate));
@@ -495,7 +504,8 @@ router.post('/license',
 
     await License.findByIdAndUpdate(license._id, { usedBy: user._id, expiryDate });
 
-    const sessionToken = await createSession(user._id, req.application._id, hwid, ip);
+    const enforceSingleSession = req.application.hwidLock && user.hwidAffected;
+    const sessionToken = await createSession(user._id, req.application._id, hwid, ip, enforceSingleSession);
 
     sendDiscordWebhook(req.application.discordWebhook,
       registerEmbed(autoUsername, ip, hwid, req.application.name, key));

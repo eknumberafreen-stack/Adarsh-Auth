@@ -50,42 +50,51 @@ router.get('/application/:applicationId', verifyAppAccess(), asyncHandler(async 
   const { applicationId } = req.params;
   const redis = getRedisClient();
 
-  const users = await AppUser.find({ applicationId })
+  // 1. Get all session tokens for this application from the Redis Set
+  const tokens = await redis.sMembers(`app_sessions:${applicationId}`);
+
+  // 2. Fetch session data for all tokens in parallel
+  const sessionPairs = await Promise.all(tokens.map(async (token) => {
+    const sessionData = await redis.hGetAll(`sess:${token}`);
+    if (sessionData && Object.keys(sessionData).length > 0) {
+      return { token, sessionData };
+    } else {
+      // Session has expired or been deleted — clean it up from the Set
+      await redis.sRem(`app_sessions:${applicationId}`, token);
+      return null;
+    }
+  }));
+
+  const activeSessions = sessionPairs.filter(Boolean);
+
+  // 3. Extract unique user IDs to load AppUser details in a single query
+  const userIds = [...new Set(activeSessions.map(s => s.sessionData.userId))];
+  const users = await AppUser.find({ _id: { $in: userIds } })
     .select('_id username lastLogin expiryDate')
     .lean();
 
-  // Run user session token lookups in parallel
-  const userTokens = await Promise.all(users.map(async (user) => {
-    const userKey = `user_sess:${user._id}:${applicationId}`;
-    const token = await redis.get(userKey);
-    return { user, token };
-  }));
+  const userMap = new Map(users.map(u => [u._id.toString(), u]));
 
-  // Filter out users with active tokens and fetch their session data in parallel
-  const activeTokens = userTokens.filter(item => item.token);
-  
-  const sessionDetails = await Promise.all(activeTokens.map(async (item) => {
-    const { user, token } = item;
-    const sessionData = await redis.hGetAll(`sess:${token}`);
-    if (sessionData && Object.keys(sessionData).length > 0) {
-      return {
-        _id: token,
-        userId: { _id: user._id, username: user.username, lastLogin: user.lastLogin },
-        applicationId,
-        hwid: sessionData.hwid,
-        ip: sessionData.ip,
-        ping: sessionData.ping || 'N/A',
-        lastHeartbeat: sessionData.lastHeartbeat ? parseInt(sessionData.lastHeartbeat) : Date.now(),
-        createdAt: Date.now(), 
-        expiresAt: user.expiryDate ? new Date(user.expiryDate).getTime() : Date.now() + 24 * 60 * 60 * 1000
-      };
-    }
-    return null;
-  }));
+  // 4. Build output
+  const sessionDetails = activeSessions.map(item => {
+    const { token, sessionData } = item;
+    const user = userMap.get(sessionData.userId);
+    if (!user) return null;
 
-  const validSessions = sessionDetails.filter(Boolean);
+    return {
+      _id: token,
+      userId: { _id: user._id, username: user.username, lastLogin: user.lastLogin },
+      applicationId,
+      hwid: sessionData.hwid,
+      ip: sessionData.ip,
+      ping: sessionData.ping || 'N/A',
+      lastHeartbeat: sessionData.lastHeartbeat ? parseInt(sessionData.lastHeartbeat) : Date.now(),
+      createdAt: Date.now(), 
+      expiresAt: user.expiryDate ? new Date(user.expiryDate).getTime() : Date.now() + 24 * 60 * 60 * 1000
+    };
+  }).filter(Boolean);
 
-  res.json({ sessions: validSessions.sort((a, b) => b.lastHeartbeat - a.lastHeartbeat) });
+  res.json({ sessions: sessionDetails.sort((a, b) => b.lastHeartbeat - a.lastHeartbeat) });
 }));
 
 // Get terminated session logs for an application
@@ -130,6 +139,7 @@ router.delete('/:id', asyncHandler(async (req, res) => {
   }
 
   await redis.hSet(`sess:${token}`, 'forceClose', 'true');
+  await redis.sRem(`app_sessions:${session.applicationId}`, token);
 
   // Log who did the kick and when
   try {
@@ -166,28 +176,26 @@ router.delete('/:id', asyncHandler(async (req, res) => {
 router.delete('/application/:applicationId/all', verifyAppAccess('manage_users'), asyncHandler(async (req, res) => {
   const { applicationId } = req.params;
   const redis = getRedisClient();
-  const users = await AppUser.find({ applicationId }).select('_id');
+  const tokens = await redis.sMembers(`app_sessions:${applicationId}`);
   let count = 0;
 
   try {
     const admin = await User.findById(req.userId).select('username email');
     const adminName = admin ? (admin.username || admin.email) : 'Admin';
 
-    for (const user of users) {
-      const userKey = `user_sess:${user._id}:${applicationId}`;
-      const token = await redis.get(userKey);
-      if (token) {
-        const session = await redis.hGetAll(`sess:${token}`);
+    for (const token of tokens) {
+      const session = await redis.hGetAll(`sess:${token}`);
+      if (session && Object.keys(session).length > 0) {
         await redis.hSet(`sess:${token}`, 'forceClose', 'true');
         count++;
 
         try {
-          const client = await AppUser.findById(user._id).select('username');
+          const client = await AppUser.findById(session.userId).select('username');
           const clientName = client ? client.username : 'Unknown';
 
           await AuditLog.create({
             applicationId,
-            userId: user._id,
+            userId: session.userId,
             action: 'session_kicked',
             ip: req.ip || '127.0.0.1',
             severity: 'info',
@@ -196,15 +204,16 @@ router.delete('/application/:applicationId/all', verifyAppAccess('manage_users')
               kickedBy: adminName,
               kickedById: req.userId,
               clientUsername: clientName,
-              hwid: session ? session.hwid : 'N/A',
-              clientIp: session ? session.ip : 'N/A',
+              hwid: session.hwid,
+              clientIp: session.ip,
               sessionToken: token
             }
           });
         } catch (err) {
-          console.error('Error logging kick-all for user:', user._id, err);
+          console.error('Error logging kick-all for user:', session.userId, err);
         }
       }
+      await redis.sRem(`app_sessions:${applicationId}`, token);
     }
   } catch (adminErr) {
     console.error('Failed to get admin details for global termination:', adminErr);

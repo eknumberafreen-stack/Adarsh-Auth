@@ -12,6 +12,7 @@
 const AppUser = require('../models/AppUser');
 const AuditLog = require('../models/AuditLog');
 const { getRedisClient } = require('../config/redis');
+const { getClientIp } = require('../utils/ip');
 
 const HEARTBEAT_TIMEOUT_MS = 60_000; // 60 seconds — client must heartbeat every ~20s
 
@@ -19,7 +20,7 @@ const randomDelay = () =>
   new Promise(r => setTimeout(r, Math.floor(Math.random() * 200) + 100));
 
 const requireSession = async (req, res, next) => {
-  const ip = req.clientIp || req.ip;
+  const ip = req.clientIp || getClientIp(req);
 
   try {
     const { session_token, hwid } = req.clientBody || req.body;
