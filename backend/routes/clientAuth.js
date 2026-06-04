@@ -112,7 +112,7 @@ const checkAnomaly = async (user, appId, ip) => {
 
 // ─── POST /api/client/init ────────────────────────────────────────────────────
 router.post('/init',
-  endpointLimiter('init', 30, 60_000),
+  endpointLimiter('init', 100, 60_000),
   verifyClientRequest,
   asyncHandler(async (req, res) => {
     res.sendSigned({
@@ -125,7 +125,7 @@ router.post('/init',
 
 // ─── POST /api/client/register ───────────────────────────────────────────────
 router.post('/register',
-  endpointLimiter('register', 5, 60_000),
+  endpointLimiter('register', 15, 60_000),
   verifyClientRequest,
   asyncHandler(async (req, res) => {
     const { username, password, license_key, hwid } = req.clientBody;
@@ -226,7 +226,7 @@ router.post('/register',
 
 // ─── POST /api/client/login ───────────────────────────────────────────────────
 router.post('/login',
-  endpointLimiter('login', 10, 60_000),
+  endpointLimiter('login', 60, 60_000),
   verifyClientRequest,
   asyncHandler(async (req, res) => {
     const { username, password, hwid } = req.clientBody;
@@ -381,7 +381,7 @@ router.post('/login',
 
 // ─── POST /api/client/license ─────────────────────────────────────────────────
 router.post('/license',
-  endpointLimiter('license', 10, 60_000),
+  endpointLimiter('license', 60, 60_000),
   verifyClientRequest,
   asyncHandler(async (req, res) => {
     const { key, hwid } = req.clientBody;
@@ -517,7 +517,7 @@ router.post('/license',
 
 // ─── POST /api/client/validate ────────────────────────────────────────────────
 router.post('/validate',
-  endpointLimiter('validate', 60, 60_000),
+  endpointLimiter('validate', 200, 60_000),
   verifyClientRequest,
   requireSession,
   asyncHandler(async (req, res) => {
@@ -550,7 +550,7 @@ router.post('/validate',
 
 // ─── POST /api/client/heartbeat ───────────────────────────────────────────────
 router.post('/heartbeat',
-  endpointLimiter('heartbeat', 120, 60_000),
+  endpointLimiter('heartbeat', 500, 60_000),
   verifyClientRequest,
   requireSession,
   asyncHandler(async (req, res) => {
@@ -638,7 +638,7 @@ router.post('/heartbeat',
 );
 // ─── POST /api/client/values ──────────────────────────────────────────────────
 router.post('/values',
-  endpointLimiter('values', 60, 60_000),
+  endpointLimiter('values', 200, 60_000),
   verifyClientRequest,
   requireSession,
   asyncHandler(async (req, res) => {
