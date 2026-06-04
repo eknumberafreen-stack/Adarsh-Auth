@@ -48,6 +48,7 @@ const requireSession = async (req, res, next) => {
     const timeSinceHeartbeat = Date.now() - parseInt(session.lastHeartbeat);
     if (timeSinceHeartbeat > HEARTBEAT_TIMEOUT_MS) {
       await redis.del(key);
+      await redis.sRem(`user_sessions:${session.userId}:${session.applicationId}`, session_token);
       await AuditLog.create({
         applicationId: req.application._id,
         userId: session.userId,
@@ -89,21 +90,25 @@ const requireSession = async (req, res, next) => {
     const user = await AppUser.findById(session.userId);
     if (!user) {
       await redis.del(key);
+      await redis.sRem(`user_sessions:${session.userId}:${session.applicationId}`, session_token);
       return res.status(403).json({ success: false, message: 'Your account has been deleted' });
     }
 
     if (user.banned) {
       await redis.del(key);
+      await redis.sRem(`user_sessions:${session.userId}:${session.applicationId}`, session_token);
       return res.status(403).json({ success: false, message: 'Your account is banned: ' + (user.banReason || 'No reason provided') });
     }
 
     if (user.paused) {
       await redis.del(key);
+      await redis.sRem(`user_sessions:${session.userId}:${session.applicationId}`, session_token);
       return res.status(403).json({ success: false, message: 'Your account is paused' });
     }
 
     if (user.expiryDate && user.expiryDate < Date.now()) {
       await redis.del(key);
+      await redis.sRem(`user_sessions:${session.userId}:${session.applicationId}`, session_token);
       return res.status(403).json({ success: false, message: 'Your subscription has expired. Please renew your subscription' });
     }
 

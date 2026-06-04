@@ -58,19 +58,22 @@ router.get('/application/:applicationId/online-status', verifyAppAccess(), async
   const onlineUserIds = [];
 
   await Promise.all(users.map(async (user) => {
-    const userKey = `user_sess:${user._id}:${appId}`;
-    const token = await redis.get(userKey);
-    if (!token) return;
+    const userKey = `user_sessions:${user._id}:${appId}`;
+    const tokens = await redis.sMembers(userKey);
+    if (!tokens || tokens.length === 0) return;
 
-    const session = await redis.hGetAll(`sess:${token}`);
-    if (!session || !session.lastHeartbeat) return;
+    for (const token of tokens) {
+      const session = await redis.hGetAll(`sess:${token}`);
+      if (!session || !session.lastHeartbeat) continue;
 
-    const timeSince = Date.now() - parseInt(session.lastHeartbeat);
-    if (timeSince <= HEARTBEAT_TIMEOUT_MS) {
-      onlineUserIds.push({
-        userId: user._id.toString(),
-        ping: session.ping || null
-      });
+      const timeSince = Date.now() - parseInt(session.lastHeartbeat);
+      if (timeSince <= HEARTBEAT_TIMEOUT_MS) {
+        onlineUserIds.push({
+          userId: user._id.toString(),
+          ping: session.ping || null
+        });
+        break; // Count user as online if at least one session is active
+      }
     }
   }));
 
@@ -339,39 +342,46 @@ router.post('/:id/force-close', asyncHandler(async (req, res) => {
   if (!hasAccess) return res.status(403).json({ error: 'Access denied: You need manage_users permission.' });
 
   const redis = require('../config/redis').getRedisClient();
-  const userKey = `user_sess:${user._id}:${user.applicationId._id}`;
-  const token = await redis.get(userKey);
+  const userKey = `user_sessions:${user._id}:${user.applicationId._id}`;
+  const tokens = await redis.sMembers(userKey);
   
-  if (token) {
-    const session = await redis.hGetAll(`sess:${token}`);
-    await redis.hSet(`sess:${token}`, 'forceClose', 'true');
+  if (tokens && tokens.length > 0) {
+    let sentCount = 0;
+    for (const token of tokens) {
+      const session = await redis.hGetAll(`sess:${token}`);
+      if (session && Object.keys(session).length > 0) {
+        await redis.hSet(`sess:${token}`, 'forceClose', 'true');
+        sentCount++;
 
-    // Log the crash action
-    try {
-      const admin = await User.findById(req.userId).select('username email');
-      const adminName = admin ? (admin.username || admin.email) : 'Admin';
+        // Log the crash action
+        try {
+          const admin = await User.findById(req.userId).select('username email');
+          const adminName = admin ? (admin.username || admin.email) : 'Admin';
 
-      await AuditLog.create({
-        applicationId: user.applicationId._id,
-        userId: user._id,
-        action: 'session_crashed',
-        ip: req.ip || '127.0.0.1',
-        severity: 'info',
-        details: {
-          event: 'session_crashed',
-          crashedBy: adminName,
-          crashedById: req.userId,
-          clientUsername: user.username,
-          hwid: session ? session.hwid : user.hwid,
-          clientIp: session ? session.ip : user.lastIp,
-          sessionToken: token
+          await AuditLog.create({
+            applicationId: user.applicationId._id,
+            userId: user._id,
+            action: 'session_crashed',
+            ip: req.ip || '127.0.0.1',
+            severity: 'info',
+            details: {
+              event: 'session_crashed',
+              crashedBy: adminName,
+              crashedById: req.userId,
+              clientUsername: user.username,
+              hwid: session ? session.hwid : user.hwid,
+              clientIp: session ? session.ip : user.lastIp,
+              sessionToken: token
+            }
+          });
+        } catch (logErr) {
+          console.error('Failed to log session crash:', logErr);
         }
-      });
-    } catch (logErr) {
-      console.error('Failed to log session crash:', logErr);
+      }
     }
-
-    return res.json({ message: 'Crash command sent successfully' });
+    if (sentCount > 0) {
+      return res.json({ message: 'Crash command sent successfully to all active sessions' });
+    }
   }
 
   res.status(404).json({ error: 'User is not currently online' });

@@ -144,8 +144,8 @@ export default function Sessions() {
           {/* ── Stat Cards ── */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.1 }} className="card p-4 flex flex-col gap-1">
-              <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Total Users</p>
-              <p className="text-3xl font-bold text-white">{new Set(sessions.map(s => s.userId?._id || s.userId || '')).size}</p>
+              <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Total Sessions</p>
+              <p className="text-3xl font-bold text-white">{sessions.length}</p>
               <p className="text-xs text-gray-500">{selectedApp?.name}</p>
             </motion.div>
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.2 }} className="card p-4 flex flex-col gap-1">

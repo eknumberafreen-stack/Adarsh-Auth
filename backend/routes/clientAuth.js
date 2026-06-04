@@ -48,6 +48,23 @@ const fail = async (req, res, code = 401, msgKey = 'invalidCreds', defaultMsg = 
   return res.status(code).json({ success: false, message: message });
 };
 
+const getActiveSessions = async (redis, userId, appId) => {
+  const userKey = `user_sessions:${userId}:${appId}`;
+  const tokens = await redis.sMembers(userKey);
+  if (!tokens || tokens.length === 0) return [];
+
+  const activeTokens = [];
+  for (const token of tokens) {
+    const exists = await redis.exists(`sess:${token}`);
+    if (exists) {
+      activeTokens.push(token);
+    } else {
+      await redis.sRem(userKey, token).catch(() => {});
+    }
+  }
+  return activeTokens;
+};
+
 /** Create session — invalidates any existing session for user+app in Redis if single session is enforced */
 const createSession = async (userId, appId, hwid, ip, enforceSingleSession = true) => {
   const redis = getRedisClient();
@@ -66,19 +83,20 @@ const createSession = async (userId, appId, hwid, ip, enforceSingleSession = tru
   await redis.hSet(key, sessionData);
   await redis.expire(key, 24 * 60 * 60);
 
-  // Add to app sessions set
-  await redis.sAdd(`app_sessions:${appId}`, token);
-
+  const userKey = `user_sessions:${userId}:${appId}`;
   if (enforceSingleSession) {
-    // Track user's active session to allow only one session at a time
-    const userKey = `user_sess:${userId}:${appId}`;
-    const oldSess = await redis.get(userKey);
-    if (oldSess) {
-      await redis.del(`sess:${oldSess}`);
-      await redis.sRem(`app_sessions:${appId}`, oldSess);
+    // Invalidate all previous sessions
+    const tokens = await redis.sMembers(userKey);
+    if (tokens && tokens.length > 0) {
+      for (const t of tokens) {
+        await redis.del(`sess:${t}`);
+      }
     }
-    await redis.set(userKey, token, { EX: 24 * 60 * 60 });
+    await redis.del(userKey);
   }
+  
+  await redis.sAdd(userKey, token);
+  await redis.expire(userKey, 24 * 60 * 60);
 
   return token;
 };
@@ -216,6 +234,8 @@ router.post('/register',
     sendDiscordWebhook(req.application.discordWebhook,
       registerEmbed(username, ip, hwid, req.application.name, license_key));
 
+    const redis = getRedisClient();
+    const activeSessions = (await getActiveSessions(redis, user._id, req.application._id)).length;
     res.status(201).sendSigned({
       success: true,
       message: 'Registration successful',
@@ -226,7 +246,8 @@ router.post('/register',
       hwid: user.hwid,
       createdate: user.createdAt,
       lastlogin: user.lastLogin || user.createdAt,
-      subscription: user.subscription || 'default'
+      subscription: user.subscription || 'default',
+      activeSessions
     });
   })
 );
@@ -372,6 +393,8 @@ router.post('/login',
     sendDiscordWebhook(req.application.discordWebhook,
       loginEmbed(username, ip, hwid, req.application.name, user.expiryDate));
 
+    const redis = getRedisClient();
+    const activeSessions = (await getActiveSessions(redis, user._id, req.application._id)).length;
     res.sendSigned({
       success: true,
       message: 'Login successful',
@@ -382,7 +405,8 @@ router.post('/login',
       hwid: user.hwid,
       createdate: user.createdAt,
       lastlogin: user.lastLogin,
-      subscription: user.subscription || 'default'
+      subscription: user.subscription || 'default',
+      activeSessions
     });
   })
 );
@@ -455,6 +479,8 @@ router.post('/license',
       sendDiscordWebhook(req.application.discordWebhook,
         loginEmbed(user.username, ip, hwid, req.application.name, user.expiryDate));
 
+      const redis = getRedisClient();
+      const activeSessions = (await getActiveSessions(redis, user._id, req.application._id)).length;
       return res.sendSigned({
         success: true,
         message: 'Login successful',
@@ -465,7 +491,8 @@ router.post('/license',
         hwid: user.hwid,
         createdate: user.createdAt,
         lastlogin: user.lastLogin,
-        subscription: user.subscription || 'default'
+        subscription: user.subscription || 'default',
+        activeSessions
       });
     }
 
@@ -510,6 +537,8 @@ router.post('/license',
     sendDiscordWebhook(req.application.discordWebhook,
       registerEmbed(autoUsername, ip, hwid, req.application.name, key));
 
+    const redis = getRedisClient();
+    const activeSessions = (await getActiveSessions(redis, user._id, req.application._id)).length;
     return res.status(201).sendSigned({
       success: true,
       message: 'License activated',
@@ -520,7 +549,8 @@ router.post('/license',
       hwid: user.hwid,
       createdate: user.createdAt,
       lastlogin: user.lastLogin,
-      subscription: user.subscription || 'default'
+      subscription: user.subscription || 'default',
+      activeSessions
     });
   })
 );
@@ -544,6 +574,8 @@ router.post('/validate',
       return fail(req, res, 403, 'userBanned', 'Account is permanently banned');
     }
 
+    const redis = getRedisClient();
+    const activeSessions = (await getActiveSessions(redis, req.sessionUser._id, req.application._id)).length;
     res.sendSigned({
       success: true,
       message: 'Session valid',
@@ -553,7 +585,8 @@ router.post('/validate',
       hwid: req.sessionUser.hwid,
       createdate: req.sessionUser.createdAt,
       lastlogin: req.sessionUser.lastLogin || req.sessionUser.createdAt,
-      subscription: req.sessionUser.subscription || 'default'
+      subscription: req.sessionUser.subscription || 'default',
+      activeSessions
     });
   })
 );
@@ -571,7 +604,7 @@ router.post('/heartbeat',
     const forceClose = req.session.forceClose === 'true';
     if (forceClose) {
       await redis.del(key);
-      await redis.del(`user_sess:${req.session.userId}:${req.application._id}`);
+      await redis.sRem(`user_sessions:${req.session.userId}:${req.application._id}`, req.sessionToken);
       return res.sendSigned({ success: true, message: 'OK', forceClose: true });
     }
 
