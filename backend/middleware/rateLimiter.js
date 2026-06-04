@@ -5,6 +5,7 @@
 
 const rateLimit = require('express-rate-limit');
 const { getRedisClient } = require('../config/redis');
+const { getClientIp } = require('../utils/ip');
 
 // ─── Redis-backed manual rate limiter ─────────────────────────────────────────
 
@@ -43,10 +44,16 @@ const redisRateLimiter = (prefix, maxReqs, windowMs, keyFn) => {
 // ─── Global rate limiter (memory-based fallback) ──────────────────────────────
 const globalRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 500,
+  max: 2000, // Increased from 500 to support multi-request dashboard page loads
   message: { success: false, message: 'Too many requests' },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  keyGenerator: (req) => getClientIp(req),
+  skip: (req) => {
+    // Skip rate limiting for Google OAuth endpoints to avoid blocking callback redirects
+    const path = req.path || req.originalUrl || '';
+    return path.includes('/auth/google') || path.includes('/callback');
+  }
 });
 
 // ─── Auth endpoints: strict ───────────────────────────────────────────────────
@@ -54,7 +61,8 @@ const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 50,
   message: { error: 'Too many login attempts, please try again later' },
-  skipSuccessfulRequests: true
+  skipSuccessfulRequests: true,
+  keyGenerator: (req) => getClientIp(req)
 });
 
 // ─── Per-IP client API limiter ────────────────────────────────────────────────
@@ -62,7 +70,7 @@ const clientIpLimiter = redisRateLimiter(
   'client:ip',
   60,
   60_000,
-  req => req.ip
+  req => getClientIp(req)
 );
 
 // ─── Per-App client API limiter ───────────────────────────────────────────────
@@ -79,7 +87,7 @@ const endpointLimiter = (endpoint, maxReqs = 30, windowMs = 60_000) =>
     `ep:${endpoint}`,
     maxReqs,
     windowMs,
-    req => req.ip
+    req => getClientIp(req)
   );
 
 // ─── Combined client API limiter ──────────────────────────────────────────────
