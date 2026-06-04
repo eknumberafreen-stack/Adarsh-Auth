@@ -93,7 +93,50 @@ router.get('/application/:applicationId', verifyAppAccess(), asyncHandler(async 
 
   const validSessions = sessionDetails.filter(Boolean);
 
-  res.json({ sessions: validSessions.sort((a, b) => b.lastHeartbeat - a.lastHeartbeat) });
+  // Group the validSessions by user._id
+  const userGroups = {};
+  for (const session of validSessions) {
+    const userIdStr = session.userId._id.toString();
+    if (!userGroups[userIdStr]) {
+      userGroups[userIdStr] = [];
+    }
+    userGroups[userIdStr].push(session);
+  }
+
+  // Map each group to a single row
+  const groupedSessions = Object.values(userGroups).map(sessionsForUser => {
+    const first = sessionsForUser[0];
+    const count = sessionsForUser.length;
+
+    // Take the most recent heartbeat of all their sessions
+    const lastHeartbeat = Math.max(...sessionsForUser.map(s => s.lastHeartbeat));
+
+    // Compile unique IPs and HWIDs
+    const uniqueIps = [...new Set(sessionsForUser.map(s => s.ip).filter(Boolean))];
+    const uniqueHwids = [...new Set(sessionsForUser.map(s => s.hwid).filter(Boolean))];
+
+    // Calculate average ping
+    const pings = sessionsForUser.map(s => s.ping).filter(p => p && p !== 'N/A').map(p => parseInt(p));
+    const avgPing = pings.length > 0 ? Math.round(pings.reduce((a, b) => a + b, 0) / pings.length) + ' ms' : 'N/A';
+
+    return {
+      _id: first.userId._id.toString(), // Group ID is the User ID
+      userId: {
+        _id: first.userId._id,
+        username: count > 1 ? `${first.userId.username} (${count} active)` : first.userId.username,
+        lastLogin: first.userId.lastLogin
+      },
+      applicationId: first.applicationId,
+      hwid: uniqueHwids.join(', '),
+      ip: uniqueIps.join(', '),
+      ping: avgPing,
+      lastHeartbeat,
+      createdAt: first.createdAt,
+      expiresAt: first.expiresAt
+    };
+  });
+
+  res.json({ sessions: groupedSessions.sort((a, b) => b.lastHeartbeat - a.lastHeartbeat) });
 }));
 
 // Get terminated session logs for an application
@@ -129,9 +172,58 @@ router.get('/application/:applicationId/history', verifyAppAccess(), asyncHandle
 
 // Terminate session
 router.delete('/:id', asyncHandler(async (req, res) => {
-  const token = req.params.id;
+  const paramId = req.params.id;
   const redis = getRedisClient();
   
+  // If paramId is 24 characters (a MongoDB ObjectId), it is a User ID.
+  // Terminate ALL sessions for this user.
+  if (paramId.length === 24) {
+    const user = await AppUser.findById(paramId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const userKey = `user_sessions:${user._id}:${user.applicationId}`;
+    const tokens = await redis.sMembers(userKey);
+
+    if (tokens && tokens.length > 0) {
+      const admin = await User.findById(req.userId).select('username email');
+      const adminName = admin ? (admin.username || admin.email) : 'Admin';
+
+      for (const token of tokens) {
+        const session = await redis.hGetAll(`sess:${token}`);
+        if (session && Object.keys(session).length > 0) {
+          await redis.hSet(`sess:${token}`, 'forceClose', 'true');
+
+          try {
+            await AuditLog.create({
+              applicationId: user.applicationId,
+              userId: user._id,
+              action: 'session_kicked',
+              ip: req.ip || '127.0.0.1',
+              severity: 'info',
+              details: {
+                event: 'session_kicked',
+                kickedBy: adminName,
+                kickedById: req.userId,
+                clientUsername: user.username,
+                hwid: session.hwid,
+                clientIp: session.ip,
+                sessionToken: token
+              }
+            });
+          } catch (logErr) {
+            console.error('Failed to log session kick:', logErr);
+          }
+        }
+      }
+    }
+
+    return res.json({ message: 'All sessions for this user terminated successfully (Force close signals sent)' });
+  }
+
+  // Otherwise, fallback to single session token deletion (if length is 64 characters)
+  const token = paramId;
   const session = await redis.hGetAll(`sess:${token}`);
   if (!session || Object.keys(session).length === 0) {
     return res.status(404).json({ error: 'Session not found' });
