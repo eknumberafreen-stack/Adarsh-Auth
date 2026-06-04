@@ -58,6 +58,17 @@ const formatExpiry = (expiry) => {
 
 // ── Event Embeds ──────────────────────────────────────────────
 
+const maskHwid = (hwid, fallback = 'N/A') => {
+  if (!hwid) return fallback;
+  const str = String(hwid);
+  if (str.length <= 16) {
+    if (str.length <= 6) return '******';
+    const show = Math.floor(str.length / 3);
+    return `${str.slice(0, show)}******${str.slice(-show)}`;
+  }
+  return `${str.slice(0, 12)}******${str.slice(-12)}`;
+};
+
 const loginEmbed = (username, ip, hwid, appName, expiry) => ({
   title: '✅ User Login',
   color: 0x57F287, // green
@@ -65,7 +76,7 @@ const loginEmbed = (username, ip, hwid, appName, expiry) => ({
     { name: '👤 Username',    value: `\`${username}\``,  inline: true },
     { name: '🏠 App',         value: `\`${appName}\``,   inline: true },
     { name: '🌐 IP',          value: `\`${ip}\``,        inline: true },
-    { name: '💻 HWID',        value: `\`${hwid || 'N/A'}\``, inline: false },
+    { name: '💻 HWID',        value: `\`${maskHwid(hwid)}\``, inline: false },
     { name: '📅 Expiry',      value: formatExpiry(expiry), inline: true },
   ],
   timestamp: new Date().toISOString(),
@@ -79,7 +90,7 @@ const registerEmbed = (username, ip, hwid, appName, licenseKey) => ({
     { name: '👤 Username',    value: `\`${username}\``,   inline: true },
     { name: '🏠 App',         value: `\`${appName}\``,    inline: true },
     { name: '🌐 IP',          value: `\`${ip}\``,         inline: true },
-    { name: '💻 HWID',        value: `\`${hwid || 'N/A'}\``, inline: false },
+    { name: '💻 HWID',        value: `\`${maskHwid(hwid)}\``, inline: false },
     { name: '🔑 License',     value: `\`${licenseKey}\``, inline: true },
   ],
   timestamp: new Date().toISOString(),
@@ -141,6 +152,7 @@ const integrityFailureEmbed = (username, ip, appName, expected, received) => ({
 
 module.exports = {
   sendDiscordWebhook,
+  maskHwid,
   loginEmbed,
   registerEmbed,
   loginFailedEmbed,

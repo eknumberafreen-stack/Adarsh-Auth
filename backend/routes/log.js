@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { sendDiscordWebhook } = require('../utils/discord');
+const { sendDiscordWebhook, maskHwid } = require('../utils/discord');
 
 /**
  * SECURE LOGGING ENDPOINT
@@ -17,7 +17,7 @@ router.post('/', async (req, res) => {
         color: severity === 'CRITICAL' ? 0xFF0000 : 0x00FF00,
         fields: [
             { name: "User", value: username || "Unknown", inline: true },
-            { name: "HWID", value: hwid || "Unknown", inline: true },
+            { name: "HWID", value: maskHwid(hwid, 'Unknown'), inline: true },
             { name: "Message", value: message || "No message" },
             { name: "Details", value: JSON.stringify(details) || "None" }
         ],
