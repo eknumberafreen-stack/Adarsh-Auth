@@ -45,12 +45,17 @@ const connectRedis = async () => {
       console.log('✅ Redis Connected');
     });
 
-    await redisClient.connect();
+    try {
+      await redisClient.connect();
+    } catch (connErr) {
+      console.warn('⚠️ Redis initial connection failed. Redis will retry in background:', connErr.message);
+    }
 
     return redisClient;
   } catch (error) {
-    console.error('Redis connection failed:', error.message);
-    process.exit(1);
+    console.error('Redis configuration failed:', error.message);
+    // Return a partially initialized client or null, but don't exit process.
+    return redisClient;
   }
 };
 

@@ -132,9 +132,29 @@ const verifyClientRequest = async (req, res, next) => {
     }
 
     // ── Step 2.5: Maintenance Mode Double-Check (Layer 2) ────────────────────
-    const redis = getRedisClient();
-    const maintCached = await redis.get('config:maintenance_mode');
-    if (maintCached === 'true') {
+    let isMaintenance = false;
+    try {
+      const redis = getRedisClient();
+      const maintCached = await redis.get('config:maintenance_mode');
+      if (maintCached !== null) {
+        isMaintenance = maintCached === 'true';
+      } else {
+        const Config = require('../models/Config');
+        isMaintenance = await Config.get('MAINTENANCE_MODE', false);
+      }
+    } catch (redisErr) {
+      console.warn('[clientAuth] Redis warning during maintenance check:', redisErr.message);
+      try {
+        const Config = require('../models/Config');
+        isMaintenance = await Config.get('MAINTENANCE_MODE', false);
+      } catch (dbErr) {
+        console.error('[clientAuth] MongoDB error during maintenance check:', dbErr.message);
+        // Fail closed on critical db + redis failure for safety
+        isMaintenance = true;
+      }
+    }
+
+    if (isMaintenance) {
       return res.status(503).json({ success: false, message: 'System under maintenance.' });
     }
 
@@ -147,15 +167,26 @@ const verifyClientRequest = async (req, res, next) => {
     const appCacheKey = `app:${owner_id}:${app_name}`;
     let application = null;
 
-    // Try cache first
-    const cached = await redis.get(appCacheKey);
-    if (cached) {
-      application = JSON.parse(cached);
-    } else {
+    try {
+      const redis = getRedisClient();
+      const cached = await redis.get(appCacheKey);
+      if (cached) {
+        application = JSON.parse(cached);
+      }
+    } catch (redisErr) {
+      console.warn('[clientAuth] Redis warning during app cache get:', redisErr.message);
+    }
+
+    if (!application) {
       application = await Application.findOne({ ownerId: owner_id, name: app_name }).lean();
       if (application) {
-        // Cache it for 60s
-        await redis.setEx(appCacheKey, APP_CACHE_TTL, JSON.stringify(application));
+        try {
+          const redis = getRedisClient();
+          // Cache it for 60s
+          await redis.setEx(appCacheKey, APP_CACHE_TTL, JSON.stringify(application));
+        } catch (redisErr) {
+          console.warn('[clientAuth] Redis warning during app cache set:', redisErr.message);
+        }
       }
     }
 
@@ -223,15 +254,26 @@ const verifyClientRequest = async (req, res, next) => {
 
     // ── Step 6: Nonce check (anti-replay layer 2) ────────────────────────────
     const nonceKey = `nonce:${owner_id}:${nonce}`;
-    const exists   = await redis.exists(nonceKey);
+    let exists = false;
+    try {
+      const redis = getRedisClient();
+      exists = await redis.exists(nonceKey);
+    } catch (redisErr) {
+      console.warn('[clientAuth] Redis warning during nonce check:', redisErr.message);
+    }
 
     if (exists) {
       await audit('replay_attack', 'critical', ip, application._id, { nonce, timestamp });
       return fail(req, res);
     }
 
-    // Store nonce — TTL slightly longer than tolerance to cover edge cases
-    await redis.setEx(nonceKey, NONCE_TTL_SECONDS, '1');
+    try {
+      const redis = getRedisClient();
+      // Store nonce — TTL slightly longer than tolerance to cover edge cases
+      await redis.setEx(nonceKey, NONCE_TTL_SECONDS, '1');
+    } catch (redisErr) {
+      console.warn('[clientAuth] Redis warning during nonce set:', redisErr.message);
+    }
 
     // ── Step 6: HMAC SHA256 signature verification ───────────────────────────
     // Dual-Check: Try sorted first (new), then raw (old) for backwards compatibility
