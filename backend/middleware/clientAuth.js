@@ -16,6 +16,7 @@ const Application = require('../models/Application');
 const AuditLog = require('../models/AuditLog');
 const { getRedisClient } = require('../config/redis');
 const Config = require('../models/Config');
+const { getClientIp } = require('../utils/ip');
 
 // Load RSA Private Key for Response Signing
 const privateKeyPath = path.join(__dirname, '..', 'config', 'keys', 'private.pem');
@@ -99,7 +100,7 @@ const audit = async (action, severity, ip, appId, details = {}) => {
 // ─── Main Middleware ───────────────────────────────────────────────────────────
 
 const verifyClientRequest = async (req, res, next) => {
-  const ip = req.ip || req.connection.remoteAddress;
+  const ip = getClientIp(req);
 
   try {
     // ── Step 1: Extract required fields ──────────────────────────────────────

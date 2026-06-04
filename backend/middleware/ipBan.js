@@ -6,9 +6,10 @@
 const IPBan = require('../models/IPBan');
 const AuditLog = require('../models/AuditLog');
 const { getRedisClient } = require('../config/redis');
+const { getClientIp } = require('../utils/ip');
 
 const checkIPBan = async (req, res, next) => {
-  const ip = req.ip || req.connection.remoteAddress;
+  const ip = getClientIp(req);
 
   try {
     // Cache check in Redis (5 min TTL) to avoid DB hit on every request
