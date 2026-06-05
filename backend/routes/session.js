@@ -106,31 +106,32 @@ router.get('/application/:applicationId', verifyAppAccess(), asyncHandler(async 
   // Map each group to a single row
   const groupedSessions = Object.values(userGroups).map(sessionsForUser => {
     const first = sessionsForUser[0];
-    const count = sessionsForUser.length;
+    
+    // Sort sessions by heartbeat descending to find the most recently active one
+    const sortedSessions = [...sessionsForUser].sort((a, b) => b.lastHeartbeat - a.lastHeartbeat);
+    const mostRecent = sortedSessions[0];
 
-    // Take the most recent heartbeat of all their sessions
-    const lastHeartbeat = Math.max(...sessionsForUser.map(s => s.lastHeartbeat));
+    // Count only LIVE sessions (heartbeat within 45 seconds)
+    const liveCount = sessionsForUser.filter(s => Date.now() - s.lastHeartbeat < 45000).length;
 
-    // Compile unique IPs and HWIDs
-    const uniqueIps = [...new Set(sessionsForUser.map(s => s.ip).filter(Boolean))];
-    const uniqueHwids = [...new Set(sessionsForUser.map(s => s.hwid).filter(Boolean))];
-
-    // Calculate average ping
-    const pings = sessionsForUser.map(s => s.ping).filter(p => p && p !== 'N/A').map(p => parseInt(p));
+    // Calculate average ping of live sessions (if any), or all sessions otherwise
+    const activeForPing = sessionsForUser.filter(s => Date.now() - s.lastHeartbeat < 45000);
+    const targetSessionsForPing = activeForPing.length > 0 ? activeForPing : sessionsForUser;
+    const pings = targetSessionsForPing.map(s => s.ping).filter(p => p && p !== 'N/A').map(p => parseInt(p));
     const avgPing = pings.length > 0 ? Math.round(pings.reduce((a, b) => a + b, 0) / pings.length) + ' ms' : 'N/A';
 
     return {
       _id: first.userId._id.toString(), // Group ID is the User ID
       userId: {
         _id: first.userId._id,
-        username: count > 1 ? `${first.userId.username} (${count} active)` : first.userId.username,
+        username: liveCount > 1 ? `${first.userId.username} (${liveCount} active)` : first.userId.username,
         lastLogin: first.userId.lastLogin
       },
       applicationId: first.applicationId,
-      hwid: uniqueHwids.join(', '),
-      ip: uniqueIps.join(', '),
+      hwid: mostRecent.hwid || 'N/A',
+      ip: mostRecent.ip || 'N/A',
       ping: avgPing,
-      lastHeartbeat,
+      lastHeartbeat: mostRecent.lastHeartbeat,
       createdAt: first.createdAt,
       expiresAt: first.expiresAt
     };
