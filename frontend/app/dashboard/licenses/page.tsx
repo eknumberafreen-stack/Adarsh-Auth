@@ -360,10 +360,10 @@ export default function Licenses() {
   return (
     <div>
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
         <h1 className="text-2xl font-bold">Licenses</h1>
-        <div className="flex items-center gap-3">
-          <button onClick={() => setShowGenerateModal(true)} className="btn btn-primary flex items-center gap-2 py-2.5" disabled={!selectedApp?._id}>
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <button onClick={() => setShowGenerateModal(true)} className="btn btn-primary flex items-center justify-center gap-2 py-2.5 w-full sm:w-auto" disabled={!selectedApp?._id}>
             <PlusIcon className="w-4 h-4" /> Generate Licenses
           </button>
         </div>
@@ -380,11 +380,12 @@ export default function Licenses() {
           ) : licenses.length === 0 ? (
             <div className="text-center py-12 text-gray-400">No licenses yet. Generate your first one!</div>
           ) : (
-            <div className="card overflow-visible p-0 relative">
+            <div className="card overflow-hidden p-0 border border-white/10 bg-[#0f1015]/60 backdrop-blur-md relative">
               {(() => {
                 const showCreatedBy = !!(selectedApp?.team && selectedApp.team.length > 0)
                 return (
-                  <table className="w-full text-sm">
+                  <div className="overflow-x-auto w-full">
+                    <table className="w-full text-sm min-w-[950px]">
                     <thead>
                       <tr className="border-b border-dark-border">
                         <th className="px-4 py-3 text-left w-10">
@@ -470,18 +471,19 @@ export default function Licenses() {
                         </tr>
                       ))}
                     </tbody>
-                  </table>
+                    </table>
+                  </div>
                 )
               })()}
 
               {/* Bulk Controls Panel */}
               {selectedLicenseIds.length > 0 && (
-                <div className="fixed bottom-16 left-1/2 -translate-x-1/2 bg-[#101018]/95 backdrop-blur-xl border border-primary-500/30 px-6 py-3.5 rounded-2xl shadow-2xl flex items-center gap-4 z-[999]">
+                <div className="fixed bottom-16 left-4 right-4 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 bg-[#101018]/95 backdrop-blur-xl border border-primary-500/30 px-4 py-3 rounded-2xl shadow-2xl flex flex-col sm:flex-row items-center gap-3 z-[999] max-w-full animate-in slide-in-from-bottom duration-200">
                   <div className="text-sm font-semibold text-gray-300">
                     Selected: <span className="text-primary-400 font-mono">{selectedLicenseIds.length}</span> keys
                   </div>
-                  <div className="h-6 w-px bg-dark-border" />
-                  <div className="flex items-center gap-2">
+                  <div className="hidden sm:block h-6 w-px bg-dark-border" />
+                  <div className="flex flex-wrap items-center justify-center gap-1.5 w-full sm:w-auto">
                     <button 
                       onClick={handleBulkCopyKeys}
                       className="px-4 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-indigo-400 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5"
@@ -519,7 +521,7 @@ export default function Licenses() {
                       🗑️ Delete
                     </button>
                   </div>
-                  <div className="h-6 w-px bg-dark-border" />
+                  <div className="hidden sm:block h-6 w-px bg-dark-border" />
                   <button 
                     onClick={() => setSelectedLicenseIds([])}
                     className="text-xs font-bold text-gray-500 hover:text-gray-300 transition-colors"

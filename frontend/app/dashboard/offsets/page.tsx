@@ -258,17 +258,17 @@ export default function OffsetsPage() {
             Clients fetch these dynamically - no hardcoded values needed.
           </p>
         </div>
-        <div className="flex gap-3">
-          <button onClick={() => setShowImport(true)} className="btn btn-secondary">
+        <div className="flex flex-wrap gap-2.5 w-full sm:w-auto">
+          <button onClick={() => setShowImport(true)} className="btn btn-secondary flex-1 sm:flex-initial justify-center gap-1.5">
             <DocumentDuplicateIcon className="h-4 w-4" /> Import Source
           </button>
-          <button onClick={() => setShowJson(!showJson)} className="btn btn-secondary">
+          <button onClick={() => setShowJson(!showJson)} className="btn btn-secondary flex-1 sm:flex-initial justify-center gap-1.5">
             {showJson ? 'Hide' : 'Preview'} JSON
           </button>
-          <button onClick={load} className="btn btn-secondary">
+          <button onClick={load} className="btn btn-secondary flex-1 sm:flex-initial justify-center gap-1.5">
             <ArrowPathIcon className="h-4 w-4" /> Refresh
           </button>
-          <button onClick={() => setShowReset(true)} className="btn btn-danger">
+          <button onClick={() => setShowReset(true)} className="btn btn-danger flex-1 sm:flex-initial justify-center gap-1.5">
             <TrashIcon className="h-4 w-4" /> Reset All
           </button>
         </div>
@@ -380,8 +380,8 @@ export default function OffsetsPage() {
                   </div>
                   <span className="badge border-white/10 bg-white/5 text-slate-400">{currentEntries.length} entries</span>
                 </div>
-                <div className="overflow-x-auto rounded-xl border border-white/10">
-                  <table className="w-full text-left">
+                <div className="overflow-x-auto rounded-xl border border-white/10 w-full">
+                  <table className="w-full text-left min-w-[700px]">
                     <thead>
                       <tr className="border-b border-white/10 bg-white/[0.03]">
                         <th className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 w-1/4">Name</th>
@@ -420,8 +420,8 @@ export default function OffsetsPage() {
                 </div>
                 <span className="badge border-white/10 bg-white/5 text-slate-400">{rv?.bones.length ?? 0} bones</span>
               </div>
-              <div className="overflow-x-auto rounded-xl border border-white/10">
-                <table className="w-full text-left">
+              <div className="overflow-x-auto rounded-xl border border-white/10 w-full">
+                <table className="w-full text-left min-w-[600px]">
                   <thead>
                     <tr className="border-b border-white/10 bg-white/[0.03]">
                       <th className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-slate-500 w-1/3">Bone Name</th>
