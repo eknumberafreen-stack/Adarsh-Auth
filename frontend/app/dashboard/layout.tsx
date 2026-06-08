@@ -273,8 +273,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <CubeIcon className="h-5 w-5 text-white animate-pulse" />
               </div>
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-sky-400/80">Control Center</p>
-                <p className="text-lg font-black text-white tracking-wide group-hover:text-indigo-200 transition-colors">Adarsh Auth</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-sky-400/80">Control Center</p>
+                <p className="text-xl font-black text-white tracking-wide group-hover:text-indigo-200 transition-colors">Adarsh Auth</p>
               </div>
             </button>
             <button className="rounded-xl border border-white/10 p-2 text-slate-400 lg:hidden" onClick={() => setMobileOpen(false)}>
@@ -304,14 +304,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <button
                   type="button"
                   onClick={() => router.push('/dashboard/billing')}
-                  className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-wider ${planStyle.shell}`}
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold uppercase tracking-wider ${planStyle.shell}`}
                 >
                   <span className={`h-1.5 w-1.5 rounded-full ${planStyle.dot}`} />
                   {planDisplay} Plan
                 </button>
               </div>
 
-              <p className="mt-3 text-[11px] leading-relaxed text-slate-400/70 font-medium">
+              <p className="mt-3 text-xs leading-relaxed text-slate-400/70 font-semibold">
                 Manage applications, credentials, users, sessions, and billing from one workspace.
               </p>
             </div>
@@ -321,7 +321,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div className="space-y-6">
               {Object.entries(groupedNavigation).map(([group, items]) => (
                 <div key={group}>
-                  <p className="px-3 text-[10px] font-black uppercase tracking-[0.28em] text-slate-600/90">{group}</p>
+                  <p className="px-3 text-xs font-bold uppercase tracking-wider text-slate-500">{group}</p>
                   <div className="mt-2 space-y-1">
                     {items.map((item) => {
                       const active = pathname === item.href
@@ -330,7 +330,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                           type="button"
                           key={item.name}
                           onClick={() => router.push(item.href)}
-                          className={`nav-glow-item flex w-full items-center gap-3.5 rounded-xl px-3.5 py-3 text-xs transition-all relative ${
+                          className={`nav-glow-item flex w-full items-center gap-3.5 rounded-xl px-4 py-3 text-sm transition-all relative ${
                             active
                               ? 'active-item border border-indigo-500/20 bg-indigo-500/10 text-indigo-100 shadow-[0_4px_20px_rgba(99,102,241,0.08)] font-semibold'
                               : 'border border-transparent text-slate-400 hover:text-white hover:bg-white/[0.03] font-medium'
@@ -352,7 +352,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="border-t border-white/[0.06] px-4 py-4">
             <button
               onClick={handleLogout}
-              className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-rose-500/15 bg-rose-500/5 px-4 py-3 text-xs font-black uppercase tracking-wider text-rose-300 transition-all duration-300 hover:border-rose-500/30 hover:bg-rose-500/10 shadow-[0_4px_12px_rgba(244,63,94,0.04)]"
+              className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-rose-500/15 bg-rose-500/5 px-4 py-3 text-sm font-bold uppercase tracking-wider text-rose-300 transition-all duration-300 hover:border-rose-500/30 hover:bg-rose-500/10 shadow-[0_4px_12px_rgba(244,63,94,0.04)]"
             >
               <ArrowRightOnRectangleIcon className="h-4 w-4" />
               Sign Out
