@@ -568,11 +568,11 @@ export default function Login() {
             )}
           </div>
         </div>
-        <Script 
-          src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" 
-          strategy="afterInteractive"
-        />
-      </div>
+      )}
+      <Script 
+        src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" 
+        strategy="afterInteractive"
+      />
     </div>
   )
 }
