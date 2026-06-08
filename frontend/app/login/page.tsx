@@ -231,12 +231,19 @@ export default function Login() {
 
   if (verifyingBrowser) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#2b4c7e] relative overflow-hidden">
+      <div className="relative flex min-h-screen items-center justify-center bg-[#07070a] overflow-hidden text-white">
+        <ParticleField
+          className="absolute inset-0 pointer-events-none opacity-70"
+          particleColor="rgba(161, 161, 170, 0.2)"
+          lineColor="rgba(99, 102, 241, 0.14)"
+          count={60}
+        />
+        
         {/* Decorative background blur objects */}
         <div className="absolute top-1/4 left-1/4 w-[30rem] h-[30rem] bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-1/4 right-1/4 w-[30rem] h-[30rem] bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="relative z-10 w-full max-w-[440px] p-9 rounded-2xl bg-[#0f1015] border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.5)] text-white text-center">
+        <div className="relative z-10 w-full max-w-[440px] p-9 rounded-3xl bg-[#0f1015]/80 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.6)] text-white text-center">
           <h2 className="text-2xl font-bold mb-6 tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">
             Adarsh Auth
           </h2>
@@ -244,13 +251,20 @@ export default function Login() {
           <p className="text-lg font-semibold mb-1 text-white">Checking your browser...</p>
           <p className="text-xs text-slate-400 mb-8">This process is automatic. Your browser will redirect shortly.</p>
 
-          {/* Cloudflare Turnstile Verification widget */}
-          <div className="flex justify-center mb-8 min-h-[65px]">
-            <div id="turnstile-container" />
+          {/* Custom Turnstile Container Card */}
+          <div className="relative flex flex-col items-center justify-center p-6 bg-white/[0.02] border border-white/5 rounded-2xl max-w-[320px] mx-auto mb-8 shadow-inner overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent pointer-events-none" />
+            <div className="mb-4 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5 text-indigo-400 animate-spin" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+              </svg>
+              <span>Security Check</span>
+            </div>
+            <div id="turnstile-container" className="min-h-[65px] flex items-center justify-center" />
           </div>
 
           {verificationStep === 2 && (
-            <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-sm font-semibold animate-pulse">
+            <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-2xl text-sm font-semibold animate-pulse">
               ✓ Verification successful! Redirecting..
             </div>
           )}
