@@ -9,25 +9,18 @@ import api, { clearStoredAuth, refreshAccessToken } from '@/lib/api'
 import { useAuthStore } from '@/lib/store'
 import toast from 'react-hot-toast'
 import ParticleField from '@/components/ParticleField'
+import Script from 'next/script'
 
-// DJB2 Hash function
-function djb2Hash(str: string): number {
-  let hash = 5381;
-  for (let i = 0; i < str.length; i++) {
-    hash = ((hash << 5) + hash) + str.charCodeAt(i);
-    hash = hash & hash; // Convert to 32bit integer
+declare global {
+  interface Window {
+    turnstile?: {
+      render: (container: string | HTMLElement, options: any) => string;
+      remove: (widgetId: string) => void;
+    };
   }
-  return Math.abs(hash);
 }
 
-// Slow nested hashing for browser verification
-function slowHash(salt: string, nonce: string): number {
-  let val = salt + nonce;
-  for (let i = 0; i < 250; i++) {
-    val = djb2Hash(val).toString();
-  }
-  return djb2Hash(val);
-}
+const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'
 
 export default function Login() {
   const router = useRouter()
@@ -108,53 +101,62 @@ export default function Login() {
     setLoading(true)
     setVerifyingBrowser(true)
     setVerificationStep(1)
+  }
 
+  useEffect(() => {
+    if (!verifyingBrowser) return
+
+    let widgetId: string | null = null
+
+    const renderTurnstile = () => {
+      if (window.turnstile && document.getElementById('turnstile-container')) {
+        try {
+          widgetId = window.turnstile.render('#turnstile-container', {
+            sitekey: siteKey,
+            callback: (token: string) => {
+              handleVerifySuccess(token)
+            },
+            'error-callback': () => {
+              handleVerifyError()
+            },
+            theme: 'dark'
+          })
+        } catch (err) {
+          console.error('[Turnstile] Render error:', err)
+        }
+      }
+    }
+
+    if (window.turnstile) {
+      renderTurnstile()
+    } else {
+      const interval = setInterval(() => {
+        if (window.turnstile) {
+          clearInterval(interval)
+          renderTurnstile()
+        }
+      }, 100)
+      return () => clearInterval(interval)
+    }
+
+    return () => {
+      if (widgetId && window.turnstile) {
+        try {
+          window.turnstile.remove(widgetId)
+        } catch (err) {
+          console.error('[Turnstile] Clean error:', err)
+        }
+      }
+    }
+  }, [verifyingBrowser])
+
+  const handleVerifySuccess = async (token: string) => {
     try {
-      // 1. Fetch challenge from backend
-      const challengeRes = await api.get('/auth/challenge')
-      const { salt, difficulty, expiresAt, signature } = challengeRes.data
-
-      // 2. Solve challenge in background (asynchronously so UI does not freeze completely)
-      let nonce = 0
-      const startTime = Date.now()
-
-      const solveChallenge = (): Promise<number> => {
-        return new Promise((resolve) => {
-          const chunk = () => {
-            for (let i = 0; i < 500; i++) {
-              const hashVal = slowHash(salt, nonce.toString())
-              if (hashVal % difficulty === 0) {
-                resolve(nonce)
-                return
-              }
-              nonce++
-            }
-            // Yield execution back to event loop to keep loader animation smooth
-            setTimeout(chunk, 0)
-          }
-          chunk()
-        })
-      }
-
-      const solvedNonce = await solveChallenge()
-
-      // Enforce minimum 1.2 second animation for keyauth aesthetic feel
-      const elapsed = Date.now() - startTime
-      if (elapsed < 1200) {
-        await new Promise(resolve => setTimeout(resolve, 1200 - elapsed))
-      }
-
-      // 3. Submit credentials along with solved challenge
+      // Submit credentials along with turnstile token
       const response = await api.post('/auth/login', {
         email,
         password,
-        challenge: {
-          nonce: solvedNonce,
-          salt,
-          difficulty,
-          expiresAt,
-          signature
-        }
+        turnstileToken: token
       })
       const { user, accessToken, refreshToken } = response.data
 
@@ -173,6 +175,13 @@ export default function Login() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleVerifyError = () => {
+    setVerifyingBrowser(false)
+    setVerificationStep(0)
+    setLoading(false)
+    toast.error('Security verification failed. Please try again.')
   }
 
   const handleRequestOTP = async (e: React.FormEvent) => {
@@ -235,24 +244,9 @@ export default function Login() {
           <p className="text-lg font-semibold mb-1 text-white">Checking your browser...</p>
           <p className="text-xs text-slate-400 mb-8">This process is automatic. Your browser will redirect shortly.</p>
 
-          {/* Altcha simulator widget */}
-          <div className="flex items-center justify-between p-4 bg-black/40 border border-white/5 rounded-xl max-w-[320px] mx-auto mb-8 text-left shadow-inner">
-            <div className="flex items-center gap-3">
-              <div className="relative flex items-center justify-center">
-                {verificationStep === 1 ? (
-                  <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <div className="w-5 h-5 flex items-center justify-center bg-indigo-500 rounded text-white font-bold text-[11px]">✓</div>
-                )}
-              </div>
-              <span className="text-sm text-slate-300 font-semibold tracking-wide">
-                {verificationStep === 1 ? 'Verifying...' : 'Verified'}
-              </span>
-            </div>
-            <div className="text-right">
-              <p className="text-[9px] text-slate-500 uppercase tracking-widest font-bold">Protected by</p>
-              <p className="text-xs text-indigo-400 font-black tracking-tight">ALTCHA</p>
-            </div>
+          {/* Cloudflare Turnstile Verification widget */}
+          <div className="flex justify-center mb-8 min-h-[65px]">
+            <div id="turnstile-container" />
           </div>
 
           {verificationStep === 2 && (
@@ -574,7 +568,11 @@ export default function Login() {
             )}
           </div>
         </div>
-      )}
+        <Script 
+          src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" 
+          strategy="afterInteractive"
+        />
+      </div>
     </div>
   )
 }

@@ -5,24 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuthStore } from '@/lib/store'
 import api from '@/lib/api'
 
-// DJB2 Hash function
-function djb2Hash(str: string): number {
-  let hash = 5381;
-  for (let i = 0; i < str.length; i++) {
-    hash = ((hash << 5) + hash) + str.charCodeAt(i);
-    hash = hash & hash;
-  }
-  return Math.abs(hash);
-}
 
-// Slow nested hashing for browser verification
-function slowHash(salt: string, nonce: string): number {
-  let val = salt + nonce;
-  for (let i = 0; i < 250; i++) {
-    val = djb2Hash(val).toString();
-  }
-  return djb2Hash(val);
-}
 
 export default function GoogleSuccess() {
   const router = useRouter()
@@ -45,38 +28,8 @@ export default function GoogleSuccess() {
       setVerificationStep(1)
 
       try {
-        // 1. Fetch challenge from backend
-        const challengeRes = await api.get('/auth/challenge')
-        const { salt, difficulty } = challengeRes.data
-
-        // 2. Solve challenge in background
-        let nonce = 0
-        const startTime = Date.now()
-
-        const solveChallenge = (): Promise<number> => {
-          return new Promise((resolve) => {
-            const chunk = () => {
-              for (let i = 0; i < 500; i++) {
-                const hashVal = slowHash(salt, nonce.toString())
-                if (hashVal % difficulty === 0) {
-                  resolve(nonce)
-                  return
-                }
-                nonce++
-              }
-              setTimeout(chunk, 0)
-            }
-            chunk()
-          })
-        }
-
-        await solveChallenge()
-
-        // Enforce minimum 1.5 second animation
-        const elapsed = Date.now() - startTime
-        if (elapsed < 1500) {
-          await new Promise(resolve => setTimeout(resolve, 1500 - elapsed))
-        }
+        // Smooth 1.5 second loading animation
+        await new Promise(resolve => setTimeout(resolve, 1500))
 
         // 3. Verification complete
         setVerificationStep(2)
@@ -85,7 +38,7 @@ export default function GoogleSuccess() {
         setAuth({ id: userId, email, username: null }, accessToken, refreshToken)
         router.replace('/dashboard')
       } catch {
-        // If challenge fails, still proceed (Google already authenticated)
+        // If animation or logic fails, still proceed
         setAuth({ id: userId, email, username: null }, accessToken, refreshToken)
         router.replace('/dashboard')
       }
@@ -108,14 +61,14 @@ export default function GoogleSuccess() {
         <p className="text-lg font-semibold mb-1 text-white">Checking your browser...</p>
         <p className="text-xs text-slate-400 mb-8">This process is automatic. Your browser will redirect shortly.</p>
         
-        {/* ALTCHA verification widget */}
+        {/* TURNSTILE verification widget */}
         <div className="flex items-center justify-between p-4 bg-black/40 border border-white/5 rounded-xl max-w-[320px] mx-auto mb-8 text-left shadow-inner">
           <div className="flex items-center gap-3">
             <div className="relative flex items-center justify-center">
               {verificationStep < 2 ? (
-                <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                <div className="w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
               ) : (
-                <div className="w-5 h-5 flex items-center justify-center bg-indigo-500 rounded text-white font-bold text-[11px]">✓</div>
+                <div className="w-5 h-5 flex items-center justify-center bg-orange-500 rounded text-white font-bold text-[11px]">✓</div>
               )}
             </div>
             <span className="text-sm text-slate-300 font-semibold tracking-wide">
@@ -124,7 +77,7 @@ export default function GoogleSuccess() {
           </div>
           <div className="text-right">
             <p className="text-[9px] text-slate-500 uppercase tracking-widest font-bold">Protected by</p>
-            <p className="text-xs text-indigo-400 font-black tracking-tight">ALTCHA</p>
+            <p className="text-xs text-orange-400 font-black tracking-tight">TURNSTILE</p>
           </div>
         </div>
 

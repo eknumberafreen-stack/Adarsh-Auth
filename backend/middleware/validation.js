@@ -39,13 +39,7 @@ const schemas = {
   login: Joi.object({
     email: Joi.string().email().required(),
     password: Joi.string().required(),
-    challenge: Joi.object({
-      nonce: Joi.number().required(),
-      salt: Joi.string().required(),
-      difficulty: Joi.number().required(),
-      expiresAt: Joi.number().required(),
-      signature: Joi.string().required()
-    }).required()
+    turnstileToken: Joi.string().required()
   }),
 
   createApplication: Joi.object({

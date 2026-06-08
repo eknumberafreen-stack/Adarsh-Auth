@@ -8,6 +8,7 @@ const { authRateLimiter } = require('../middleware/rateLimiter');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { verifyToken } = require('../middleware/auth');
 const { sendOTPEmail } = require('../utils/email');
+const { verifyTurnstileToken } = require('../utils/turnstile');
 
 // DJB2 Hash function
 function djb2Hash(str) {
@@ -220,51 +221,19 @@ router.post('/register', authRateLimiter, validate(schemas.register), asyncHandl
   });
 }));
 
-// Browser Verification Challenge Generator
+// Browser Verification Challenge Generator (Legacy stub)
 router.get('/challenge', asyncHandler(async (req, res) => {
-  const salt = crypto.randomBytes(16).toString('hex');
-  const difficulty = 5000; // Average of 5000 PoW iterations
-  const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes validity
-
-  // Signature containing variables signed with access secret
-  const expectedData = `${salt}:${difficulty}:${expiresAt}`;
-  const signature = crypto.createHmac('sha256', process.env.JWT_ACCESS_SECRET || 'fallback-secret')
-    .update(expectedData)
-    .digest('hex');
-
-  res.json({ salt, difficulty, expiresAt, signature });
+  res.json({ salt: 'legacy', difficulty: 1, expiresAt: Date.now() + 60000, signature: 'legacy' });
 }));
 
 // Login
 router.post('/login', authRateLimiter, validate(schemas.login), asyncHandler(async (req, res) => {
-  const { email, password, challenge } = req.body;
+  const { email, password, turnstileToken } = req.body;
 
-  // 1. Verify Browser Challenge
-  if (!challenge) {
-    return res.status(400).json({ error: 'Browser verification challenge is required' });
-  }
-
-  const { nonce, salt, difficulty, expiresAt, signature } = challenge;
-
-  // Verify challenge expiration
-  if (Date.now() > expiresAt) {
-    return res.status(400).json({ error: 'Browser verification challenge has expired. Please try again.' });
-  }
-
-  // Verify challenge signature
-  const expectedData = `${salt}:${difficulty}:${expiresAt}`;
-  const expectedSignature = crypto.createHmac('sha256', process.env.JWT_ACCESS_SECRET || 'fallback-secret')
-    .update(expectedData)
-    .digest('hex');
-
-  if (signature !== expectedSignature) {
-    return res.status(400).json({ error: 'Invalid browser verification challenge signature.' });
-  }
-
-  // Verify challenge solution (proof of work)
-  const computedHash = slowHash(salt, nonce.toString());
-  if (computedHash % difficulty !== 0) {
-    return res.status(400).json({ error: 'Invalid browser verification challenge solution.' });
+  // 1. Verify Browser Challenge with Cloudflare Turnstile
+  const isHuman = await verifyTurnstileToken(turnstileToken, req.ip);
+  if (!isHuman) {
+    return res.status(400).json({ error: 'Security verification failed. Please try again.' });
   }
 
   // Find user
