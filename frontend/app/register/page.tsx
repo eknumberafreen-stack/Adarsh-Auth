@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -10,7 +10,6 @@ import { useAuthStore } from '@/lib/store'
 import { isValidUsername } from '@/lib/username'
 import toast from 'react-hot-toast'
 import ParticleField from '@/components/ParticleField'
-import Turnstile from '@/components/Turnstile'
 
 export default function Register() {
   const router = useRouter()
@@ -25,6 +24,79 @@ export default function Register() {
 
   const [verifyingBrowser, setVerifyingBrowser] = useState(false)
   const [verificationStep, setVerificationStep] = useState(0) // 0 = idle, 1 = verifying, 2 = verified
+  const turnstileContainerRef = useRef<HTMLDivElement>(null)
+  const turnstileWidgetIdRef = useRef<string | null>(null)
+  const [scriptLoaded, setScriptLoaded] = useState(false)
+
+  useEffect(() => {
+    if (!verifyingBrowser) return
+
+    let script = document.getElementById('cloudflare-turnstile-script') as HTMLScriptElement | null
+
+    if (!script) {
+      script = document.createElement('script')
+      script.id = 'cloudflare-turnstile-script'
+      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
+      script.async = true
+      script.defer = true
+      script.onload = () => setScriptLoaded(true)
+      document.body.appendChild(script)
+    } else {
+      setScriptLoaded(true)
+    }
+
+    let interval: NodeJS.Timeout
+    const initialize = () => {
+      if (window.turnstile && turnstileContainerRef.current && !turnstileWidgetIdRef.current) {
+        try {
+          const id = window.turnstile.render(turnstileContainerRef.current, {
+            sitekey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '0x4AAAAAAADgoaqh4zbu9o-tW',
+            callback: (token: string) => {
+              handleTurnstileVerified(token)
+            },
+            'error-callback': () => {
+              toast.error('Browser verification failed. Please try again.')
+              setVerifyingBrowser(false)
+              setVerificationStep(0)
+              setLoading(false)
+            },
+            'expired-callback': () => {
+              toast.error('Verification expired. Please try again.')
+              setVerifyingBrowser(false)
+              setVerificationStep(0)
+              setLoading(false)
+            },
+            theme: 'dark',
+            appearance: 'always',
+          })
+          turnstileWidgetIdRef.current = id
+        } catch (err) {
+          console.error('Failed to render Turnstile:', err)
+        }
+      }
+    }
+
+    if (window.turnstile) {
+      initialize()
+    } else {
+      interval = setInterval(() => {
+        if (window.turnstile) {
+          clearInterval(interval)
+          initialize()
+        }
+      }, 100)
+    }
+
+    return () => {
+      if (interval) clearInterval(interval)
+      if (window.turnstile && turnstileWidgetIdRef.current) {
+        try {
+          window.turnstile.remove(turnstileWidgetIdRef.current)
+          turnstileWidgetIdRef.current = null
+        } catch (e) {}
+      }
+    }
+  }, [verifyingBrowser, scriptLoaded])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -116,21 +188,12 @@ export default function Register() {
             </span>
 
             {verificationStep === 1 && (
-              <Turnstile
-                onVerify={handleTurnstileVerified}
-                onError={() => {
-                  toast.error('Browser verification failed. Please try again.')
-                  setVerifyingBrowser(false)
-                  setVerificationStep(0)
-                  setLoading(false)
-                }}
-                onExpire={() => {
-                  toast.error('Verification expired. Please try again.')
-                  setVerifyingBrowser(false)
-                  setVerificationStep(0)
-                  setLoading(false)
-                }}
-              />
+              <div className="flex justify-center w-full my-2 transition-all duration-300 transform scale-95 hover:scale-100">
+                <div 
+                  ref={turnstileContainerRef} 
+                  className="rounded-xl overflow-hidden shadow-[0_0_20px_rgba(99,102,241,0.15)] border border-indigo-500/20 bg-[#0f1015]/60 backdrop-blur-md" 
+                />
+              </div>
             )}
           </div>
 
@@ -330,4 +393,23 @@ export default function Register() {
       </div>
     </div>
   )
+}
+
+declare global {
+  interface Window {
+    turnstile?: {
+      render: (
+        container: string | HTMLElement,
+        options: {
+          sitekey: string
+          callback: (token: string) => void
+          'error-callback'?: () => void
+          'expired-callback'?: () => void
+          theme?: 'light' | 'dark' | 'auto'
+          appearance?: 'always' | 'execute' | 'interaction-only'
+        }
+      ) => string
+      remove: (widgetId: string) => void
+    }
+  }
 }
