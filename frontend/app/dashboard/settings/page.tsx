@@ -262,20 +262,81 @@ export default function Settings() {
   return (
     <div className="space-y-8">
       <style dangerouslySetInnerHTML={{__html: `
-        .premium-card {
-          background: linear-gradient(180deg, rgba(16, 17, 26, 0.75) 0%, rgba(9, 10, 15, 0.9) 100%);
-          border: 1px solid rgba(255, 255, 255, 0.05);
-          box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.02);
+        .premium-card-indigo {
+          background: linear-gradient(180deg, rgba(16, 17, 26, 0.7) 0%, rgba(9, 10, 15, 0.9) 100%);
+          border: 1px solid rgba(99, 102, 241, 0.18);
+          box-shadow: 0 15px 35px rgba(0, 0, 0, 0.55), 0 0 15px rgba(99, 102, 241, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.02);
           backdrop-filter: blur(20px);
           transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        .premium-card:hover {
-          border-color: rgba(99, 102, 241, 0.2);
-          box-shadow: 0 20px 40px rgba(99, 102, 241, 0.06);
+        .premium-card-indigo:hover {
+          border-color: rgba(99, 102, 241, 0.4);
+          box-shadow: 0 20px 45px rgba(99, 102, 241, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.04);
         }
+
+        .premium-card-cyan {
+          background: linear-gradient(180deg, rgba(16, 17, 26, 0.7) 0%, rgba(9, 10, 15, 0.9) 100%);
+          border: 1px solid rgba(6, 182, 212, 0.18);
+          box-shadow: 0 15px 35px rgba(0, 0, 0, 0.55), 0 0 15px rgba(6, 182, 212, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.02);
+          backdrop-filter: blur(20px);
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .premium-card-cyan:hover {
+          border-color: rgba(6, 182, 212, 0.4);
+          box-shadow: 0 20px 45px rgba(6, 182, 212, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        }
+
+        .premium-card-purple {
+          background: linear-gradient(180deg, rgba(16, 17, 26, 0.7) 0%, rgba(9, 10, 15, 0.9) 100%);
+          border: 1px solid rgba(168, 85, 247, 0.18);
+          box-shadow: 0 15px 35px rgba(0, 0, 0, 0.55), 0 0 15px rgba(168, 85, 247, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.02);
+          backdrop-filter: blur(20px);
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .premium-card-purple:hover {
+          border-color: rgba(168, 85, 247, 0.4);
+          box-shadow: 0 20px 45px rgba(168, 85, 247, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        }
+
+        .premium-card-emerald {
+          background: linear-gradient(180deg, rgba(16, 17, 26, 0.7) 0%, rgba(9, 10, 15, 0.9) 100%);
+          border: 1px solid rgba(16, 185, 129, 0.18);
+          box-shadow: 0 15px 35px rgba(0, 0, 0, 0.55), 0 0 15px rgba(16, 185, 129, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.02);
+          backdrop-filter: blur(20px);
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .premium-card-emerald:hover {
+          border-color: rgba(16, 185, 129, 0.4);
+          box-shadow: 0 20px 45px rgba(16, 185, 129, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        }
+
+        .premium-card-amber {
+          background: linear-gradient(180deg, rgba(16, 17, 26, 0.7) 0%, rgba(9, 10, 15, 0.9) 100%);
+          border: 1px solid rgba(245, 158, 11, 0.18);
+          box-shadow: 0 15px 35px rgba(0, 0, 0, 0.55), 0 0 15px rgba(245, 158, 11, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.02);
+          backdrop-filter: blur(20px);
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .premium-card-amber:hover {
+          border-color: rgba(245, 158, 11, 0.4);
+          box-shadow: 0 20px 45px rgba(245, 158, 11, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        }
+
+        .premium-card-rose {
+          background: linear-gradient(180deg, rgba(16, 17, 26, 0.7) 0%, rgba(9, 10, 15, 0.9) 100%);
+          border: 1px solid rgba(244, 63, 94, 0.18);
+          box-shadow: 0 15px 35px rgba(0, 0, 0, 0.55), 0 0 15px rgba(244, 63, 94, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.02);
+          backdrop-filter: blur(20px);
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .premium-card-rose:hover {
+          border-color: rgba(244, 63, 94, 0.4);
+          box-shadow: 0 20px 45px rgba(244, 63, 94, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        }
+
         .premium-input {
-          background: rgba(0, 0, 0, 0.3) !important;
-          border: 1px solid rgba(255, 255, 255, 0.06) !important;
+          background: rgba(0, 0, 0, 0.4) !important;
+          border: 1px solid rgba(255, 255, 255, 0.08) !important;
           border-radius: 12px !important;
           color: #fff !important;
           padding: 0.75rem 1rem !important;
@@ -283,21 +344,22 @@ export default function Settings() {
           width: 100%;
         }
         .premium-input:focus {
-          border-color: rgba(99, 102, 241, 0.4) !important;
-          box-shadow: 0 0 12px rgba(99, 102, 241, 0.1) !important;
-          background: rgba(0, 0, 0, 0.45) !important;
+          border-color: rgba(99, 102, 241, 0.5) !important;
+          box-shadow: 0 0 12px rgba(99, 102, 241, 0.2) !important;
+          background: rgba(0, 0, 0, 0.55) !important;
           outline: none !important;
         }
         .premium-input:read-only {
-          opacity: 0.65;
+          opacity: 0.7;
           cursor: not-allowed;
+          background: rgba(255, 255, 255, 0.02) !important;
         }
       `}} />
 
       {/* Header */}
       <section className="border-b border-white/[0.04] pb-6">
         <h1 className="text-3xl font-black text-white tracking-tight">System Settings</h1>
-        <p className="mt-2 text-xs font-semibold text-slate-400">
+        <p className="mt-2 text-sm font-semibold text-slate-400">
           Configure security credentials, auto-update links, hook alerts, custom error messages, and account profile details.
         </p>
       </section>
@@ -310,7 +372,7 @@ export default function Settings() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all duration-300 border ${
+              className={`flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-300 border ${
                 isActive
                   ? 'bg-indigo-500/10 border-indigo-500/35 text-indigo-300 shadow-[0_0_15px_rgba(99,102,241,0.08)]'
                   : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/[0.02]'
@@ -327,17 +389,17 @@ export default function Settings() {
       {activeTab === 'app-config' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Access Controls */}
-          <div className="premium-card p-6 rounded-2xl space-y-5">
-            <h2 className="text-sm font-black uppercase tracking-wider text-slate-200 flex items-center gap-2 border-b border-white/[0.04] pb-4">
+          <div className="premium-card-indigo p-6 rounded-2xl space-y-6">
+            <h2 className="text-base font-bold text-slate-200 flex items-center gap-2 border-b border-white/[0.04] pb-4">
               <ShieldCheckIcon className="w-5 h-5 text-indigo-400" />
               Access Controls
             </h2>
 
             {/* App Status Toggle */}
-            <div className="flex items-start justify-between p-4 bg-black/20 rounded-xl border border-white/[0.04]">
+            <div className="flex items-start justify-between p-4 bg-black/25 rounded-xl border border-white/[0.04]">
               <div className="flex-1 mr-4">
-                <p className="font-bold text-xs text-slate-200">App Status</p>
-                <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">
+                <p className="font-bold text-sm text-slate-200">App Status</p>
+                <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
                   Enable or disable the application, preventing client loaders from logging in.
                 </p>
               </div>
@@ -345,7 +407,7 @@ export default function Settings() {
                 onClick={toggleAppStatus}
                 disabled={!hasManageSettings}
                 className={`relative w-12 h-6 rounded-full transition-all flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed ${
-                  appStatus ? 'bg-indigo-600' : 'bg-slate-700'
+                  appStatus ? 'bg-indigo-600 shadow-[0_0_10px_rgba(79,70,229,0.4)]' : 'bg-slate-700'
                 }`}
               >
                 <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${
@@ -355,10 +417,10 @@ export default function Settings() {
             </div>
 
             {/* HWID Lock Toggle */}
-            <div className="flex items-start justify-between p-4 bg-black/20 rounded-xl border border-white/[0.04]">
+            <div className="flex items-start justify-between p-4 bg-black/25 rounded-xl border border-white/[0.04]">
               <div className="flex-1 mr-4">
-                <p className="font-bold text-xs text-slate-200">HWID Lock</p>
-                <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">
+                <p className="font-bold text-sm text-slate-200">HWID Lock</p>
+                <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
                   Lock users to their device hardware ID to prevent account sharing and leaks.
                 </p>
               </div>
@@ -366,7 +428,7 @@ export default function Settings() {
                 onClick={() => setHwidLock(!hwidLock)}
                 disabled={!hasManageSettings}
                 className={`relative w-12 h-6 rounded-full transition-all flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed ${
-                  hwidLock ? 'bg-indigo-600' : 'bg-slate-700'
+                  hwidLock ? 'bg-indigo-600 shadow-[0_0_10px_rgba(79,70,229,0.4)]' : 'bg-slate-700'
                 }`}
               >
                 <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${
@@ -376,10 +438,10 @@ export default function Settings() {
             </div>
 
             {/* Global Kill Switch (Amber Warning Level) */}
-            <div className="flex items-start justify-between p-4 bg-amber-500/[0.02] border border-amber-500/20 rounded-xl">
+            <div className="flex items-start justify-between p-4 bg-amber-500/[0.03] border border-amber-500/20 rounded-xl shadow-[0_0_15px_rgba(245,158,11,0.02)]">
               <div className="flex-1 mr-4">
-                <p className="font-bold text-xs text-amber-400">⚠️ Global Kill Switch</p>
-                <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">
+                <p className="font-bold text-sm text-amber-400">⚠️ Global Kill Switch</p>
+                <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
                   Enable maintenance mode — instantly block ALL client API requests platform-wide.
                 </p>
               </div>
@@ -387,7 +449,7 @@ export default function Settings() {
                 onClick={toggleMaintenanceMode}
                 disabled={!hasManageSettings}
                 className={`relative w-12 h-6 rounded-full transition-all flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed ${
-                  maintenanceMode ? 'bg-amber-600' : 'bg-slate-700'
+                  maintenanceMode ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.4)]' : 'bg-slate-700'
                 }`}
               >
                 <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${
@@ -397,13 +459,13 @@ export default function Settings() {
             </div>
 
             {/* Danger Zone (Crimson Destruction Level) */}
-            <div className="p-4 bg-rose-500/[0.02] border border-rose-500/15 rounded-xl">
-              <p className="font-black text-[10px] uppercase tracking-widest text-rose-400 mb-3">Danger Zone</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="p-4 bg-rose-500/[0.03] border border-rose-500/20 rounded-xl shadow-[0_0_15px_rgba(244,63,94,0.02)]">
+              <p className="font-bold text-xs uppercase tracking-widest text-rose-400 mb-3.5">Danger Zone</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {hasManageSettings && (
                   <button
                     onClick={regenerateSecret}
-                    className="w-full px-4 py-2.5 bg-amber-500/5 hover:bg-amber-500/10 border border-amber-500/20 text-amber-300 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2"
+                    className="w-full px-4 py-3 bg-amber-500/5 hover:bg-amber-500/10 border border-amber-500/20 text-amber-300 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(245,158,11,0.05)]"
                   >
                     <KeyIcon className="w-4 h-4" />
                     Regenerate Secret
@@ -412,7 +474,7 @@ export default function Settings() {
                 {isOwner && (
                   <button
                     onClick={deleteApp}
-                    className="w-full px-4 py-2.5 bg-rose-500/10 hover:bg-rose-500/15 border border-rose-500/20 hover:border-rose-500/40 text-rose-300 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2"
+                    className="w-full px-4 py-3 bg-rose-500/10 hover:bg-rose-500/15 border border-rose-500/20 hover:border-rose-500/40 text-rose-300 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(244,63,94,0.05)]"
                   >
                     <TrashIcon className="w-4 h-4" />
                     Delete Application
@@ -423,31 +485,31 @@ export default function Settings() {
           </div>
 
           {/* Download & Update */}
-          <div className="premium-card p-6 rounded-2xl space-y-5">
-            <h2 className="text-sm font-black uppercase tracking-wider text-slate-200 flex items-center gap-2 border-b border-white/[0.04] pb-4">
-              <ArrowDownTrayIcon className="w-5 h-5 text-indigo-400" />
+          <div className="premium-card-cyan p-6 rounded-2xl space-y-6">
+            <h2 className="text-base font-bold text-slate-200 flex items-center gap-2 border-b border-white/[0.04] pb-4">
+              <ArrowDownTrayIcon className="w-5 h-5 text-cyan-400" />
               Download & Update
             </h2>
 
             {/* Version */}
-            <div className="p-4 bg-black/20 rounded-xl border border-white/[0.04]">
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-2">Application Version</p>
+            <div className="p-4 bg-black/25 rounded-xl border border-white/[0.04]">
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Application Version</p>
               {editingVersion ? (
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={newVersion}
                     onChange={(e) => setNewVersion(e.target.value)}
-                    className="premium-input text-xs"
+                    className="premium-input text-sm font-semibold"
                     placeholder="1.0"
                   />
-                  <button onClick={saveVersion} className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white shrink-0 transition-all">
+                  <button onClick={saveVersion} className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white shrink-0 transition-all shadow-[0_0_10px_rgba(6,182,212,0.3)]">
                     <CheckIcon className="w-4 h-4" />
                   </button>
                 </div>
               ) : (
                 <div className="flex items-center justify-between">
-                  <span className="text-2xl font-black text-white tracking-tight">{version || '1.0'}</span>
+                  <span className="text-3xl font-black text-white tracking-tight">{version || '1.0'}</span>
                   {hasManageSettings && (
                     <button
                       onClick={() => setEditingVersion(true)}
@@ -461,11 +523,11 @@ export default function Settings() {
             </div>
 
             {/* Auto-Update Link */}
-            <div className="p-4 bg-black/20 rounded-xl border border-white/[0.04]">
+            <div className="p-4 bg-black/25 rounded-xl border border-white/[0.04]">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Auto-Update Download Link</p>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Auto-Update Download Link</p>
                 {hasManageSettings && (
-                  <button onClick={saveVersion} className="text-[10px] font-black uppercase tracking-wider text-indigo-400 hover:text-indigo-300">Save Link</button>
+                  <button onClick={saveVersion} className="text-xs font-bold uppercase tracking-wider text-cyan-400 hover:text-cyan-300">Save Link</button>
                 )}
               </div>
               <input
@@ -473,40 +535,40 @@ export default function Settings() {
                 value={downloadUrl}
                 onChange={(e) => setDownloadUrl(e.target.value)}
                 readOnly={!hasManageSettings}
-                className="premium-input text-xs font-mono"
+                className="premium-input text-sm font-mono"
                 placeholder="https://example.com/update.zip"
               />
-              <p className="text-[10px] text-slate-500 mt-2 leading-relaxed">
-                Loader clients will automatically prompt users with this URL on mismatch.
+              <p className="text-xs text-slate-400 mt-2.5 leading-relaxed">
+                Loader clients will automatically prompt users with this URL on version mismatch.
               </p>
             </div>
 
             {/* App Info */}
             {selectedApp && (
-              <div className="p-4 bg-black/20 rounded-xl border border-white/[0.04] space-y-3">
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Application Registry Info</p>
-                <div className="grid grid-cols-2 gap-4 text-xs">
+              <div className="p-4 bg-black/25 rounded-xl border border-white/[0.04] space-y-4.5">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Application Registry Info</p>
+                <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <p className="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Name</p>
-                    <p className="font-bold text-slate-200 mt-0.5">{selectedApp.name}</p>
+                    <p className="text-slate-500 text-xs font-semibold uppercase tracking-wider">Name</p>
+                    <p className="font-bold text-slate-200 mt-1">{selectedApp.name}</p>
                   </div>
                   <div>
-                    <p className="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Status</p>
-                    <span className={`inline-block mt-0.5 px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider ${
+                    <p className="text-slate-500 text-xs font-semibold uppercase tracking-wider">Status</p>
+                    <span className={`inline-block mt-1 px-2.5 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider ${
                       selectedApp.status === 'active'
-                        ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
+                        ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.05)]'
                         : 'bg-yellow-500/10 border border-yellow-500/20 text-yellow-400'
                     }`}>
                       {selectedApp.status}
                     </span>
                   </div>
                   <div>
-                    <p className="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Registered Users</p>
-                    <p className="font-bold text-slate-200 mt-0.5">{selectedApp.userCount || 0}</p>
+                    <p className="text-slate-500 text-xs font-semibold uppercase tracking-wider">Registered Users</p>
+                    <p className="font-bold text-slate-200 mt-1">{selectedApp.userCount || 0}</p>
                   </div>
                   <div>
-                    <p className="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Created</p>
-                    <p className="font-bold text-slate-300 text-xs mt-0.5">{new Date(selectedApp.createdAt).toLocaleDateString()}</p>
+                    <p className="text-slate-500 text-xs font-semibold uppercase tracking-wider">Created</p>
+                    <p className="font-bold text-slate-300 text-sm mt-1">{new Date(selectedApp.createdAt).toLocaleDateString()}</p>
                   </div>
                 </div>
               </div>
@@ -518,27 +580,27 @@ export default function Settings() {
       {/* Webhooks Tab */}
       {activeTab === 'webhooks' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="premium-card p-6 rounded-2xl space-y-5">
-            <h2 className="text-sm font-black uppercase tracking-wider text-slate-200 flex items-center gap-2 border-b border-white/[0.04] pb-4">
-              <BellIcon className="w-5 h-5 text-indigo-400" />
+          <div className="premium-card-purple p-6 rounded-2xl space-y-6">
+            <h2 className="text-base font-bold text-slate-200 flex items-center gap-2 border-b border-white/[0.04] pb-4">
+              <BellIcon className="w-5 h-5 text-purple-400" />
               Discord Integration
             </h2>
-            <p className="text-xs text-slate-400 leading-relaxed">
+            <p className="text-sm text-slate-400 leading-relaxed">
               Broadcast security heartbeats, audit events, and login attempts directly into Discord.
             </p>
 
             {hasManageSettings ? (
               <>
-                <div className="p-4 bg-black/20 rounded-xl border border-white/[0.04] space-y-3">
-                  <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400">Webhook URL</label>
+                <div className="p-4 bg-black/25 rounded-xl border border-white/[0.04] space-y-3">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">Webhook URL</label>
                   <input
                     type="text"
                     value={discordWebhook}
                     onChange={(e) => setDiscordWebhook(e.target.value)}
-                    className="premium-input text-xs font-mono"
+                    className="premium-input text-sm font-mono"
                     placeholder="https://discord.com/api/webhooks/..."
                   />
-                  <p className="text-[10px] text-slate-500 leading-normal">
+                  <p className="text-xs text-slate-500 leading-normal">
                     Server Settings → Integrations → Webhooks → Copy Webhook URL
                   </p>
                 </div>
@@ -547,14 +609,14 @@ export default function Settings() {
                   <button
                     onClick={saveWebhook}
                     disabled={webhookSaving}
-                    className="flex-1 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all"
+                    className="flex-1 px-4 py-3 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-[0_0_10px_rgba(168,85,247,0.2)]"
                   >
                     {webhookSaving ? 'Saving...' : '💾 Save Webhook'}
                   </button>
                   <button
                     onClick={testWebhook}
                     disabled={webhookTesting}
-                    className="flex-1 px-4 py-2.5 bg-white/5 hover:bg-white/10 disabled:opacity-50 border border-white/10 text-slate-300 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all"
+                    className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 disabled:opacity-50 border border-white/10 text-slate-300 rounded-xl text-xs font-bold uppercase tracking-wider transition-all"
                   >
                     {webhookTesting ? 'Sending...' : '🧪 Test Dispatch'}
                   </button>
@@ -567,15 +629,15 @@ export default function Settings() {
                 )}
               </>
             ) : (
-              <div className="p-8 rounded-xl border border-dashed border-white/10 text-center text-slate-500 text-xs">
+              <div className="p-8 rounded-xl border border-dashed border-white/10 text-center text-slate-500 text-sm">
                 🔒 Configured URL is encrypted. Needs management scope.
               </div>
             )}
           </div>
 
-          <div className="premium-card p-6 rounded-2xl space-y-5">
-            <h2 className="text-sm font-black uppercase tracking-wider text-slate-200 border-b border-white/[0.04] pb-4">📋 Monitored System Events</h2>
-            <div className="space-y-3">
+          <div className="premium-card-emerald p-6 rounded-2xl space-y-6">
+            <h2 className="text-base font-bold text-slate-200 border-b border-white/[0.04] pb-4">📋 Monitored System Events</h2>
+            <div className="space-y-3.5">
               {[
                 { emoji: '✅', event: 'Login Success',   color: 'text-emerald-400',  desc: 'User metadata, IP routing, active HWID validation' },
                 { emoji: '🆕', event: 'New Registration', color: 'text-indigo-400',   desc: 'User creation, profile binding, code claim' },
@@ -583,11 +645,11 @@ export default function Settings() {
                 { emoji: '🔨', event: 'Banned Attempt',   color: 'text-yellow-400', desc: 'Blacklist breach block tracking' },
                 { emoji: '⚠️', event: 'HWID Mismatch',   color: 'text-amber-400', desc: 'Hardware mismatch alert telemetry' },
               ].map((e) => (
-                <div key={e.event} className="flex items-start gap-3 p-3 bg-black/20 rounded-xl border border-white/[0.04]">
+                <div key={e.event} className="flex items-start gap-3.5 p-3.5 bg-black/25 rounded-xl border border-white/[0.04]">
                   <span className="text-lg">{e.emoji}</span>
                   <div>
-                    <p className={`font-black text-xs uppercase tracking-wider ${e.color}`}>{e.event}</p>
-                    <p className="text-[10px] text-slate-500 mt-0.5 leading-normal">{e.desc}</p>
+                    <p className={`font-bold text-xs uppercase tracking-wider ${e.color}`}>{e.event}</p>
+                    <p className="text-xs text-slate-400 mt-1 leading-normal">{e.desc}</p>
                   </div>
                 </div>
               ))}
@@ -599,79 +661,79 @@ export default function Settings() {
       {/* Account Tab */}
       {activeTab === 'account' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="premium-card p-6 rounded-2xl space-y-5">
-            <h2 className="text-sm font-black uppercase tracking-wider text-slate-200 flex items-center gap-2 border-b border-white/[0.04] pb-4">
+          <div className="premium-card-indigo p-6 rounded-2xl space-y-5">
+            <h2 className="text-base font-bold text-slate-200 flex items-center gap-2 border-b border-white/[0.04] pb-4">
               <UserCircleIcon className="w-5 h-5 text-indigo-400" />
               Account Registry Information
             </h2>
             <div>
-              <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-2">Email Address</label>
-              <input type="email" value={user?.email || ''} className="premium-input text-xs" readOnly />
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Email Address</label>
+              <input type="email" value={user?.email || ''} className="premium-input text-sm font-semibold" readOnly />
             </div>
             <div>
-              <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-2">Username</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Username</label>
               <input
                 type="text"
                 value={newUsername}
                 onChange={(e) => setNewUsername(e.target.value)}
-                className="premium-input text-xs"
+                className="premium-input text-sm font-semibold"
                 placeholder="e.g. cool_user-123"
               />
               {newUsername !== '' && !isValidUsername(newUsername) && (
-                <p className="text-rose-400 text-[10px] mt-1 leading-normal">
+                <p className="text-rose-400 text-xs mt-1.5 leading-normal">
                   Requires 3–30 lowercase letters, digits, underscores, or hyphens.
                 </p>
               )}
               <button
                 onClick={saveUsername}
                 disabled={usernameSaving || (newUsername !== '' && !isValidUsername(newUsername))}
-                className="mt-3 w-full px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all"
+                className="mt-4.5 w-full px-4 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-[0_0_10px_rgba(79,70,229,0.25)]"
               >
                 {usernameSaving ? 'Updating...' : 'Save Username'}
               </button>
             </div>
             <div>
-              <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-2">User ID ID</label>
-              <input type="text" value={user?.id || ''} className="premium-input text-xs font-mono" readOnly />
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">User ID</label>
+              <input type="text" value={user?.id || ''} className="premium-input text-sm font-mono text-slate-300" readOnly />
             </div>
           </div>
 
-          <div className="premium-card p-6 rounded-2xl space-y-5">
-            <h2 className="text-sm font-black uppercase tracking-wider text-slate-200 flex items-center gap-2 border-b border-white/[0.04] pb-4">
+          <div className="premium-card-indigo p-6 rounded-2xl space-y-5">
+            <h2 className="text-base font-bold text-slate-200 flex items-center gap-2 border-b border-white/[0.04] pb-4">
               <KeyIcon className="w-5 h-5 text-indigo-400" />
               Credential Shift
             </h2>
             <div>
-              <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-2">Current Password</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Current Password</label>
               <input
                 type="password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
-                className="premium-input text-xs"
+                className="premium-input text-sm font-semibold"
                 placeholder="••••••••"
               />
             </div>
             <div>
-              <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-2">New Password</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">New Password</label>
               <input
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className="premium-input text-xs"
+                className="premium-input text-sm font-semibold"
                 placeholder="••••••••"
               />
             </div>
             <div>
-              <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-2">Confirm New Password</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Confirm New Password</label>
               <input
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="premium-input text-xs"
+                className="premium-input text-sm font-semibold"
                 placeholder="••••••••"
               />
             </div>
-            <button className="w-full px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all">Update Password</button>
+            <button className="w-full px-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-[0_0_10px_rgba(79,70,229,0.25)]">Update Password</button>
           </div>
         </div>
       )}
@@ -679,9 +741,9 @@ export default function Settings() {
       {/* Security Tab */}
       {activeTab === 'security' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="premium-card p-6 rounded-2xl space-y-5">
-            <h2 className="text-sm font-black uppercase tracking-wider text-slate-200 flex items-center gap-2 border-b border-white/[0.04] pb-4">
-              <ShieldCheckIcon className="w-5 h-5 text-indigo-400" />
+          <div className="premium-card-cyan p-6 rounded-2xl space-y-5">
+            <h2 className="text-base font-bold text-slate-200 flex items-center gap-2 border-b border-white/[0.04] pb-4">
+              <ShieldCheckIcon className="w-5 h-5 text-cyan-400" />
               Security Features
             </h2>
             {[
@@ -690,35 +752,35 @@ export default function Settings() {
               { label: 'Rate Limiting', desc: 'Multi-layer API call limits active on registration, login & updates', active: true },
               { label: 'Audit Logging', desc: 'Historical operational logs written to DB registries', active: true },
             ].map((item) => (
-              <div key={item.label} className="flex items-start justify-between p-4 bg-black/20 rounded-xl border border-white/[0.04]">
+              <div key={item.label} className="flex items-start justify-between p-4 bg-black/25 rounded-xl border border-white/[0.04]">
                 <div className="flex-1 mr-4">
-                  <p className="font-bold text-xs text-slate-200">{item.label}</p>
-                  <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">{item.desc}</p>
+                  <p className="font-bold text-sm text-slate-200">{item.label}</p>
+                  <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">{item.desc}</p>
                 </div>
-                <span className="px-2.5 py-0.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase tracking-wider rounded-md flex-shrink-0">
+                <span className="px-2.5 py-0.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-wider rounded-md flex-shrink-0 shadow-[0_0_8px_rgba(16,185,129,0.05)]">
                   Active
                 </span>
               </div>
             ))}
           </div>
 
-          <div className="premium-card p-6 rounded-2xl space-y-5">
-            <h2 className="text-sm font-black uppercase tracking-wider text-slate-200 flex items-center gap-2 border-b border-white/[0.04] pb-4">
-              <BellIcon className="w-5 h-5 text-indigo-400" />
+          <div className="premium-card-cyan p-6 rounded-2xl space-y-5">
+            <h2 className="text-base font-bold text-slate-200 flex items-center gap-2 border-b border-white/[0.04] pb-4">
+              <BellIcon className="w-5 h-5 text-cyan-400" />
               Cryptographic Policies
             </h2>
-            <div className="space-y-4 text-xs text-slate-400">
-              <div className="p-4 bg-black/20 rounded-xl border border-white/[0.04]">
+            <div className="space-y-4.5 text-sm text-slate-400">
+              <div className="p-4 bg-black/25 rounded-xl border border-white/[0.04]">
                 <p className="text-slate-200 font-bold mb-1">Request Verification</p>
-                <p className="text-[10px] leading-relaxed">Requests require signed bodies using the application private key payload to guarantee message integrity.</p>
+                <p className="text-xs leading-relaxed">Requests require signed bodies using the application private key payload to guarantee message integrity.</p>
               </div>
-              <div className="p-4 bg-black/20 rounded-xl border border-white/[0.04]">
+              <div className="p-4 bg-black/25 rounded-xl border border-white/[0.04]">
                 <p className="text-slate-200 font-bold mb-1">Replay Prevention window</p>
-                <p className="text-[10px] leading-relaxed">Server enforces strict timestamps. Replay attempts outside this timeframe trigger validation failures.</p>
+                <p className="text-xs leading-relaxed">Server enforces strict timestamps. Replay attempts outside this timeframe trigger validation failures.</p>
               </div>
-              <div className="p-4 bg-black/20 rounded-xl border border-white/[0.04]">
+              <div className="p-4 bg-black/25 rounded-xl border border-white/[0.04]">
                 <p className="text-slate-200 font-bold mb-1">Hardware ID Lockouts</p>
-                <p className="text-[10px] leading-relaxed">Client bounds user credential arrays to specific hardware UUID metrics. Reset keys to re-bind.</p>
+                <p className="text-xs leading-relaxed">Client bounds user credential arrays to specific hardware UUID metrics. Reset keys to re-bind.</p>
               </div>
             </div>
           </div>
@@ -728,14 +790,14 @@ export default function Settings() {
       {/* Messages Tab */}
       {activeTab === 'messages' && (
         <div className="space-y-6">
-          <div className="premium-card p-6 rounded-2xl space-y-5">
+          <div className="premium-card-amber p-6 rounded-2xl space-y-5">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between border-b border-white/[0.04] pb-4 gap-4">
               <div>
-                <h2 className="text-sm font-black uppercase tracking-wider text-slate-200 flex items-center gap-2">
-                  <ChatBubbleBottomCenterTextIcon className="w-5 h-5 text-indigo-400" />
+                <h2 className="text-base font-bold text-slate-200 flex items-center gap-2">
+                  <ChatBubbleBottomCenterTextIcon className="w-5 h-5 text-amber-400" />
                   Alert Override Registry
                 </h2>
-                <p className="text-[10px] text-slate-500 mt-1">
+                <p className="text-xs text-slate-400 mt-1.5">
                   Customize text values returned to your loader client for specific error events.
                 </p>
               </div>
@@ -743,14 +805,14 @@ export default function Settings() {
                 <button
                   onClick={saveMessages}
                   disabled={messagesSaving}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all shadow-[0_4px_15px_rgba(99,102,241,0.2)] shrink-0"
+                  className="px-5 py-3 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-[0_0_12px_rgba(245,158,11,0.2)] shrink-0"
                 >
                   {messagesSaving ? 'Saving...' : '💾 Save Custom Alerts'}
                 </button>
               )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4.5">
               {[
                 { id: 'appDisabled', label: 'Application is Disabled', desc: 'Triggered when the app status is set to inactive' },
                 { id: 'appPaused', label: 'Application is Paused', desc: 'Triggered when maintenance mode is active' },
@@ -766,17 +828,17 @@ export default function Settings() {
                 { id: 'accountPaused', label: 'Subscription Paused', desc: 'Triggered when a specific user is paused by staff' },
                 { id: 'versionMismatch', label: 'Version Mismatch', desc: 'Triggered when the loader version is outdated' },
               ].map((field) => (
-                <div key={field.id} className="p-4 bg-black/20 rounded-xl border border-white/[0.04] space-y-2">
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">{field.label}</label>
+                <div key={field.id} className="p-4 bg-black/25 rounded-xl border border-white/[0.04] space-y-2">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">{field.label}</label>
                   <input
                     type="text"
                     value={customMessages[field.id] || ''}
                     onChange={(e) => setCustomMessages({ ...customMessages, [field.id]: e.target.value })}
                     readOnly={!hasManageSettings}
-                    className="premium-input text-xs font-mono"
+                    className="premium-input text-sm font-semibold font-mono"
                     placeholder={hasManageSettings ? `Enter custom message...` : "Permission denied"}
                   />
-                  <p className="text-[9px] text-slate-500 font-medium leading-relaxed">{field.desc}</p>
+                  <p className="text-xs text-slate-400 font-medium leading-relaxed">{field.desc}</p>
                 </div>
               ))}
             </div>
@@ -790,9 +852,9 @@ export default function Settings() {
           <div className="w-full max-w-sm bg-[#0a0b10] border border-white/[0.08] rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="flex flex-col items-center text-center">
               <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 border ${
-                confirmModal.type === 'danger' ? 'bg-rose-500/10 border-rose-500/20 text-rose-400' :
-                confirmModal.type === 'warning' ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' :
-                'bg-indigo-500/10 border-indigo-500/20 text-indigo-400'
+                confirmModal.type === 'danger' ? 'bg-rose-500/10 border-rose-500/20 text-rose-400 shadow-[0_0_12px_rgba(244,63,94,0.15)]' :
+                confirmModal.type === 'warning' ? 'bg-amber-500/10 border-amber-500/20 text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.15)]' :
+                'bg-indigo-500/10 border-indigo-500/20 text-indigo-400 shadow-[0_0_12px_rgba(99,102,241,0.15)]'
               }`}>
                 {confirmModal.type === 'danger' ? '⚡' : confirmModal.type === 'warning' ? '⚠️' : '🔄'}
               </div>
@@ -800,11 +862,11 @@ export default function Settings() {
               <p className="text-xs text-slate-400 mb-8 leading-relaxed">{confirmModal.message}</p>
               <div className="flex gap-3 w-full">
                 <button onClick={() => setConfirmModal(p => ({ ...p, show: false }))}
-                  className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-slate-300 rounded-2xl text-[10px] font-black uppercase tracking-wider transition-all border border-white/10">
+                  className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-slate-300 rounded-2xl text-[11px] font-bold uppercase tracking-wider transition-all border border-white/10">
                   Cancel
                 </button>
                 <button onClick={confirmModal.onConfirm}
-                  className={`flex-1 px-4 py-3 rounded-2xl text-[10px] font-black uppercase tracking-wider text-white transition-all shadow-lg ${
+                  className={`flex-1 px-4 py-3 rounded-2xl text-[11px] font-bold uppercase tracking-wider text-white transition-all shadow-lg ${
                     confirmModal.type === 'danger' ? 'bg-rose-600 hover:bg-rose-500 shadow-rose-900/20' :
                     confirmModal.type === 'warning' ? 'bg-amber-600 hover:bg-amber-500 shadow-amber-900/20' :
                     'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-900/20'
@@ -815,7 +877,6 @@ export default function Settings() {
             </div>
           </div>
         </div>
-      )}
     </div>
   )
 }
