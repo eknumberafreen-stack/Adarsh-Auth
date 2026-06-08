@@ -185,38 +185,80 @@ export default function Dashboard() {
           background-size: 200% 200%;
           animation: subtle-drift 15s ease infinite;
         }
-        .premium-card {
-          background: linear-gradient(180deg, rgba(16, 17, 26, 0.75) 0%, rgba(9, 10, 15, 0.9) 100%);
-          border: 1px solid rgba(255, 255, 255, 0.05);
-          box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.02);
+        .premium-card-indigo {
+          background: linear-gradient(180deg, rgba(16, 17, 26, 0.7) 0%, rgba(9, 10, 15, 0.9) 100%);
+          border: 1px solid rgba(99, 102, 241, 0.18);
+          box-shadow: 0 15px 35px rgba(0, 0, 0, 0.55), 0 0 15px rgba(99, 102, 241, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.02);
           backdrop-filter: blur(20px);
           transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        .premium-card:hover {
-          border-color: rgba(99, 102, 241, 0.25);
-          box-shadow: 0 20px 40px rgba(99, 102, 241, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        .premium-card-indigo:hover {
+          border-color: rgba(99, 102, 241, 0.4);
+          box-shadow: 0 20px 45px rgba(99, 102, 241, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.04);
           transform: translateY(-2px);
         }
-        .glow-hover-blue:hover {
-          border-color: rgba(56, 189, 248, 0.3) !important;
-          box-shadow: 0 20px 40px rgba(56, 189, 248, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
-        }
-        .glow-hover-amber:hover {
-          border-color: rgba(245, 158, 11, 0.3) !important;
-          box-shadow: 0 20px 40px rgba(245, 158, 11, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
-        }
-        .glow-hover-emerald:hover {
-          border-color: rgba(16, 185, 129, 0.3) !important;
-          box-shadow: 0 20px 40px rgba(16, 185, 129, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
-        }
-        .quick-action-btn {
-          background: rgba(255, 255, 255, 0.01);
-          border: 1px solid rgba(255, 255, 255, 0.04);
+
+        .premium-card-cyan {
+          background: linear-gradient(180deg, rgba(16, 17, 26, 0.7) 0%, rgba(9, 10, 15, 0.9) 100%);
+          border: 1px solid rgba(6, 182, 212, 0.18);
+          box-shadow: 0 15px 35px rgba(0, 0, 0, 0.55), 0 0 15px rgba(6, 182, 212, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.02);
+          backdrop-filter: blur(20px);
           transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
+        .premium-card-cyan:hover {
+          border-color: rgba(6, 182, 212, 0.4);
+          box-shadow: 0 20px 45px rgba(6, 182, 212, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+          transform: translateY(-2px);
+        }
+
+        .premium-card-purple {
+          background: linear-gradient(180deg, rgba(16, 17, 26, 0.7) 0%, rgba(9, 10, 15, 0.9) 100%);
+          border: 1px solid rgba(168, 85, 247, 0.18);
+          box-shadow: 0 15px 35px rgba(0, 0, 0, 0.55), 0 0 15px rgba(168, 85, 247, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.02);
+          backdrop-filter: blur(20px);
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .premium-card-purple:hover {
+          border-color: rgba(168, 85, 247, 0.4);
+          box-shadow: 0 20px 45px rgba(168, 85, 247, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+          transform: translateY(-2px);
+        }
+
+        .premium-card-emerald {
+          background: linear-gradient(180deg, rgba(16, 17, 26, 0.7) 0%, rgba(9, 10, 15, 0.9) 100%);
+          border: 1px solid rgba(16, 185, 129, 0.18);
+          box-shadow: 0 15px 35px rgba(0, 0, 0, 0.55), 0 0 15px rgba(16, 185, 129, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.02);
+          backdrop-filter: blur(20px);
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .premium-card-emerald:hover {
+          border-color: rgba(16, 185, 129, 0.4);
+          box-shadow: 0 20px 45px rgba(16, 185, 129, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+          transform: translateY(-2px);
+        }
+
+        .premium-card-amber {
+          background: linear-gradient(180deg, rgba(16, 17, 26, 0.7) 0%, rgba(9, 10, 15, 0.9) 100%);
+          border: 1px solid rgba(245, 158, 11, 0.18);
+          box-shadow: 0 15px 35px rgba(0, 0, 0, 0.55), 0 0 15px rgba(245, 158, 11, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.02);
+          backdrop-filter: blur(20px);
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .premium-card-amber:hover {
+          border-color: rgba(245, 158, 11, 0.4);
+          box-shadow: 0 20px 45px rgba(245, 158, 11, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+          transform: translateY(-2px);
+        }
+
+        .quick-action-btn {
+          background: rgba(0, 0, 0, 0.45);
+          border: 1px solid rgba(255, 255, 255, 0.06);
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          border-radius: 14px;
+        }
         .quick-action-btn:hover {
-          background: rgba(255, 255, 255, 0.03);
-          border-color: rgba(255, 255, 255, 0.12);
+          background: rgba(255, 255, 255, 0.02);
+          border-color: rgba(255, 255, 255, 0.14);
         }
       `}} />
 
@@ -233,7 +275,7 @@ export default function Dashboard() {
 
         <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-indigo-300">
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-indigo-300">
               <span className="h-1.5 w-1.5 rounded-full bg-indigo-400 animate-pulse" />
               Operational Console
             </div>
@@ -244,14 +286,14 @@ export default function Dashboard() {
               transition={{ delay: 0.2 }}
               className="mt-3.5 text-3xl font-black text-white md:text-4xl tracking-tight"
             >
-              <span className="text-slate-400 font-medium text-lg block mb-0.5">{getGreeting()},</span>
+              <span className="text-slate-400 font-semibold text-lg block mb-0.5">{getGreeting()},</span>
               {getDisplayName(user?.username ?? null, user?.email ?? '')}
             </motion.h1>
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.3 }}
-              className="mt-3.5 max-w-lg text-xs leading-relaxed text-slate-400/90 font-medium"
+              className="mt-3.5 max-w-lg text-sm leading-relaxed text-slate-400/90 font-medium"
             >
               Welcome to your Adarsh Auth control center. Monitor your applications, manage users and licenses, and track live sessions — all from one unified dashboard.
             </motion.p>
@@ -264,9 +306,9 @@ export default function Dashboard() {
             transition={{ delay: 0.4 }}
             className="flex flex-col items-center gap-1 rounded-2xl border border-white/[0.05] bg-black/45 px-8 py-5 backdrop-blur-xl shadow-[inset_0_4px_12px_rgba(0,0,0,0.6)] min-w-[220px]"
           >
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Local Time</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Local Time</p>
             <p className="font-mono text-3xl font-black tracking-wider text-white select-none drop-shadow-[0_2px_8px_rgba(255,255,255,0.05)]">{formatTime(currentTime)}</p>
-            <p className="text-[11px] text-slate-400/80 font-bold">{formatDate(currentTime)}</p>
+            <p className="text-xs text-slate-400/80 font-bold">{formatDate(currentTime)}</p>
           </motion.div>
         </div>
       </motion.section>
@@ -288,11 +330,11 @@ export default function Dashboard() {
             className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
           >
             {statCards.map((stat, idx) => {
-              const borderGlows = [
-                'glow-hover-blue',
-                'glow-hover-amber',
-                'glow-hover-blue',
-                'glow-hover-emerald'
+              const cardStyles = [
+                'premium-card-indigo',
+                'premium-card-amber',
+                'premium-card-cyan',
+                'premium-card-emerald'
               ]
               return (
                 <motion.div
@@ -300,7 +342,7 @@ export default function Dashboard() {
                   transition={{ duration: 0.4 }}
                   key={stat.name}
                   onClick={() => router.push(stat.href)}
-                  className={`group relative cursor-pointer overflow-hidden rounded-2xl p-5 premium-card ${borderGlows[idx]}`}
+                  className={`group relative cursor-pointer overflow-hidden rounded-2xl p-5 ${cardStyles[idx]}`}
                 >
                   {/* Top line laser hover glow */}
                   <div className={`absolute top-0 left-0 right-0 h-[1.5px] bg-gradient-to-r ${stat.color} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
@@ -309,13 +351,13 @@ export default function Dashboard() {
                   <div className={`pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-gradient-to-br ${stat.color} opacity-0 blur-[40px] transition-opacity duration-500 group-hover:opacity-15`} />
 
                   <div className="relative z-10 flex items-center justify-between">
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">{stat.name}</p>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{stat.name}</p>
                     <div className={`rounded-xl ${stat.bg} p-2 border border-white/[0.04]`}>
                       <stat.icon className="h-4 w-4 text-slate-300" />
                     </div>
                   </div>
                   <p className="relative z-10 mt-3 text-3xl font-black text-white tracking-tight">{stat.value}</p>
-                  <div className="relative z-10 mt-3.5 flex items-center gap-1 text-[11px] font-bold text-slate-500 group-hover:text-indigo-300 transition-colors uppercase tracking-wider">
+                  <div className="relative z-10 mt-3.5 flex items-center gap-1 text-xs font-bold text-slate-400 group-hover:text-indigo-300 transition-colors uppercase tracking-wider">
                     <span>View details</span>
                     <ArrowRightIcon className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
                   </div>
@@ -332,21 +374,21 @@ export default function Dashboard() {
             className="grid gap-4 md:grid-cols-4"
           >
             {[
-              { label: 'Licenses Used', value: `${stats.usedLicenses}/${stats.licenses}`, percent: licenseUsage, color: 'bg-amber-400', shadow: 'shadow-[0_0_10px_rgba(245,158,11,0.5)]', icon: KeyIcon },
-              { label: 'Healthy Users', value: `${Math.max(stats.users - stats.bannedUsers, 0)}/${stats.users}`, percent: healthyUsers, color: 'bg-emerald-400', shadow: 'shadow-[0_0_10px_rgba(16,185,129,0.5)]', icon: CheckCircleIcon },
-              { label: 'Banned Users', value: stats.bannedUsers, percent: stats.users > 0 ? Math.round((stats.bannedUsers / stats.users) * 100) : 0, color: 'bg-red-500', shadow: 'shadow-[0_0_10px_rgba(239,68,68,0.5)]', icon: ExclamationTriangleIcon },
-              { label: 'Total Sessions', value: stats.sessions, percent: null, color: '', shadow: '', icon: ClockIcon },
+              { label: 'Licenses Used', value: `${stats.usedLicenses}/${stats.licenses}`, percent: licenseUsage, color: 'bg-amber-400', shadow: 'shadow-[0_0_10px_rgba(245,158,11,0.5)]', icon: KeyIcon, cardClass: 'premium-card-amber' },
+              { label: 'Healthy Users', value: `${Math.max(stats.users - stats.bannedUsers, 0)}/${stats.users}`, percent: healthyUsers, color: 'bg-emerald-400', shadow: 'shadow-[0_0_10px_rgba(16,185,129,0.5)]', icon: CheckCircleIcon, cardClass: 'premium-card-emerald' },
+              { label: 'Banned Users', value: stats.bannedUsers, percent: stats.users > 0 ? Math.round((stats.bannedUsers / stats.users) * 100) : 0, color: 'bg-rose-500', shadow: 'shadow-[0_0_10px_rgba(244,63,94,0.5)]', icon: ExclamationTriangleIcon, cardClass: 'premium-card-rose' },
+              { label: 'Total Sessions', value: stats.sessions, percent: null, color: '', shadow: '', icon: ClockIcon, cardClass: 'premium-card-indigo' },
             ].map((item, i) => (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.25 + i * 0.06 }}
                 key={item.label}
-                className="rounded-2xl border border-white/[0.04] bg-[#090a0f]/60 p-5 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.01)]"
+                className={`rounded-2xl p-5 ${item.cardClass}`}
               >
                 <div className="flex items-center gap-2 mb-3">
-                  <item.icon className="h-4 w-4 text-slate-500" />
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">{item.label}</p>
+                  <item.icon className="h-4 w-4 text-slate-400" />
+                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400">{item.label}</p>
                 </div>
                 <p className="text-2xl font-black text-white tracking-tight">{item.value}</p>
                 {item.percent !== null && (
@@ -359,7 +401,7 @@ export default function Dashboard() {
                         className={`h-full rounded-full ${item.color} ${item.shadow}`}
                       />
                     </div>
-                    <p className="mt-1.5 text-right text-[10px] font-extrabold text-slate-500">{item.percent}%</p>
+                    <p className="mt-1.5 text-right text-xs font-bold text-slate-400">{item.percent}%</p>
                   </div>
                 )}
               </motion.div>
@@ -377,7 +419,7 @@ export default function Dashboard() {
                 initial={{ opacity: 0, x: -15 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5, delay: 0.3 }}
-                className="premium-card rounded-2xl p-6"
+                className="premium-card-indigo rounded-2xl p-6"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -385,7 +427,7 @@ export default function Dashboard() {
                       <ChartBarIcon className="h-5 w-5" />
                     </div>
                     <div>
-                      <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">Inventory</p>
+                      <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Inventory</p>
                       <h2 className="text-xl font-bold text-white tracking-tight">Your Applications</h2>
                     </div>
                   </div>
@@ -399,7 +441,7 @@ export default function Dashboard() {
 
                 <div className="mt-6 space-y-3">
                   {recentApps.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-white/10 px-5 py-12 text-center text-sm text-slate-400">
+                    <div className="rounded-2xl border border-dashed border-white/10 px-5 py-12 text-center text-xs text-slate-400 font-medium">
                       No applications yet. Create your first app to start issuing credentials.
                     </div>
                   ) : (
@@ -419,13 +461,13 @@ export default function Dashboard() {
                           </div>
                           <div>
                             <p className="font-semibold text-slate-200 text-sm">{app.name}</p>
-                            <p className="mt-0.5 text-xs text-slate-500 font-medium">
+                            <p className="mt-0.5 text-xs text-slate-400 font-medium">
                               v{app.version} • {app.userCount || 0} users
                             </p>
                           </div>
                         </div>
                         <span
-                          className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider ${
+                          className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider ${
                             app.status === 'active'
                               ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300'
                               : 'border-zinc-500/20 bg-zinc-500/10 text-zinc-400'
@@ -445,17 +487,17 @@ export default function Dashboard() {
                     <button
                       onClick={() => handlePageChange(currentPage - 1)}
                       disabled={currentPage === 1}
-                      className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-[11px] font-black uppercase tracking-wider text-gray-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                      className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-wider text-gray-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                     >
                       Previous
                     </button>
-                    <div className="text-[11px] font-black uppercase tracking-wider text-gray-500">
+                    <div className="text-xs font-bold uppercase tracking-wider text-gray-500">
                       Page <span className="text-gray-200">{currentPage}</span> of <span className="text-gray-200">{totalPages}</span>
                     </div>
                     <button
                       onClick={() => handlePageChange(currentPage + 1)}
                       disabled={currentPage === totalPages}
-                      className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-[11px] font-black uppercase tracking-wider text-gray-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                      className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-wider text-gray-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                     >
                       Next
                     </button>
@@ -468,14 +510,14 @@ export default function Dashboard() {
                 initial={{ opacity: 0, x: -15 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5, delay: 0.4 }}
-                className="premium-card rounded-2xl p-6"
+                className="premium-card-purple rounded-2xl p-6"
               >
                 <div className="flex items-center gap-3 mb-5">
                   <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-purple-500/10 text-purple-300 border border-white/[0.04]">
                     <BoltIcon className="h-5 w-5 animate-pulse" />
                   </div>
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">Shortcuts</p>
+                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Shortcuts</p>
                     <h2 className="text-xl font-bold text-white tracking-tight">Quick Actions</h2>
                   </div>
                 </div>
@@ -513,14 +555,14 @@ export default function Dashboard() {
                 initial={{ opacity: 0, x: 15 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5, delay: 0.3 }}
-                className="premium-card rounded-2xl p-6"
+                className="premium-card-cyan rounded-2xl p-6"
               >
                 <div className="flex items-center gap-3">
                   <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-300 border border-white/[0.04]">
                     <ArrowTrendingUpIcon className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">Operational Ratios</p>
+                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Operational Ratios</p>
                     <h2 className="text-xl font-bold text-white tracking-tight">Health Indicators</h2>
                   </div>
                 </div>
@@ -555,7 +597,7 @@ export default function Dashboard() {
                           className={`h-full rounded-full ${item.color} ${item.shadow}`}
                         />
                       </div>
-                      <p className="mt-2 text-xs text-slate-500 font-medium">{item.caption}</p>
+                      <p className="mt-2 text-xs text-slate-400 font-medium">{item.caption}</p>
                     </div>
                   ))}
                 </div>
@@ -566,14 +608,14 @@ export default function Dashboard() {
                 initial={{ opacity: 0, x: 15 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5, delay: 0.4 }}
-                className="premium-card rounded-2xl p-6"
+                className="premium-card-emerald rounded-2xl p-6"
               >
                 <div className="flex items-center gap-3">
                   <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-300 border border-white/[0.04]">
                     <ShieldCheckIcon className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">Security Architecture</p>
+                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Security Architecture</p>
                     <h2 className="text-xl font-bold text-white tracking-tight">System Integrity Features</h2>
                   </div>
                 </div>

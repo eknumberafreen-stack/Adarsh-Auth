@@ -115,42 +115,66 @@ export default function Sessions() {
   return (
     <div className="space-y-8">
       <style dangerouslySetInnerHTML={{__html: `
-        .premium-card {
-          background: linear-gradient(180deg, rgba(16, 17, 26, 0.75) 0%, rgba(9, 10, 15, 0.9) 100%);
-          border: 1px solid rgba(255, 255, 255, 0.05);
-          box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.02);
+        .premium-card-indigo {
+          background: linear-gradient(180deg, rgba(16, 17, 26, 0.7) 0%, rgba(9, 10, 15, 0.9) 100%);
+          border: 1px solid rgba(99, 102, 241, 0.18);
+          box-shadow: 0 15px 35px rgba(0, 0, 0, 0.55), 0 0 15px rgba(99, 102, 241, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.02);
           backdrop-filter: blur(20px);
           transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        .premium-card:hover {
-          border-color: rgba(99, 102, 241, 0.25);
-          box-shadow: 0 20px 40px rgba(99, 102, 241, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        .premium-card-indigo:hover {
+          border-color: rgba(99, 102, 241, 0.4);
+          box-shadow: 0 20px 45px rgba(99, 102, 241, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.04);
         }
-        .glow-hover-blue:hover {
-          border-color: rgba(56, 189, 248, 0.3) !important;
-          box-shadow: 0 20px 40px rgba(56, 189, 248, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
-        }
-        .glow-hover-emerald:hover {
-          border-color: rgba(16, 185, 129, 0.3) !important;
-          box-shadow: 0 20px 40px rgba(16, 185, 129, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
-        }
-        .glow-hover-red:hover {
-          border-color: rgba(244, 63, 94, 0.3) !important;
-          box-shadow: 0 20px 40px rgba(244, 63, 94, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
-        }
-        .glow-hover-purple:hover {
-          border-color: rgba(168, 85, 247, 0.3) !important;
-          box-shadow: 0 20px 40px rgba(168, 85, 247, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
-        }
-        .tactical-btn {
-          border: 1px solid rgba(255, 255, 255, 0.05);
-          background: rgba(255, 255, 255, 0.02);
+
+        .premium-card-cyan {
+          background: linear-gradient(180deg, rgba(16, 17, 26, 0.7) 0%, rgba(9, 10, 15, 0.9) 100%);
+          border: 1px solid rgba(6, 182, 212, 0.18);
+          box-shadow: 0 15px 35px rgba(0, 0, 0, 0.55), 0 0 15px rgba(6, 182, 212, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.02);
+          backdrop-filter: blur(20px);
           transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        .tactical-btn:hover {
-          background: rgba(255, 255, 255, 0.06);
-          border-color: rgba(255, 255, 255, 0.12);
+        .premium-card-cyan:hover {
+          border-color: rgba(6, 182, 212, 0.4);
+          box-shadow: 0 20px 45px rgba(6, 182, 212, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.04);
         }
+
+        .premium-card-purple {
+          background: linear-gradient(180deg, rgba(16, 17, 26, 0.7) 0%, rgba(9, 10, 15, 0.9) 100%);
+          border: 1px solid rgba(168, 85, 247, 0.18);
+          box-shadow: 0 15px 35px rgba(0, 0, 0, 0.55), 0 0 15px rgba(168, 85, 247, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.02);
+          backdrop-filter: blur(20px);
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .premium-card-purple:hover {
+          border-color: rgba(168, 85, 247, 0.4);
+          box-shadow: 0 20px 45px rgba(168, 85, 247, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        }
+
+        .premium-card-emerald {
+          background: linear-gradient(180deg, rgba(16, 17, 26, 0.7) 0%, rgba(9, 10, 15, 0.9) 100%);
+          border: 1px solid rgba(16, 185, 129, 0.18);
+          box-shadow: 0 15px 35px rgba(0, 0, 0, 0.55), 0 0 15px rgba(16, 185, 129, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.02);
+          backdrop-filter: blur(20px);
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .premium-card-emerald:hover {
+          border-color: rgba(16, 185, 129, 0.4);
+          box-shadow: 0 20px 45px rgba(16, 185, 129, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        }
+
+        .premium-card-rose {
+          background: linear-gradient(180deg, rgba(16, 17, 26, 0.7) 0%, rgba(9, 10, 15, 0.9) 100%);
+          border: 1px solid rgba(244, 63, 94, 0.18);
+          box-shadow: 0 15px 35px rgba(0, 0, 0, 0.55), 0 0 15px rgba(244, 63, 94, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.02);
+          backdrop-filter: blur(20px);
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .premium-card-rose:hover {
+          border-color: rgba(244, 63, 94, 0.4);
+          box-shadow: 0 20px 45px rgba(244, 63, 94, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        }
+
         .ping-glow {
           text-shadow: 0 0 6px currentColor;
         }
@@ -164,7 +188,7 @@ export default function Sessions() {
             Live Feed Active
           </div>
           <h1 className="text-3xl font-black text-white tracking-tight">Active Sessions</h1>
-          <p className="mt-2 text-xs font-semibold leading-relaxed text-slate-400 max-w-xl">
+          <p className="mt-2 text-sm font-semibold leading-relaxed text-slate-400 max-w-xl">
             Real-time monitor of active client connections, hardware profiles, heartbeat intervals, and operational logs.
           </p>
         </div>
@@ -173,7 +197,7 @@ export default function Sessions() {
           {sessions.length > 0 && (
             <button 
               onClick={terminateAll} 
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-2.5 text-xs font-black uppercase tracking-wider text-rose-300 hover:bg-rose-500/15 hover:border-rose-500/40 transition-all duration-300 shadow-[0_4px_20px_rgba(244,63,94,0.04)]"
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-rose-300 hover:bg-rose-500/15 hover:border-rose-500/40 transition-all duration-300 shadow-[0_4px_20px_rgba(244,63,94,0.04)]"
             >
               <XMarkIcon className="w-4 h-4" /> 
               Terminate All Sessions
@@ -183,7 +207,7 @@ export default function Sessions() {
       </section>
 
       {applications.length === 0 ? (
-        <div className="premium-card text-center py-16 rounded-2xl">
+        <div className="premium-card-indigo text-center py-16 rounded-2xl">
           <p className="text-lg font-bold text-white uppercase tracking-wider">Create an application first</p>
           <p className="mt-2 text-xs text-slate-500">Sessions are application-specific. Create an app inside your workspace registry.</p>
         </div>
@@ -195,39 +219,39 @@ export default function Sessions() {
               initial={{ opacity: 0, y: 10 }} 
               animate={{ opacity: 1, y: 0 }} 
               transition={{ duration: 0.3, delay: 0.1 }} 
-              className="premium-card p-5 rounded-2xl flex flex-col gap-1.5 glow-hover-blue"
+              className="premium-card-indigo p-5 rounded-2xl flex flex-col gap-1.5"
             >
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Total Sessions</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Total Sessions</p>
               <p className="text-3xl font-black text-white tracking-tight">{sessions.length}</p>
-              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{selectedApp?.name}</p>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">{selectedApp?.name}</p>
             </motion.div>
             <motion.div 
               initial={{ opacity: 0, y: 10 }} 
               animate={{ opacity: 1, y: 0 }} 
               transition={{ duration: 0.3, delay: 0.2 }} 
-              className="premium-card p-5 rounded-2xl flex flex-col gap-1.5 glow-hover-emerald"
+              className="premium-card-emerald p-5 rounded-2xl flex flex-col gap-1.5"
             >
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">🟢 Live Now</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-400">🟢 Live Now</p>
               <p className="text-3xl font-black text-emerald-400 tracking-tight">{activeSessions.length}</p>
-              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Active Heartbeat</p>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Active Heartbeat</p>
             </motion.div>
             <motion.div 
               initial={{ opacity: 0, y: 10 }} 
               animate={{ opacity: 1, y: 0 }} 
               transition={{ duration: 0.3, delay: 0.3 }} 
-              className="premium-card p-5 rounded-2xl flex flex-col gap-1.5 glow-hover-red"
+              className="premium-card-rose p-5 rounded-2xl flex flex-col gap-1.5"
             >
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">🔴 Offline</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-400">🔴 Offline</p>
               <p className="text-3xl font-black text-rose-400 tracking-tight">{offlineSessions.length}</p>
-              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Stale Sessions</p>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Stale Sessions</p>
             </motion.div>
             <motion.div 
               initial={{ opacity: 0, y: 10 }} 
               animate={{ opacity: 1, y: 0 }} 
               transition={{ duration: 0.3, delay: 0.4 }} 
-              className="premium-card p-5 rounded-2xl flex flex-col gap-1.5 glow-hover-purple"
+              className="premium-card-purple p-5 rounded-2xl flex flex-col gap-1.5"
             >
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Avg Ping</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Avg Ping</p>
               <p className="text-3xl font-black text-purple-400 tracking-tight">
                 {activeSessions.length === 0
                   ? 'N/A'
@@ -237,14 +261,14 @@ export default function Sessions() {
                     )}ms`
                 }
               </p>
-              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Live Client average</p>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Live Client average</p>
             </motion.div>
           </div>
 
           {/* ── Sessions Table ── */}
-          <div className="premium-card overflow-hidden rounded-2xl">
+          <div className="premium-card-indigo overflow-hidden rounded-2xl">
             <div className="px-5 py-4 border-b border-white/[0.04]">
-              <h3 className="text-sm font-black uppercase tracking-wider text-slate-200">Active Connections List</h3>
+              <h3 className="text-base font-bold text-slate-200">Active Connections List</h3>
             </div>
             {loading ? (
               <div className="flex justify-center py-24">
@@ -256,20 +280,20 @@ export default function Sessions() {
               <div className="text-center py-20 bg-black/10">
                 <div className="text-3xl mb-4 animate-pulse">📡</div>
                 <p className="text-sm font-bold text-white uppercase tracking-wider">No active sessions</p>
-                <p className="mt-2 text-xs text-slate-500 max-w-xs mx-auto leading-relaxed">Active client instances heartbeating with the security backend will populate here.</p>
+                <p className="mt-2 text-xs text-slate-400 max-w-xs mx-auto leading-relaxed">Active client instances heartbeating with the security backend will populate here.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-white/[0.04] bg-black/20">
-                      <th className="text-left px-5 py-4 text-slate-500 font-black text-[10px] uppercase tracking-widest">User</th>
-                      <th className="text-left px-5 py-4 text-slate-500 font-black text-[10px] uppercase tracking-widest">Status</th>
-                      <th className="text-left px-5 py-4 text-slate-500 font-black text-[10px] uppercase tracking-widest">Ping</th>
-                      <th className="text-left px-5 py-4 text-slate-500 font-black text-[10px] uppercase tracking-widest">IP Address</th>
-                      <th className="text-left px-5 py-4 text-slate-500 font-black text-[10px] uppercase tracking-widest">HWID</th>
-                      <th className="text-left px-5 py-4 text-slate-500 font-black text-[10px] uppercase tracking-widest">Last Heartbeat</th>
-                      <th className="text-left px-5 py-4 text-slate-500 font-black text-[10px] uppercase tracking-widest">Expires</th>
+                      <th className="text-left px-5 py-4 text-slate-400 font-bold text-xs uppercase tracking-wider">User</th>
+                      <th className="text-left px-5 py-4 text-slate-400 font-bold text-xs uppercase tracking-wider">Status</th>
+                      <th className="text-left px-5 py-4 text-slate-400 font-bold text-xs uppercase tracking-wider">Ping</th>
+                      <th className="text-left px-5 py-4 text-slate-400 font-bold text-xs uppercase tracking-wider">IP Address</th>
+                      <th className="text-left px-5 py-4 text-slate-400 font-bold text-xs uppercase tracking-wider">HWID</th>
+                      <th className="text-left px-5 py-4 text-slate-400 font-bold text-xs uppercase tracking-wider">Last Heartbeat</th>
+                      <th className="text-left px-5 py-4 text-slate-400 font-bold text-xs uppercase tracking-wider">Expires</th>
                       <th className="px-5 py-4" />
                     </tr>
                   </thead>
@@ -302,12 +326,12 @@ export default function Sessions() {
                           {/* Status */}
                           <td className="px-5 py-4">
                             {isLive ? (
-                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[9px] font-black text-emerald-300 uppercase tracking-wider">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-bold text-emerald-300 uppercase tracking-wider">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                                 Live
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/20 text-[9px] font-black text-rose-300 uppercase tracking-wider">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/20 text-xs font-bold text-rose-300 uppercase tracking-wider">
                                 Offline
                               </span>
                             )}
@@ -315,7 +339,7 @@ export default function Sessions() {
 
                           {/* Ping */}
                           <td className="px-5 py-4">
-                            <span className={`font-mono font-black text-xs ping-glow ${isLive && ping !== null ? pingColor : 'text-slate-500'}`}>
+                            <span className={`font-mono font-bold text-xs ping-glow ${isLive && ping !== null ? pingColor : 'text-slate-500'}`}>
                               {isLive && ping !== null ? `${ping} ms` : '—'}
                             </span>
                           </td>
@@ -339,7 +363,7 @@ export default function Sessions() {
                           {/* Last Heartbeat */}
                           <td className="px-5 py-4">
                             <p className="text-xs text-slate-200">{timeAgo(session.lastHeartbeat)}</p>
-                            <p className="text-[10px] text-slate-500 mt-0.5">{formatDate(session.lastHeartbeat)}</p>
+                            <p className="text-xs text-slate-500 mt-0.5">{formatDate(session.lastHeartbeat)}</p>
                           </td>
 
                           {/* Expires */}
@@ -351,7 +375,7 @@ export default function Sessions() {
                           <td className="px-5 py-4 text-right">
                             <button
                               onClick={() => terminateSession(session._id)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/15 border border-rose-500/25 hover:border-rose-500/40 text-rose-300 text-[10px] font-black uppercase tracking-wider transition-all"
+                              className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-rose-500/10 hover:bg-rose-500/15 border border-rose-500/25 hover:border-rose-500/40 text-rose-300 text-xs font-bold uppercase tracking-wider transition-all"
                             >
                               <XMarkIcon className="w-3.5 h-3.5" />
                               Kick
@@ -371,19 +395,19 @@ export default function Sessions() {
                 <button
                   onClick={() => setSessionsPage(p => Math.max(1, p - 1))}
                   disabled={sessionsPage === 1}
-                  className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-wider text-gray-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                  className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-wider text-gray-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                 >
                   Previous
                 </button>
                 
-                <div className="text-[10px] font-black uppercase tracking-wider text-gray-500">
+                <div className="text-xs font-bold uppercase tracking-wider text-gray-500">
                   Page <span className="text-gray-200">{sessionsPage}</span> of <span className="text-gray-200">{totalSessionsPages}</span>
                 </div>
 
                 <button
                   onClick={() => setSessionsPage(p => Math.min(totalSessionsPages, p + 1))}
                   disabled={sessionsPage === totalSessionsPages}
-                  className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-wider text-gray-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                  className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-wider text-gray-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                 >
                   Next
                 </button>
@@ -398,24 +422,24 @@ export default function Sessions() {
               <p className="text-xs text-slate-400 mt-0.5">Historical log of crashed heartbeat connections and security kick events</p>
             </div>
 
-            <div className="premium-card overflow-hidden rounded-2xl">
+            <div className="premium-card-cyan overflow-hidden rounded-2xl">
               {history.length === 0 ? (
                 <div className="text-center py-16 bg-black/10">
                   <div className="text-2xl mb-2">📜</div>
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">No audit history yet</p>
-                  <p className="text-[11px] text-slate-500 mt-1">Operational logs of disconnected clients will automatically register here.</p>
+                  <p className="text-xs text-slate-500 mt-1">Operational logs of disconnected clients will automatically register here.</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-white/[0.04] bg-black/20">
-                        <th className="text-left px-5 py-3 text-slate-500 font-black text-[10px] uppercase tracking-widest">User</th>
-                        <th className="text-left px-5 py-3 text-slate-500 font-black text-[10px] uppercase tracking-widest">Action</th>
-                        <th className="text-left px-5 py-3 text-slate-500 font-black text-[10px] uppercase tracking-widest">Performed By</th>
-                        <th className="text-left px-5 py-3 text-slate-500 font-black text-[10px] uppercase tracking-widest">IP Address</th>
-                        <th className="text-left px-5 py-3 text-slate-500 font-black text-[10px] uppercase tracking-widest">HWID</th>
-                        <th className="text-left px-5 py-3 text-slate-500 font-black text-[10px] uppercase tracking-widest">Time</th>
+                        <th className="text-left px-5 py-3 text-slate-400 font-bold text-xs uppercase tracking-wider">User</th>
+                        <th className="text-left px-5 py-3 text-slate-400 font-bold text-xs uppercase tracking-wider">Action</th>
+                        <th className="text-left px-5 py-3 text-slate-400 font-bold text-xs uppercase tracking-wider">Performed By</th>
+                        <th className="text-left px-5 py-3 text-slate-400 font-bold text-xs uppercase tracking-wider">IP Address</th>
+                        <th className="text-left px-5 py-3 text-slate-400 font-bold text-xs uppercase tracking-wider">HWID</th>
+                        <th className="text-left px-5 py-3 text-slate-400 font-bold text-xs uppercase tracking-wider">Time</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -433,17 +457,17 @@ export default function Sessions() {
                             {/* Client User */}
                             <td className="px-5 py-3.5">
                               <p className="font-bold text-slate-200 text-xs">{log.details?.clientUsername || 'Unknown'}</p>
-                              <p className="text-[10px] text-slate-500 font-mono mt-0.5">{log.userId?.slice(-8)}</p>
+                              <p className="text-xs text-slate-500 font-mono mt-0.5">{log.userId?.slice(-8)}</p>
                             </td>
 
                             {/* Action */}
                             <td className="px-5 py-3.5">
                               {isCrash ? (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-rose-500/10 border border-rose-500/20 text-[9px] font-black text-rose-300 uppercase tracking-wider">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-rose-500/10 border border-rose-500/20 text-xs font-bold text-rose-300 uppercase tracking-wider">
                                   💥 crash
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-[9px] font-black text-amber-300 uppercase tracking-wider">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-xs font-bold text-amber-300 uppercase tracking-wider">
                                   ⚡ kick
                                 </span>
                               )}
@@ -452,7 +476,7 @@ export default function Sessions() {
                             {/* Admin who performed it */}
                             <td className="px-5 py-3.5">
                               <div className="flex items-center gap-2">
-                                <span className="w-5 h-5 rounded bg-indigo-500/10 border border-indigo-500/25 flex items-center justify-center text-[9px] font-bold text-indigo-300">
+                                <span className="w-5 h-5 rounded bg-indigo-500/10 border border-indigo-500/25 flex items-center justify-center text-xs font-bold text-indigo-300">
                                   A
                                 </span>
                                 <span className="text-xs font-semibold text-slate-300">{log.details?.kickedBy || log.details?.crashedBy || 'System'}</span>
@@ -474,7 +498,7 @@ export default function Sessions() {
                             {/* Time */}
                             <td className="px-5 py-3.5 text-xs text-slate-300">
                               <p className="font-semibold text-slate-200">{timeAgo(log.timestamp)}</p>
-                              <p className="text-[10px] text-slate-500 mt-0.5">{formatDate(log.timestamp)}</p>
+                              <p className="text-xs text-slate-500 mt-0.5">{formatDate(log.timestamp)}</p>
                             </td>
                           </motion.tr>
                         )
@@ -490,19 +514,19 @@ export default function Sessions() {
                   <button
                     onClick={() => setHistoryPage(p => Math.max(1, p - 1))}
                     disabled={historyPage === 1}
-                    className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-wider text-gray-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                    className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-wider text-gray-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                   >
                     Previous
                   </button>
                   
-                  <div className="text-[10px] font-black uppercase tracking-wider text-gray-500">
+                  <div className="text-xs font-bold uppercase tracking-wider text-gray-500">
                     Page <span className="text-gray-200">{historyPage}</span> of <span className="text-gray-200">{historyTotalPages}</span>
                   </div>
 
                   <button
                     onClick={() => setHistoryPage(p => Math.min(historyTotalPages, p + 1))}
                     disabled={historyPage === historyTotalPages}
-                    className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-wider text-gray-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                    className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-wider text-gray-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                   >
                     Next
                   </button>
@@ -519,9 +543,9 @@ export default function Sessions() {
           <div className="w-full max-w-sm bg-[#0a0b10] border border-white/[0.08] rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="flex flex-col items-center text-center">
               <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 border ${
-                confirmModal.type === 'danger' ? 'bg-red-500/10 border-red-500/20 text-red-400' :
-                confirmModal.type === 'warning' ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400' :
-                'bg-indigo-500/10 border-indigo-500/20 text-indigo-400'
+                confirmModal.type === 'danger' ? 'bg-rose-500/10 border-rose-500/20 text-rose-400 shadow-[0_0_12px_rgba(244,63,94,0.15)]' :
+                confirmModal.type === 'warning' ? 'bg-amber-500/10 border-amber-500/20 text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.15)]' :
+                'bg-indigo-500/10 border-indigo-500/20 text-indigo-400 shadow-[0_0_12px_rgba(99,102,241,0.15)]'
               }`}>
                 {confirmModal.type === 'danger' ? '⚡' : confirmModal.type === 'warning' ? '⚠️' : '🔄'}
               </div>
@@ -529,13 +553,13 @@ export default function Sessions() {
               <p className="text-xs text-slate-400 mb-8 leading-relaxed">{confirmModal.message}</p>
               <div className="flex gap-3 w-full">
                 <button onClick={() => setConfirmModal(p => ({ ...p, show: false }))}
-                  className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-slate-300 rounded-2xl text-[10px] font-black uppercase tracking-wider transition-all border border-white/10">
+                  className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-slate-300 rounded-2xl text-xs font-bold uppercase tracking-wider transition-all border border-white/10">
                   Cancel
                 </button>
                 <button onClick={confirmModal.onConfirm}
-                  className={`flex-1 px-4 py-3 rounded-2xl text-[10px] font-black uppercase tracking-wider text-white transition-all shadow-lg ${
-                    confirmModal.type === 'danger' ? 'bg-red-600 hover:bg-red-500 shadow-red-900/20' :
-                    confirmModal.type === 'warning' ? 'bg-yellow-600 hover:bg-yellow-500 shadow-yellow-900/20' :
+                  className={`flex-1 px-4 py-3 rounded-2xl text-xs font-bold uppercase tracking-wider text-white transition-all shadow-lg ${
+                    confirmModal.type === 'danger' ? 'bg-rose-600 hover:bg-rose-500 shadow-rose-900/20' :
+                    confirmModal.type === 'warning' ? 'bg-amber-600 hover:bg-amber-500 shadow-amber-900/20' :
                     'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-900/20'
                   }`}>
                   {confirmModal.confirmText}
