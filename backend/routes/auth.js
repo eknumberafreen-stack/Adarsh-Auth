@@ -28,6 +28,60 @@ function slowHash(salt, nonce) {
   return djb2Hash(val);
 }
 
+// Cloudflare Turnstile token verification helper
+const verifyTurnstile = async (token) => {
+  const secret = process.env.TURNSTILE_SECRET_KEY || '0x4AAAAAAADgoal4XaJoO9yJMLentbxfeS78';
+  
+  if (typeof fetch === 'function') {
+    try {
+      const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ secret, response: token })
+      });
+      const data = await res.json();
+      return !!data.success;
+    } catch (err) {
+      console.error('[Turnstile fetch error]', err);
+      return false;
+    }
+  }
+  
+  return new Promise((resolve) => {
+    const https = require('https');
+    const postData = JSON.stringify({ secret, response: token });
+    
+    const req = https.request({
+      hostname: 'challenges.cloudflare.com',
+      port: 443,
+      path: '/turnstile/v0/siteverify',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(postData)
+      }
+    }, (res) => {
+      let body = '';
+      res.on('data', (chunk) => body += chunk);
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(body);
+          resolve(!!parsed.success);
+        } catch {
+          resolve(false);
+        }
+      });
+    });
+    
+    req.on('error', (err) => {
+      console.error('[Turnstile https error]', err);
+      resolve(false);
+    });
+    req.write(postData);
+    req.end();
+  });
+};
+
 const router = express.Router();
 
 // Debug route to test SMTP configuration and output the exact error to the client
@@ -175,7 +229,13 @@ const generateTokens = (userId) => {
 
 // Register
 router.post('/register', authRateLimiter, validate(schemas.register), asyncHandler(async (req, res) => {
-  const { email, password, username } = req.body;
+  const { email, password, username, turnstileToken } = req.body;
+
+  // 1. Verify Turnstile
+  const isTurnstileValid = await verifyTurnstile(turnstileToken);
+  if (!isTurnstileValid) {
+    return res.status(400).json({ error: 'Browser verification (Turnstile) failed. Please try again.' });
+  }
 
   // Check if user exists
   const existingUser = await User.findOne({ email });
@@ -237,34 +297,12 @@ router.get('/challenge', asyncHandler(async (req, res) => {
 
 // Login
 router.post('/login', authRateLimiter, validate(schemas.login), asyncHandler(async (req, res) => {
-  const { email, password, challenge } = req.body;
+  const { email, password, turnstileToken } = req.body;
 
-  // 1. Verify Browser Challenge
-  if (!challenge) {
-    return res.status(400).json({ error: 'Browser verification challenge is required' });
-  }
-
-  const { nonce, salt, difficulty, expiresAt, signature } = challenge;
-
-  // Verify challenge expiration
-  if (Date.now() > expiresAt) {
-    return res.status(400).json({ error: 'Browser verification challenge has expired. Please try again.' });
-  }
-
-  // Verify challenge signature
-  const expectedData = `${salt}:${difficulty}:${expiresAt}`;
-  const expectedSignature = crypto.createHmac('sha256', process.env.JWT_ACCESS_SECRET || 'fallback-secret')
-    .update(expectedData)
-    .digest('hex');
-
-  if (signature !== expectedSignature) {
-    return res.status(400).json({ error: 'Invalid browser verification challenge signature.' });
-  }
-
-  // Verify challenge solution (proof of work)
-  const computedHash = slowHash(salt, nonce.toString());
-  if (computedHash % difficulty !== 0) {
-    return res.status(400).json({ error: 'Invalid browser verification challenge solution.' });
+  // 1. Verify Turnstile
+  const isTurnstileValid = await verifyTurnstile(turnstileToken);
+  if (!isTurnstileValid) {
+    return res.status(400).json({ error: 'Browser verification (Turnstile) failed. Please try again.' });
   }
 
   // Find user

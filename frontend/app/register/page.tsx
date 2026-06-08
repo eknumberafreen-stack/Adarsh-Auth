@@ -10,6 +10,7 @@ import { useAuthStore } from '@/lib/store'
 import { isValidUsername } from '@/lib/username'
 import toast from 'react-hot-toast'
 import ParticleField from '@/components/ParticleField'
+import Turnstile from '@/components/Turnstile'
 
 export default function Register() {
   const router = useRouter()
@@ -22,24 +23,44 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
 
+  const [verifyingBrowser, setVerifyingBrowser] = useState(false)
+  const [verificationStep, setVerificationStep] = useState(0) // 0 = idle, 1 = verifying, 2 = verified
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (password !== confirmPassword) return toast.error('Passwords do not match')
     if (password.length < 8) return toast.error('Password must be at least 8 characters')
     setLoading(true)
+    setVerifyingBrowser(true)
+    setVerificationStep(1)
+  }
+
+  const handleTurnstileVerified = async (token: string) => {
     try {
       const trimmedUsername = username.trim()
-      const payload: { email: string; password: string; username?: string } = { email, password }
+      const payload: { email: string; password: string; username?: string; turnstileToken: string } = { 
+        email, 
+        password,
+        turnstileToken: token
+      }
       if (trimmedUsername !== '' && isValidUsername(trimmedUsername)) {
         payload.username = trimmedUsername
       }
       const response = await api.post('/auth/register', payload)
       const { user, accessToken, refreshToken } = response.data
+
+      // Verification successful!
+      setVerificationStep(2)
+      await new Promise(resolve => setTimeout(resolve, 800)) // Wait for the user to read the message
+
       setAuth({ id: user.id, email, username: user.username ?? null }, accessToken, refreshToken)
       toast.success('Account created')
       router.push('/dashboard')
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Registration failed')
+      setVerifyingBrowser(false)
+      setVerificationStep(0)
+      const errorMsg = error.response?.data?.details?.[0] || error.response?.data?.error || 'Registration failed'
+      toast.error(errorMsg)
     } finally {
       setLoading(false)
     }
@@ -48,6 +69,80 @@ export default function Register() {
   const strength = password.length === 0 ? 0 : password.length < 6 ? 1 : password.length < 10 ? 2 : 3
   const strengthColor = ['', 'bg-rose-500', 'bg-amber-500', 'bg-emerald-500']
   const strengthLabel = ['', 'Weak', 'Good', 'Strong']
+
+  if (verifyingBrowser) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#07070a] relative overflow-hidden">
+        <ParticleField
+          className="absolute inset-0 pointer-events-none opacity-70"
+          particleColor="rgba(161, 161, 170, 0.2)"
+          lineColor="rgba(99, 102, 241, 0.14)"
+          count={90}
+        />
+        {/* Decorative background blur objects */}
+        <div className="absolute top-1/4 left-1/4 w-[30rem] h-[30rem] bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-1/4 right-1/4 w-[30rem] h-[30rem] bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 w-full max-w-[440px] p-9 rounded-3xl bg-[#0f1015]/80 border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.5)] backdrop-blur-xl text-white text-center">
+          <h2 className="text-2xl font-black mb-6 tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">
+            Adarsh Auth
+          </h2>
+
+          <p className="text-lg font-semibold mb-1 text-white">Checking your browser...</p>
+          <p className="text-xs text-slate-400 mb-8">This process is automatic. Your browser will redirect shortly.</p>
+
+          {/* Premium Verification Box */}
+          <div className="flex flex-col items-center justify-center p-6 bg-black/40 border border-white/5 rounded-2xl max-w-[340px] mx-auto mb-8 text-center shadow-inner relative overflow-hidden">
+            <div className="relative flex items-center justify-center mb-5">
+              {verificationStep === 1 ? (
+                <>
+                  <div className="w-16 h-16 rounded-full border-2 border-indigo-500/20 border-t-indigo-500 animate-spin" />
+                  <ShieldCheckIcon className="absolute h-7 w-7 text-indigo-400 animate-pulse" />
+                </>
+              ) : (
+                <div className="w-16 h-16 flex items-center justify-center bg-gradient-to-tr from-emerald-500 to-teal-400 rounded-full shadow-[0_0_20px_rgba(16,185,129,0.4)] text-white scale-110 transition-transform duration-300">
+                  <svg className="w-8 h-8 text-white stroke-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+              )}
+            </div>
+
+            <span className="text-sm font-bold tracking-wide text-slate-200 mb-1">
+              {verificationStep === 1 ? 'Verifying browser...' : 'Verified'}
+            </span>
+            <span className="text-[9px] text-indigo-400 font-extrabold uppercase tracking-widest mb-4">
+              Protected by Cloudflare Turnstile
+            </span>
+
+            {verificationStep === 1 && (
+              <Turnstile
+                onVerify={handleTurnstileVerified}
+                onError={() => {
+                  toast.error('Browser verification failed. Please try again.')
+                  setVerifyingBrowser(false)
+                  setVerificationStep(0)
+                  setLoading(false)
+                }}
+                onExpire={() => {
+                  toast.error('Verification expired. Please try again.')
+                  setVerifyingBrowser(false)
+                  setVerificationStep(0)
+                  setLoading(false)
+                }}
+              />
+            )}
+          </div>
+
+          {verificationStep === 2 && (
+            <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-sm font-semibold animate-pulse">
+              ✓ Verification successful! Redirecting..
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#07070a] text-white">

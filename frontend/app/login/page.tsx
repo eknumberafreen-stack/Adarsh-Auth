@@ -9,6 +9,7 @@ import api, { clearStoredAuth, refreshAccessToken } from '@/lib/api'
 import { useAuthStore } from '@/lib/store'
 import toast from 'react-hot-toast'
 import ParticleField from '@/components/ParticleField'
+import Turnstile from '@/components/Turnstile'
 
 // DJB2 Hash function
 function djb2Hash(str: string): number {
@@ -108,53 +109,15 @@ export default function Login() {
     setLoading(true)
     setVerifyingBrowser(true)
     setVerificationStep(1)
+  }
 
+  const handleTurnstileVerified = async (token: string) => {
     try {
-      // 1. Fetch challenge from backend
-      const challengeRes = await api.get('/auth/challenge')
-      const { salt, difficulty, expiresAt, signature } = challengeRes.data
-
-      // 2. Solve challenge in background (asynchronously so UI does not freeze completely)
-      let nonce = 0
-      const startTime = Date.now()
-
-      const solveChallenge = (): Promise<number> => {
-        return new Promise((resolve) => {
-          const chunk = () => {
-            for (let i = 0; i < 500; i++) {
-              const hashVal = slowHash(salt, nonce.toString())
-              if (hashVal % difficulty === 0) {
-                resolve(nonce)
-                return
-              }
-              nonce++
-            }
-            // Yield execution back to event loop to keep loader animation smooth
-            setTimeout(chunk, 0)
-          }
-          chunk()
-        })
-      }
-
-      const solvedNonce = await solveChallenge()
-
-      // Enforce minimum 1.2 second animation for keyauth aesthetic feel
-      const elapsed = Date.now() - startTime
-      if (elapsed < 1200) {
-        await new Promise(resolve => setTimeout(resolve, 1200 - elapsed))
-      }
-
-      // 3. Submit credentials along with solved challenge
+      // Submit credentials along with solved challenge
       const response = await api.post('/auth/login', {
         email,
         password,
-        challenge: {
-          nonce: solvedNonce,
-          salt,
-          difficulty,
-          expiresAt,
-          signature
-        }
+        turnstileToken: token
       })
       const { user, accessToken, refreshToken } = response.data
 
@@ -222,37 +185,66 @@ export default function Login() {
 
   if (verifyingBrowser) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#2b4c7e] relative overflow-hidden">
+      <div className="flex min-h-screen items-center justify-center bg-[#07070a] relative overflow-hidden">
+        <ParticleField
+          className="absolute inset-0 pointer-events-none opacity-70"
+          particleColor="rgba(161, 161, 170, 0.2)"
+          lineColor="rgba(99, 102, 241, 0.14)"
+          count={90}
+        />
         {/* Decorative background blur objects */}
         <div className="absolute top-1/4 left-1/4 w-[30rem] h-[30rem] bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-1/4 right-1/4 w-[30rem] h-[30rem] bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="relative z-10 w-full max-w-[440px] p-9 rounded-2xl bg-[#0f1015] border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.5)] text-white text-center">
-          <h2 className="text-2xl font-bold mb-6 tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">
+        <div className="relative z-10 w-full max-w-[440px] p-9 rounded-3xl bg-[#0f1015]/80 border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.5)] backdrop-blur-xl text-white text-center">
+          <h2 className="text-2xl font-black mb-6 tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">
             Adarsh Auth
           </h2>
 
           <p className="text-lg font-semibold mb-1 text-white">Checking your browser...</p>
           <p className="text-xs text-slate-400 mb-8">This process is automatic. Your browser will redirect shortly.</p>
 
-          {/* Altcha simulator widget */}
-          <div className="flex items-center justify-between p-4 bg-black/40 border border-white/5 rounded-xl max-w-[320px] mx-auto mb-8 text-left shadow-inner">
-            <div className="flex items-center gap-3">
-              <div className="relative flex items-center justify-center">
-                {verificationStep === 1 ? (
-                  <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <div className="w-5 h-5 flex items-center justify-center bg-indigo-500 rounded text-white font-bold text-[11px]">✓</div>
-                )}
-              </div>
-              <span className="text-sm text-slate-300 font-semibold tracking-wide">
-                {verificationStep === 1 ? 'Verifying...' : 'Verified'}
-              </span>
+          {/* Premium Verification Box */}
+          <div className="flex flex-col items-center justify-center p-6 bg-black/40 border border-white/5 rounded-2xl max-w-[340px] mx-auto mb-8 text-center shadow-inner relative overflow-hidden">
+            <div className="relative flex items-center justify-center mb-5">
+              {verificationStep === 1 ? (
+                <>
+                  <div className="w-16 h-16 rounded-full border-2 border-indigo-500/20 border-t-indigo-500 animate-spin" />
+                  <ShieldCheckIcon className="absolute h-7 w-7 text-indigo-400 animate-pulse" />
+                </>
+              ) : (
+                <div className="w-16 h-16 flex items-center justify-center bg-gradient-to-tr from-emerald-500 to-teal-400 rounded-full shadow-[0_0_20px_rgba(16,185,129,0.4)] text-white scale-110 transition-transform duration-300">
+                  <svg className="w-8 h-8 text-white stroke-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+              )}
             </div>
-            <div className="text-right">
-              <p className="text-[9px] text-slate-500 uppercase tracking-widest font-bold">Protected by</p>
-              <p className="text-xs text-indigo-400 font-black tracking-tight">ALTCHA</p>
-            </div>
+
+            <span className="text-sm font-bold tracking-wide text-slate-200 mb-1">
+              {verificationStep === 1 ? 'Verifying browser...' : 'Verified'}
+            </span>
+            <span className="text-[9px] text-indigo-400 font-extrabold uppercase tracking-widest mb-4">
+              Protected by Cloudflare Turnstile
+            </span>
+
+            {verificationStep === 1 && (
+              <Turnstile
+                onVerify={handleTurnstileVerified}
+                onError={() => {
+                  toast.error('Browser verification failed. Please try again.')
+                  setVerifyingBrowser(false)
+                  setVerificationStep(0)
+                  setLoading(false)
+                }}
+                onExpire={() => {
+                  toast.error('Verification expired. Please try again.')
+                  setVerifyingBrowser(false)
+                  setVerificationStep(0)
+                  setLoading(false)
+                }}
+              />
+            )}
           </div>
 
           {verificationStep === 2 && (
