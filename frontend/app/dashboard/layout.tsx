@@ -325,33 +325,33 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <Bars3Icon className="h-5 w-5" />
               </button>
 
-              <div className="min-w-0 flex-1">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-500 truncate">Adarsh Auth Dashboard</p>
-                <h1 className="truncate text-base sm:text-lg font-bold text-white">{activePage}</h1>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Adarsh Auth Dashboard</p>
+                <h1 className="truncate text-lg font-bold text-white">{activePage}</h1>
               </div>
 
-              <div className="ml-auto flex items-center gap-3">
-                {/* Global App Selector */}
-                {applications.length > 0 && (pathname.includes('/users') || pathname.includes('/licenses') || pathname.includes('/sessions') || pathname.includes('/settings') || pathname.includes('/team') || pathname.includes('/offsets')) && (
-                  <div className="relative z-50 flex items-center gap-2 max-w-[130px] sm:max-w-none">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 whitespace-nowrap hidden md:inline">Select Application:</span>
-                    <select
-                      value={selectedApp?._id || ''}
-                      onChange={(e) => {
-                        const app = applications.find(a => a._id === e.target.value)
-                        if (app) setSelectedApp(app)
-                      }}
-                      className="h-9 sm:h-10 rounded-xl border border-white/10 bg-[#0c0d12]/80 px-2 sm:px-4 text-xs sm:text-sm font-semibold text-white outline-none focus:border-indigo-500/50 transition-all w-full sm:min-w-[160px]"
-                    >
-                      {applications.map((app) => (
-                        <option key={app._id} value={app._id} className="bg-[#0f0f13]">
-                          {app.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
+              {/* Global App Selector */}
+              {applications.length > 0 && (pathname.includes('/users') || pathname.includes('/licenses') || pathname.includes('/sessions') || pathname.includes('/settings') || pathname.includes('/team') || pathname.includes('/offsets')) && (
+                <div className="relative z-50 ml-8 flex items-center gap-3">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 whitespace-nowrap">Select Application:</span>
+                  <select
+                    value={selectedApp?._id || ''}
+                    onChange={(e) => {
+                      const app = applications.find(a => a._id === e.target.value)
+                      if (app) setSelectedApp(app)
+                    }}
+                    className="h-10 rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm font-semibold text-white outline-none focus:border-indigo-500/50 transition-all min-w-[180px]"
+                  >
+                    {applications.map((app) => (
+                      <option key={app._id} value={app._id} className="bg-[#0f0f13]">
+                        {app.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
+              <div className="ml-auto flex items-center gap-3">
                 <div className="hidden rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2 text-right md:block">
                   <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Status</p>
                   <p className="text-sm font-semibold text-indigo-200">Operational</p>
@@ -359,7 +359,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <button
                   type="button"
                   onClick={() => router.push('/dashboard/profile')}
-                  className="flex h-9 w-9 sm:h-11 sm:w-11 items-center justify-center rounded-2xl border border-indigo-400/20 bg-indigo-400/10 text-xs sm:text-sm font-bold text-indigo-100 flex-shrink-0"
+                  className="flex h-11 w-11 items-center justify-center rounded-2xl border border-indigo-400/20 bg-indigo-400/10 text-sm font-bold text-indigo-100"
                 >
                   {getAvatarInitial(user?.username ?? null, user?.email ?? '')}
                 </button>

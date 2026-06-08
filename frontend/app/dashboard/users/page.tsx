@@ -399,11 +399,11 @@ export default function Users() {
   return (
     <div>
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
+      <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Users</h1>
         {selectedApp?._id && (
-          <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
-            <div className="relative group w-full sm:w-64">
+          <div className="flex items-center gap-3">
+            <div className="relative group">
               <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-gray-500 group-focus-within:text-primary-400 transition-colors">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -414,10 +414,10 @@ export default function Users() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search users..."
-                className="w-full pl-10 pr-4 py-2.5 bg-dark-bg border border-dark-border rounded-xl text-sm focus:outline-none focus:border-indigo-500/50 transition-all placeholder-gray-500"
+                className="w-64 pl-10 pr-4 py-2.5 bg-dark-bg border border-dark-border rounded-xl text-sm focus:outline-none focus:border-primary-500/50 transition-all placeholder-gray-500"
               />
             </div>
-            <button onClick={() => setShowCreateModal(true)} className="btn btn-primary flex items-center justify-center gap-2 py-2.5 w-full sm:w-auto">
+            <button onClick={() => setShowCreateModal(true)} className="btn btn-primary flex items-center gap-2 py-2.5">
               <PlusIcon className="w-4 h-4" /> Create User
             </button>
           </div>
@@ -440,122 +440,120 @@ export default function Users() {
           ) : users.length === 0 ? (
             <div className="text-center py-12 text-gray-400">No users yet</div>
           ) : (
-            <div className="card overflow-hidden p-0 border border-white/10 bg-[#0f1015]/60 backdrop-blur-md">
+            <div className="card overflow-visible p-0">
               {(() => {
                 const showCreatedBy = selectedApp?.team?.length > 0 || users.some(u => u.createdBy)
                 return (
-                  <div className="overflow-x-auto w-full">
-                    <table className="w-full text-sm min-w-[1050px]">
-                      <thead>
-                        <tr className="border-b border-dark-border">
-                          <th className="text-left px-4 py-3 text-gray-400 font-medium">Username</th>
-                          <th className="text-left px-4 py-3 text-gray-400 font-medium">Status</th>
-                          <th className="text-left px-4 py-3 text-gray-400 font-medium">HWID</th>
-                          <th className="text-left px-4 py-3 text-gray-400 font-medium">Created</th>
-                          <th className="text-left px-4 py-3 text-gray-400 font-medium">Last Login</th>
-                          <th className="text-left px-4 py-3 text-gray-400 font-medium">Last IP</th>
-                          <th className="text-left px-4 py-3 text-gray-400 font-medium">Expiry</th>
-                          {showCreatedBy && (
-                            <th className="text-left px-4 py-3 text-gray-400 font-medium">Created By</th>
-                          )}
-                          <th className="text-left px-4 py-3 text-gray-400 font-medium">HWID Affected</th>
-                          <th className="px-4 py-3" />
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {users.map((user: any, i: number) => (
-                          <motion.tr 
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.3, delay: i * 0.03 }}
-                            key={user._id} 
-                            className="border-b border-dark-border/50 hover:bg-dark-hover/30 transition-colors"
-                          >
-                            <td className="px-4 py-3 font-medium">
-                              <div className="flex items-center gap-2">
-                                {onlineUsers[user._id] !== undefined && (
-                                  <span className="relative flex h-2 w-2 shrink-0">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-400"></span>
-                                  </span>
-                                )}
-                                <span>{user.username}</span>
-                                {onlineUsers[user._id] !== undefined && (
-                                  <span className="text-[10px] text-green-400/80 font-normal">
-                                    {onlineUsers[user._id] ? `${onlineUsers[user._id]}ms` : 'Live'}
-                                  </span>
-                                )}
-                              </div>
-                            </td>
-                            <td className="px-4 py-3">
-                              {user.banned ? (
-                                <span className="px-2 py-1 bg-red-500/20 text-red-400 text-xs rounded-full font-medium">Banned</span>
-                              ) : user.paused ? (
-                                <span className="px-2 py-1 bg-purple-500/20 text-purple-400 text-xs rounded-full font-medium">Paused</span>
-                              ) : user.expiryDate && new Date(user.expiryDate) < new Date() ? (
-                                <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded-full font-medium">Expired</span>
-                              ) : (
-                                <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full font-medium">Active</span>
-                              )}
-                            </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400 font-mono">
-                                <button
-                                  onClick={() => {
-                                    if (user.hwid) {
-                                      navigator.clipboard.writeText(user.hwid);
-                                      toast.success('HWID copied to clipboard!');
-                                    }
-                                  }}
-                                  className="hover:text-primary-400 transition-colors cursor-pointer text-left"
-                                  title="Click to copy full HWID"
-                                >
-                                  {user.hwid ? `${user.hwid.substring(0, 12)}...` : 'Not set'}
-                                </button>
-                              </td>
-                            <td className="px-4 py-3 text-gray-400 text-xs">
-                              {formatToDDMMYYYY(user.createdAt, 'Unknown', true)}
-                            </td>
-                            <td className="px-4 py-3 text-gray-400 text-xs">
-                              {formatToDDMMYYYY(user.lastLogin, 'Never', true)}
-                            </td>
-                            <td className="px-4 py-3 text-gray-400 text-xs">{user.lastIp || 'N/A'}</td>
-                            <td className="px-4 py-3 text-gray-400 text-xs">
-                              {user.paused 
-                                ? formatToDDMMYYYY(user.pausedExpiry, 'Lifetime', true)
-                                : formatToDDMMYYYY(user.expiryDate, 'Lifetime', true)}
-                            </td>
-                            {showCreatedBy && (
-                              <td className="px-4 py-3">
-                                <span className="px-2 py-0.5 rounded-full bg-white/5 text-gray-300 text-[11px] border border-white/10">
-                                  {getCreatorDisplay(user.createdBy, selectedApp?.userId)}
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-dark-border">
+                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Username</th>
+                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Status</th>
+                        <th className="text-left px-4 py-3 text-gray-400 font-medium">HWID</th>
+                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Created</th>
+                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Last Login</th>
+                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Last IP</th>
+                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Expiry</th>
+                        {showCreatedBy && (
+                          <th className="text-left px-4 py-3 text-gray-400 font-medium">Created By</th>
+                        )}
+                        <th className="text-left px-4 py-3 text-gray-400 font-medium">HWID Affected</th>
+                        <th className="px-4 py-3" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {users.map((user: any, i: number) => (
+                        <motion.tr 
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.3, delay: i * 0.03 }}
+                          key={user._id} 
+                          className="border-b border-dark-border/50 hover:bg-dark-hover/30 transition-colors"
+                        >
+                          <td className="px-4 py-3 font-medium">
+                            <div className="flex items-center gap-2">
+                              {onlineUsers[user._id] !== undefined && (
+                                <span className="relative flex h-2 w-2 shrink-0">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-400"></span>
                                 </span>
-                              </td>
-                            )}
-                            <td className="px-4 py-3 text-gray-400 text-xs">
-                              {user.hwidAffected ? (
-                                <span className="text-indigo-400 font-medium">Yes</span>
-                              ) : (
-                                <span className="text-gray-500">No</span>
                               )}
+                              <span>{user.username}</span>
+                              {onlineUsers[user._id] !== undefined && (
+                                <span className="text-[10px] text-green-400/80 font-normal">
+                                  {onlineUsers[user._id] ? `${onlineUsers[user._id]}ms` : 'Live'}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            {user.banned ? (
+                              <span className="px-2 py-1 bg-red-500/20 text-red-400 text-xs rounded-full font-medium">Banned</span>
+                            ) : user.paused ? (
+                              <span className="px-2 py-1 bg-purple-500/20 text-purple-400 text-xs rounded-full font-medium">Paused</span>
+                            ) : user.expiryDate && new Date(user.expiryDate) < new Date() ? (
+                              <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded-full font-medium">Expired</span>
+                            ) : (
+                              <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full font-medium">Active</span>
+                            )}
+                          </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400 font-mono">
+                              <button
+                                onClick={() => {
+                                  if (user.hwid) {
+                                    navigator.clipboard.writeText(user.hwid);
+                                    toast.success('HWID copied to clipboard!');
+                                  }
+                                }}
+                                className="hover:text-primary-400 transition-colors cursor-pointer text-left"
+                                title="Click to copy full HWID"
+                              >
+                                {user.hwid ? `${user.hwid.substring(0, 12)}...` : 'Not set'}
+                              </button>
                             </td>
+                          <td className="px-4 py-3 text-gray-400 text-xs">
+                            {formatToDDMMYYYY(user.createdAt, 'Unknown', true)}
+                          </td>
+                          <td className="px-4 py-3 text-gray-400 text-xs">
+                            {formatToDDMMYYYY(user.lastLogin, 'Never', true)}
+                          </td>
+                          <td className="px-4 py-3 text-gray-400 text-xs">{user.lastIp || 'N/A'}</td>
+                          <td className="px-4 py-3 text-gray-400 text-xs">
+                            {user.paused 
+                              ? formatToDDMMYYYY(user.pausedExpiry, 'Lifetime', true)
+                              : formatToDDMMYYYY(user.expiryDate, 'Lifetime', true)}
+                          </td>
+                          {showCreatedBy && (
                             <td className="px-4 py-3">
-                              <UserMenu
-                                user={user}
-                                onEdit={openEditModal}
-                                onBan={softBan}
-                                onPermanentBan={openBanModal}
-                                onUnban={unbanUser}
-                                onPause={pauseUser}
-                                onResetHwid={resetHwid}
-                                onDelete={deleteUser}
-                                onForceClose={forceCloseUser}
-                              />
+                              <span className="px-2 py-0.5 rounded-full bg-white/5 text-gray-300 text-[11px] border border-white/10">
+                                {getCreatorDisplay(user.createdBy, selectedApp?.userId)}
+                              </span>
                             </td>
-                          </motion.tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                          )}
+                          <td className="px-4 py-3 text-gray-400 text-xs">
+                            {user.hwidAffected ? (
+                              <span className="text-indigo-400 font-medium">Yes</span>
+                            ) : (
+                              <span className="text-gray-500">No</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            <UserMenu
+                              user={user}
+                              onEdit={openEditModal}
+                              onBan={softBan}
+                              onPermanentBan={openBanModal}
+                              onUnban={unbanUser}
+                              onPause={pauseUser}
+                              onResetHwid={resetHwid}
+                              onDelete={deleteUser}
+                              onForceClose={forceCloseUser}
+                            />
+                          </td>
+                        </motion.tr>
+                      ))}
+                    </tbody>
+                  </table>
                 )
               })()}
 
