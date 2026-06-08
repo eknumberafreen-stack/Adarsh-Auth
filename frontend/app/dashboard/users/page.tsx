@@ -398,13 +398,38 @@ export default function Users() {
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div>
+      <style dangerouslySetInnerHTML={{__html: `
+        .premium-card-indigo {
+          background: linear-gradient(180deg, rgba(16, 17, 26, 0.75) 0%, rgba(9, 10, 15, 0.9) 100%);
+          border: 1px solid rgba(99, 102, 241, 0.18);
+          box-shadow: 0 15px 35px rgba(0, 0, 0, 0.55), 0 0 15px rgba(99, 102, 241, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.02);
+          backdrop-filter: blur(20px);
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .premium-input {
+          background: rgba(0, 0, 0, 0.4) !important;
+          border: 1px solid rgba(255, 255, 255, 0.08) !important;
+          border-radius: 12px !important;
+          color: #fff !important;
+          padding: 0.75rem 1rem !important;
+          transition: all 0.2s ease !important;
+          width: 100%;
+        }
+        .premium-input:focus {
+          border-color: rgba(99, 102, 241, 0.5) !important;
+          box-shadow: 0 0 12px rgba(99, 102, 241, 0.2) !important;
+          background: rgba(0, 0, 0, 0.55) !important;
+          outline: none !important;
+        }
+      `}} />
+
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Users</h1>
+        <h1 className="text-3xl font-black text-white tracking-tight">Users</h1>
         {selectedApp?._id && (
           <div className="flex items-center gap-3">
             <div className="relative group">
-              <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-gray-500 group-focus-within:text-primary-400 transition-colors">
+              <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-gray-500 group-focus-within:text-indigo-400 transition-colors">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
@@ -414,10 +439,13 @@ export default function Users() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search users..."
-                className="w-64 pl-10 pr-4 py-2.5 bg-dark-bg border border-dark-border rounded-xl text-sm focus:outline-none focus:border-primary-500/50 transition-all placeholder-gray-500"
+                className="w-64 pl-10 pr-4 py-2.5 bg-black/45 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-indigo-500/50 transition-all placeholder-gray-500 text-white"
               />
             </div>
-            <button onClick={() => setShowCreateModal(true)} className="btn btn-primary flex items-center gap-2 py-2.5">
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-bold uppercase tracking-wider text-white shadow-[0_0_15px_rgba(99,102,241,0.2)] hover:shadow-[0_0_20px_rgba(99,102,241,0.35)] transition-all flex items-center gap-2"
+            >
               <PlusIcon className="w-4 h-4" /> Create User
             </button>
           </div>
@@ -426,7 +454,7 @@ export default function Users() {
 
       {loadingApplications ? (
         <div className="flex justify-center py-24">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary-500 border-t-transparent" />
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
         </div>
       ) : applications.length === 0 ? (
         <div className="text-center py-12 text-gray-400">Create an application first</div>
@@ -435,109 +463,142 @@ export default function Users() {
           {/* Users table */}
           {loading ? (
             <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary-500" />
+              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-indigo-500" />
             </div>
           ) : users.length === 0 ? (
             <div className="text-center py-12 text-gray-400">No users yet</div>
           ) : (
-            <div className="card overflow-visible p-0">
+            <div className="premium-card-indigo rounded-2xl overflow-visible p-0">
               {(() => {
                 const showCreatedBy = selectedApp?.team?.length > 0 || users.some(u => u.createdBy)
                 return (
-                  <table className="w-full text-sm">
+                  <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="border-b border-dark-border">
-                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Username</th>
-                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Status</th>
-                        <th className="text-left px-4 py-3 text-gray-400 font-medium">HWID</th>
-                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Created</th>
-                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Last Login</th>
-                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Last IP</th>
-                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Expiry</th>
+                      <tr className="border-b border-white/[0.06] bg-white/[0.01]">
+                        <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Username</th>
+                        <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Status</th>
+                        <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">HWID</th>
+                        <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Created</th>
+                        <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Last Login</th>
+                        <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Last IP</th>
+                        <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Expiry</th>
                         {showCreatedBy && (
-                          <th className="text-left px-4 py-3 text-gray-400 font-medium">Created By</th>
+                          <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Created By</th>
                         )}
-                        <th className="text-left px-4 py-3 text-gray-400 font-medium">HWID Affected</th>
-                        <th className="px-4 py-3" />
+                        <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">HWID Lock</th>
+                        <th className="px-5 py-4" />
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-white/[0.04]">
                       {users.map((user: any, i: number) => (
                         <motion.tr 
                           initial={{ opacity: 0, x: -10 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ duration: 0.3, delay: i * 0.03 }}
                           key={user._id} 
-                          className="border-b border-dark-border/50 hover:bg-dark-hover/30 transition-colors"
+                          className="hover:bg-white/[0.02] transition-colors"
                         >
-                          <td className="px-4 py-3 font-medium">
-                            <div className="flex items-center gap-2">
+                          {/* Username */}
+                          <td className="px-5 py-4">
+                            <div className="flex items-center gap-2.5">
                               {onlineUsers[user._id] !== undefined && (
                                 <span className="relative flex h-2 w-2 shrink-0">
-                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-400"></span>
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
                                 </span>
                               )}
-                              <span>{user.username}</span>
+                              <span className="font-bold text-slate-200 text-sm">{user.username}</span>
                               {onlineUsers[user._id] !== undefined && (
-                                <span className="text-[10px] text-green-400/80 font-normal">
+                                <span className="text-xs text-emerald-400/80 font-bold ml-1">
                                   {onlineUsers[user._id] ? `${onlineUsers[user._id]}ms` : 'Live'}
                                 </span>
                               )}
                             </div>
                           </td>
-                          <td className="px-4 py-3">
+
+                          {/* Status */}
+                          <td className="px-5 py-4">
                             {user.banned ? (
-                              <span className="px-2 py-1 bg-red-500/20 text-red-400 text-xs rounded-full font-medium">Banned</span>
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-rose-500/10 border border-rose-500/20 text-xs font-bold text-rose-300 uppercase tracking-wider">
+                                Banned
+                              </span>
                             ) : user.paused ? (
-                              <span className="px-2 py-1 bg-purple-500/20 text-purple-400 text-xs rounded-full font-medium">Paused</span>
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-purple-500/10 border border-purple-500/20 text-xs font-bold text-purple-300 uppercase tracking-wider">
+                                Paused
+                              </span>
                             ) : user.expiryDate && new Date(user.expiryDate) < new Date() ? (
-                              <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded-full font-medium">Expired</span>
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-xs font-bold text-amber-300 uppercase tracking-wider">
+                                Expired
+                              </span>
                             ) : (
-                              <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full font-medium">Active</span>
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-xs font-bold text-emerald-300 uppercase tracking-wider">
+                                Active
+                              </span>
                             )}
                           </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400 font-mono">
-                              <button
-                                onClick={() => {
-                                  if (user.hwid) {
-                                    navigator.clipboard.writeText(user.hwid);
-                                    toast.success('HWID copied to clipboard!');
-                                  }
-                                }}
-                                className="hover:text-primary-400 transition-colors cursor-pointer text-left"
-                                title="Click to copy full HWID"
-                              >
-                                {user.hwid ? `${user.hwid.substring(0, 12)}...` : 'Not set'}
-                              </button>
-                            </td>
-                          <td className="px-4 py-3 text-gray-400 text-xs">
+
+                          {/* HWID */}
+                          <td className="px-5 py-4 font-mono text-xs text-slate-400">
+                            <button
+                              onClick={() => {
+                                if (user.hwid) {
+                                  navigator.clipboard.writeText(user.hwid);
+                                  toast.success('HWID copied!');
+                                }
+                              }}
+                              className="hover:text-indigo-400 transition-colors cursor-pointer text-left"
+                              title="Click to copy full HWID"
+                            >
+                              {user.hwid ? `${user.hwid.substring(0, 12)}…` : 'Not set'}
+                            </button>
+                          </td>
+
+                          {/* Created */}
+                          <td className="px-5 py-4 text-xs font-semibold text-slate-300">
                             {formatToDDMMYYYY(user.createdAt, 'Unknown', true)}
                           </td>
-                          <td className="px-4 py-3 text-gray-400 text-xs">
+
+                          {/* Last Login */}
+                          <td className="px-5 py-4 text-xs font-semibold text-slate-300">
                             {formatToDDMMYYYY(user.lastLogin, 'Never', true)}
                           </td>
-                          <td className="px-4 py-3 text-gray-400 text-xs">{user.lastIp || 'N/A'}</td>
-                          <td className="px-4 py-3 text-gray-400 text-xs">
+
+                          {/* Last IP */}
+                          <td className="px-5 py-4 text-xs font-mono text-slate-400">
+                            {user.lastIp || 'N/A'}
+                          </td>
+
+                          {/* Expiry */}
+                          <td className="px-5 py-4 text-xs font-semibold text-slate-300">
                             {user.paused 
                               ? formatToDDMMYYYY(user.pausedExpiry, 'Lifetime', true)
                               : formatToDDMMYYYY(user.expiryDate, 'Lifetime', true)}
                           </td>
+
+                          {/* Created By */}
                           {showCreatedBy && (
-                            <td className="px-4 py-3">
-                              <span className="px-2 py-0.5 rounded-full bg-white/5 text-gray-300 text-[11px] border border-white/10">
+                            <td className="px-5 py-4">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/25 text-xs font-bold text-indigo-300 uppercase tracking-wider">
                                 {getCreatorDisplay(user.createdBy, selectedApp?.userId)}
                               </span>
                             </td>
                           )}
-                          <td className="px-4 py-3 text-gray-400 text-xs">
+
+                          {/* HWID Lock */}
+                          <td className="px-5 py-4">
                             {user.hwidAffected ? (
-                              <span className="text-indigo-400 font-medium">Yes</span>
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-xs font-bold text-indigo-300 uppercase tracking-wider">
+                                Yes
+                              </span>
                             ) : (
-                              <span className="text-gray-500">No</span>
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-slate-500/10 border border-slate-500/20 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                                No
+                              </span>
                             )}
                           </td>
-                          <td className="px-4 py-3">
+
+                          {/* Action Menu */}
+                          <td className="px-5 py-4 text-right">
                             <UserMenu
                               user={user}
                               onEdit={openEditModal}

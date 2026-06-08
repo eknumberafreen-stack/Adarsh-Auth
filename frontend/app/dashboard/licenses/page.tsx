@@ -350,20 +350,49 @@ export default function Licenses() {
   }
 
   const getStatusBadge = (license: any) => {
-    if (license.blacklisted) return <span className="px-2 py-0.5 bg-red-900/40 text-red-400 text-xs rounded-full font-medium">Blacklisted</span>
-    if (license.revoked) return <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full font-medium">Revoked</span>
-    if (license.paused) return <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 text-xs rounded-full font-medium">Paused</span>
-    if (license.used) return <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full font-medium">Used</span>
-    return <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 text-xs rounded-full font-medium">Available</span>
+    if (license.blacklisted) return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-rose-500/10 border border-rose-500/25 text-xs font-bold text-rose-300 uppercase tracking-wider">Blacklisted</span>
+    if (license.revoked) return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-rose-500/10 border border-rose-500/20 text-xs font-bold text-rose-300 uppercase tracking-wider">Revoked</span>
+    if (license.paused) return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-purple-500/10 border border-purple-500/20 text-xs font-bold text-purple-300 uppercase tracking-wider">Paused</span>
+    if (license.used) return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-xs font-bold text-emerald-300 uppercase tracking-wider">Used</span>
+    return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-blue-500/10 border border-blue-500/20 text-xs font-bold text-blue-300 uppercase tracking-wider">Available</span>
   }
 
   return (
     <div>
+      <style dangerouslySetInnerHTML={{__html: `
+        .premium-card-indigo {
+          background: linear-gradient(180deg, rgba(16, 17, 26, 0.75) 0%, rgba(9, 10, 15, 0.9) 100%);
+          border: 1px solid rgba(99, 102, 241, 0.18);
+          box-shadow: 0 15px 35px rgba(0, 0, 0, 0.55), 0 0 15px rgba(99, 102, 241, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.02);
+          backdrop-filter: blur(20px);
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .premium-input {
+          background: rgba(0, 0, 0, 0.4) !important;
+          border: 1px solid rgba(255, 255, 255, 0.08) !important;
+          border-radius: 12px !important;
+          color: #fff !important;
+          padding: 0.75rem 1rem !important;
+          transition: all 0.2s ease !important;
+          width: 100%;
+        }
+        .premium-input:focus {
+          border-color: rgba(99, 102, 241, 0.5) !important;
+          box-shadow: 0 0 12px rgba(99, 102, 241, 0.2) !important;
+          background: rgba(0, 0, 0, 0.55) !important;
+          outline: none !important;
+        }
+      `}} />
+
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Licenses</h1>
+        <h1 className="text-3xl font-black text-white tracking-tight">Licenses</h1>
         <div className="flex items-center gap-3">
-          <button onClick={() => setShowGenerateModal(true)} className="btn btn-primary flex items-center gap-2 py-2.5" disabled={!selectedApp?._id}>
+          <button
+            onClick={() => setShowGenerateModal(true)}
+            className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-bold uppercase tracking-wider text-white shadow-[0_0_15px_rgba(99,102,241,0.2)] hover:shadow-[0_0_20px_rgba(99,102,241,0.35)] transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!selectedApp?._id}
+          >
             <PlusIcon className="w-4 h-4" /> Generate Licenses
           </button>
         </div>
@@ -375,19 +404,19 @@ export default function Licenses() {
         <>
           {loading ? (
             <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary-500" />
+              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-indigo-500" />
             </div>
           ) : licenses.length === 0 ? (
             <div className="text-center py-12 text-gray-400">No licenses yet. Generate your first one!</div>
           ) : (
-            <div className="card overflow-visible p-0 relative">
+            <div className="premium-card-indigo rounded-2xl overflow-visible p-0 relative">
               {(() => {
                 const showCreatedBy = !!(selectedApp?.team && selectedApp.team.length > 0)
                 return (
-                  <table className="w-full text-sm">
+                  <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="border-b border-dark-border">
-                        <th className="px-4 py-3 text-left w-10">
+                      <tr className="border-b border-white/[0.06] bg-white/[0.01]">
+                        <th className="px-5 py-4 w-12">
                           <input 
                             type="checkbox"
                             checked={licenses.length > 0 && selectedLicenseIds.length === licenses.length}
@@ -398,25 +427,25 @@ export default function Licenses() {
                                 setSelectedLicenseIds([])
                               }
                             }}
-                            className="w-4 h-4 rounded border-dark-border bg-dark-bg text-primary-600 accent-primary-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                            className="w-4 h-4 rounded border-white/10 bg-black/40 text-indigo-600 accent-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
                           />
                         </th>
-                        <th className="text-left px-4 py-3 text-gray-400 font-medium">License Key</th>
-                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Status</th>
-                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Expiry</th>
-                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Used By</th>
-                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Note</th>
+                        <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">License Key</th>
+                        <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Status</th>
+                        <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Expiry</th>
+                        <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Used By</th>
+                        <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Note</th>
                         {showCreatedBy && (
-                          <th className="text-left px-4 py-3 text-gray-400 font-medium">Created By</th>
+                          <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Created By</th>
                         )}
-                        <th className="text-left px-4 py-3 text-gray-400 font-medium">Created</th>
-                        <th className="px-4 py-3" />
+                        <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Created</th>
+                        <th className="px-5 py-4" />
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-white/[0.04]">
                       {licenses.map((license: any) => (
-                        <tr key={license._id} className={`border-b border-dark-border/50 hover:bg-dark-hover/30 transition-colors ${selectedLicenseIds.includes(license._id) ? 'bg-primary-950/10' : ''}`}>
-                          <td className="px-4 py-3 w-10">
+                        <tr key={license._id} className={`hover:bg-white/[0.02] transition-colors ${selectedLicenseIds.includes(license._id) ? 'bg-indigo-500/5' : ''}`}>
+                          <td className="px-5 py-4 w-12">
                             <input 
                               type="checkbox"
                               checked={selectedLicenseIds.includes(license._id)}
@@ -427,36 +456,36 @@ export default function Licenses() {
                                   setSelectedLicenseIds(selectedLicenseIds.filter(id => id !== license._id))
                                 }
                               }}
-                              className="w-4 h-4 rounded border-dark-border bg-dark-bg text-primary-600 accent-primary-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                              className="w-4 h-4 rounded border-white/10 bg-black/40 text-indigo-600 accent-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
                             />
                           </td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-2">
-                              <code className="font-mono text-xs text-gray-300 truncate max-w-[180px]">{license.key}</code>
-                              <button onClick={() => copyKey(license.key)} className="text-gray-500 hover:text-gray-300 flex-shrink-0">
+                          <td className="px-5 py-4">
+                            <div className="flex items-center gap-2.5">
+                              <code className="font-mono text-xs text-slate-200 bg-white/[0.04] border border-white/[0.06] px-2 py-0.5 rounded truncate max-w-[200px]">{license.key}</code>
+                              <button onClick={() => copyKey(license.key)} className="text-slate-500 hover:text-indigo-400 transition-colors flex-shrink-0">
                                 <DocumentDuplicateIcon className="w-3.5 h-3.5" />
                               </button>
                             </div>
                           </td>
-                          <td className="px-4 py-3">{getStatusBadge(license)}</td>
-                          <td className="px-4 py-3 text-gray-400 text-xs">
+                          <td className="px-5 py-4">{getStatusBadge(license)}</td>
+                          <td className="px-5 py-4 text-xs font-semibold text-slate-300">
                             {license.expiryUnit === 'lifetime' ? 'Lifetime' : `${license.expiryDuration} ${license.expiryUnit}`}
                           </td>
-                          <td className="px-4 py-3 text-gray-400 text-xs">
+                          <td className="px-5 py-4 text-xs font-semibold text-slate-300">
                             {license.usedBy?.username || '—'}
                           </td>
-                          <td className="px-4 py-3 text-gray-400 text-xs">{license.note || '—'}</td>
+                          <td className="px-5 py-4 text-xs font-medium text-slate-400">{license.note || '—'}</td>
                           {showCreatedBy && (
-                            <td className="px-4 py-3">
-                              <span className="px-2 py-0.5 rounded-full bg-white/5 text-gray-300 text-[11px] border border-white/10">
+                            <td className="px-5 py-4">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/25 text-xs font-bold text-indigo-300 uppercase tracking-wider">
                                 {getCreatorDisplay(license.createdBy, selectedApp?.userId)}
                               </span>
                             </td>
                           )}
-                          <td className="px-4 py-3 text-gray-400 text-xs">
+                          <td className="px-5 py-4 text-xs font-semibold text-slate-300">
                             {formatToDDMMYYYY(license.createdAt, 'N/A', true)}
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-5 py-4 text-right">
                             <LicenseMenu
                               license={license}
                               onCopy={copyKey}
