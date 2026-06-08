@@ -336,7 +336,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                               : 'border border-transparent text-slate-400 hover:text-white hover:bg-white/[0.03] font-medium'
                           }`}
                         >
-                          <item.icon className={`h-4.5 w-4.5 flex-shrink-0 transition-colors duration-200 ${
+                          <item.icon className={`h-5 w-5 flex-shrink-0 transition-colors duration-200 ${
                             active ? 'text-indigo-400' : 'text-slate-400 group-hover:text-white'
                           }`} />
                           <span className="tracking-wide">{item.name}</span>
@@ -349,7 +349,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
           </div>
 
-          <div className="border-t border-white/[0.06] px-4 py-4.5">
+          <div className="border-t border-white/[0.06] px-4 py-4">
             <button
               onClick={handleLogout}
               className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-rose-500/15 bg-rose-500/5 px-4 py-3 text-xs font-black uppercase tracking-wider text-rose-300 transition-all duration-300 hover:border-rose-500/30 hover:bg-rose-500/10 shadow-[0_4px_12px_rgba(244,63,94,0.04)]"
