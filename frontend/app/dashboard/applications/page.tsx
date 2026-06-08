@@ -210,49 +210,128 @@ export default function Applications() {
 
   return (
     <div className="space-y-8">
-      <section className="page-header">
+      <style dangerouslySetInnerHTML={{__html: `
+        .premium-card {
+          background: linear-gradient(180deg, rgba(16, 17, 26, 0.75) 0%, rgba(9, 10, 15, 0.9) 100%);
+          border: 1px solid rgba(255, 255, 255, 0.05);
+          box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.02);
+          backdrop-filter: blur(20px);
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .premium-card:hover {
+          border-color: rgba(99, 102, 241, 0.25);
+          box-shadow: 0 20px 40px rgba(99, 102, 241, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        }
+        .glow-hover-blue:hover {
+          border-color: rgba(56, 189, 248, 0.3) !important;
+          box-shadow: 0 20px 40px rgba(56, 189, 248, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+        }
+        .glow-hover-amber:hover {
+          border-color: rgba(245, 158, 11, 0.3) !important;
+          box-shadow: 0 20px 40px rgba(245, 158, 11, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+        }
+        .glow-hover-emerald:hover {
+          border-color: rgba(16, 185, 129, 0.3) !important;
+          box-shadow: 0 20px 40px rgba(16, 185, 129, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+        }
+        .glow-hover-slate:hover {
+          border-color: rgba(148, 163, 184, 0.3) !important;
+          box-shadow: 0 20px 40px rgba(148, 163, 184, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+        }
+        .tactical-input {
+          background: rgba(0, 0, 0, 0.4);
+          border: 1px solid rgba(255, 255, 255, 0.05);
+          box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.4);
+          transition: all 0.25s ease;
+        }
+        .tactical-input:focus {
+          border-color: rgba(99, 102, 241, 0.4);
+          background: rgba(0, 0, 0, 0.5);
+          box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.5), 0 0 15px rgba(99, 102, 241, 0.05);
+        }
+        .credential-glow-text {
+          text-shadow: 0 0 8px rgba(165, 180, 252, 0.25);
+        }
+        .tactical-btn {
+          border: 1px solid rgba(255, 255, 255, 0.05);
+          background: rgba(255, 255, 255, 0.02);
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .tactical-btn:hover {
+          background: rgba(255, 255, 255, 0.06);
+          border-color: rgba(255, 255, 255, 0.12);
+        }
+      `}} />
+
+      <section className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between border-b border-white/[0.04] pb-6">
         <div>
-          <p className="page-eyebrow">Applications</p>
-          <h1 className="page-title">Manage the applications behind your authentication workflow.</h1>
-          <p className="page-subtitle">
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-indigo-300 mb-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-indigo-400 animate-pulse" />
+            Registry
+          </div>
+          <h1 className="text-3xl font-black text-white tracking-tight">Applications Control</h1>
+          <p className="mt-2 text-xs font-semibold leading-relaxed text-slate-400 max-w-xl">
             Create applications, review credentials, rotate secrets, and control status from one classic dark workspace.
           </p>
         </div>
 
-        <button onClick={() => setShowCreateModal(true)} className="btn btn-primary">
-          <PlusIcon className="h-5 w-5" />
+        <button 
+          onClick={() => setShowCreateModal(true)} 
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-indigo-400/30 bg-gradient-to-r from-indigo-600 to-indigo-500 px-5 py-3 text-xs font-black uppercase tracking-wider text-white shadow-lg shadow-indigo-950/40 hover:-translate-y-0.5 hover:shadow-[0_0_20px_rgba(99,102,241,0.3)] transition-all duration-300"
+        >
+          <PlusIcon className="h-4 w-4" />
           Create Application
         </button>
       </section>
 
+      {/* Stats tiles section */}
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {statTiles.map((tile, i) => (
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: i * 0.1, ease: 'easeOut' }}
-            key={tile.label} 
-            className="stat-tile"
-          >
-            <div className="flex items-center justify-between">
-              <p className="stat-label">{tile.label}</p>
-              <tile.icon className={`h-5 w-5 ${tile.tone}`} />
-            </div>
-            <p className="stat-value">{tile.value}</p>
-            <p className="stat-meta">Live summary across your application inventory</p>
-          </motion.div>
-        ))}
+        {statTiles.map((tile, i) => {
+          const glowStyles = [
+            'glow-hover-blue',
+            'glow-hover-emerald',
+            'glow-hover-slate',
+            'glow-hover-blue'
+          ]
+          const colors = [
+            'bg-indigo-500/10 border-indigo-500/20 text-indigo-400',
+            'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
+            'bg-zinc-500/10 border-zinc-500/20 text-zinc-400',
+            'bg-cyan-500/10 border-cyan-500/20 text-cyan-400'
+          ]
+          return (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: i * 0.08, ease: 'easeOut' }}
+              key={tile.label} 
+              className={`premium-card rounded-2xl p-5 ${glowStyles[i]}`}
+            >
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">{tile.label}</p>
+                <div className={`rounded-xl border p-2 ${colors[i]}`}>
+                  <tile.icon className="h-4 w-4" />
+                </div>
+              </div>
+              <p className="mt-3.5 text-3xl font-black text-white tracking-tight">{tile.value}</p>
+              <p className="mt-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Inventory status</p>
+            </motion.div>
+          )
+        })}
       </section>
 
+      {/* Main split grid */}
       <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-        <div className="card">
+        
+        {/* Credentials Column */}
+        <div className="premium-card rounded-2xl p-6">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-400/10 text-indigo-200">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-300 border border-white/[0.04]">
               <DocumentDuplicateIcon className="h-5 w-5" />
             </div>
             <div>
-              <p className="page-eyebrow">Selected Credentials</p>
-              <h2 className="text-2xl font-bold text-white">Application secrets and identity</h2>
+              <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">Security Tokens</p>
+              <h2 className="text-xl font-bold text-white tracking-tight">Application Identity</h2>
             </div>
           </div>
 
@@ -266,52 +345,61 @@ export default function Applications() {
                   value: showSecret ? credentials.appSecret : '•'.repeat(48),
                   copyValue: credentials.appSecret,
                   actions: (
-                    <button onClick={() => setShowSecret(!showSecret)} className="btn btn-secondary px-3 py-2 text-xs">
+                    <button 
+                      onClick={() => setShowSecret(!showSecret)} 
+                      className="tactical-btn px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-slate-300 rounded-lg"
+                    >
                       {showSecret ? 'Hide' : 'Show'}
                     </button>
                   ),
                 },
                 { label: 'Version', value: credentials.version },
               ].map((item) => (
-                <div key={item.label} className="rounded-2xl border border-white/10 bg-slate-950/45 p-4">
+                <div key={item.label} className="rounded-2xl border border-white/[0.04] bg-[#090a0f]/60 p-4">
                   <div className="mb-2 flex items-center justify-between gap-3">
-                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">{item.label}</p>
+                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-500">{item.label}</p>
                     <div className="flex items-center gap-2">
                       {item.actions}
                       {item.copyValue && (
-                        <button onClick={() => copy(item.copyValue)} className="rounded-xl border border-white/10 p-2 text-slate-400 transition-colors hover:text-white">
+                        <button 
+                          onClick={() => copy(item.copyValue)} 
+                          className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-2 text-slate-400 transition-colors hover:bg-white/[0.06] hover:text-white"
+                        >
                           <DocumentDuplicateIcon className="h-4 w-4" />
                         </button>
                       )}
                     </div>
                   </div>
-                  <div className="break-all rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3 font-mono text-sm text-slate-200">
+                  <div className="break-all rounded-xl border border-white/[0.04] bg-black/45 px-4 py-3 font-mono text-xs text-indigo-200/90 credential-glow-text">
                     {item.value}
                   </div>
                 </div>
               ))}
 
-              <button onClick={regenerateSecret} className="btn btn-danger w-full">
-                Regenerate Secret
+              <button 
+                onClick={regenerateSecret} 
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-rose-500/10 hover:bg-rose-500/15 border border-rose-500/20 hover:border-rose-500/40 text-rose-300 rounded-2xl text-xs font-black uppercase tracking-wider transition-all duration-300 shadow-[0_4px_20px_rgba(244,63,94,0.04)]"
+              >
+                Regenerate Application Secret
               </button>
 
               {/* Systematic Code Snippet Section */}
-              <div className="mt-8 pt-8 border-t border-white/10 space-y-4">
+              <div className="mt-8 pt-8 border-t border-white/[0.04] space-y-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-indigo-500/20 text-indigo-400">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500/15 text-indigo-300 border border-indigo-500/20">
                       <CodeBracketIcon className="h-4 w-4" />
                     </div>
-                    <span className="text-sm font-bold text-white">Display Code Snippet</span>
+                    <span className="text-xs font-black uppercase tracking-wider text-slate-200">Integration Snippet</span>
                   </div>
                   <button
                     onClick={() => setShowSnippet(!showSnippet)}
-                    className={`relative w-11 h-5 rounded-full transition-all flex-shrink-0 ${
-                      showSnippet ? 'bg-indigo-600' : 'bg-slate-700'
+                    className={`relative w-10 h-5 rounded-full transition-all flex-shrink-0 border border-white/10 ${
+                      showSnippet ? 'bg-indigo-600' : 'bg-slate-800'
                     }`}
                   >
-                    <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${
-                      showSnippet ? 'left-6' : 'left-0.5'
+                    <div className={`absolute top-[1px] w-4 h-4 bg-white rounded-full shadow-sm transition-all ${
+                      showSnippet ? 'left-5' : 'left-0.5'
                     }`}></div>
                   </button>
                 </div>
@@ -319,11 +407,11 @@ export default function Applications() {
                 {showSnippet && (
                   <div className="space-y-4 animate-in fade-in zoom-in-95 duration-300">
                     <div className="flex flex-col gap-2">
-                      <label className="text-[10px] text-slate-500 uppercase font-bold tracking-[0.2em]">Select Language:</label>
+                      <label className="text-[9px] text-slate-500 uppercase font-black tracking-[0.2em]">Select Language Target:</label>
                       <select
                         value={selectedLang}
                         onChange={(e) => setSelectedLang(e.target.value)}
-                        className="input py-2.5 text-sm bg-slate-900/50 border-white/5 focus:border-indigo-500/50"
+                        className="w-full rounded-xl border border-white/[0.06] bg-black/40 px-4 py-2.5 text-xs text-slate-100 placeholder:text-slate-500 outline-none focus:border-indigo-500/40 focus:bg-black/50 transition-all font-semibold"
                       >
                         <option>C++</option>
                         <option>C#</option>
@@ -332,8 +420,8 @@ export default function Applications() {
                       </select>
                     </div>
 
-                    <div className="relative group rounded-2xl border border-white/5 bg-slate-950 p-1">
-                      <pre className="p-4 overflow-x-auto text-[11px] font-mono leading-relaxed bg-black/20 rounded-xl min-h-[140px]">
+                    <div className="relative group rounded-2xl border border-white/[0.06] bg-[#06070a]/90 p-1">
+                      <pre className="p-4 overflow-x-auto text-[10.5px] font-mono leading-relaxed bg-black/30 rounded-xl min-h-[140px] text-slate-300">
                         {renderSystematicSnippet(selectedLang, credentials)}
                       </pre>
                     </div>
@@ -341,16 +429,16 @@ export default function Applications() {
                     <div className="flex flex-wrap gap-2 pt-2">
                       <button
                         onClick={() => copy(getSnippet(selectedLang, credentials))}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-indigo-900/20"
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all shadow-lg shadow-indigo-900/20"
                       >
                         <DocumentDuplicateIcon className="h-4 w-4" />
                         Copy Code
                       </button>
-                      <button className="flex-1 px-4 py-2 bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-400 border border-emerald-500/20 rounded-xl text-xs font-bold transition-all">
+                      <button className="flex-1 px-4 py-3.5 bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-400 border border-emerald-500/20 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all">
                         View Example
                       </button>
-                      <button className="flex-1 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition-all">
-                        View Tutorial
+                      <button className="flex-1 px-4 py-3.5 bg-slate-800/60 hover:bg-slate-700 text-slate-300 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border border-white/[0.04]">
+                        Tutorial
                       </button>
                     </div>
                   </div>
@@ -358,44 +446,49 @@ export default function Applications() {
               </div>
             </div>
           ) : (
-            <div className="mt-6 rounded-2xl border border-dashed border-white/10 px-5 py-16 text-center">
-              <CubeIcon className="mx-auto h-12 w-12 text-slate-600" />
-              <p className="mt-4 text-base font-semibold text-white">Choose an application to inspect credentials</p>
-              <p className="mt-2 text-sm text-slate-400">Selecting an application keeps the logic the same while making the workflow much easier to scan.</p>
+            <div className="mt-6 rounded-2xl border border-dashed border-white/[0.06] bg-white/[0.01] px-5 py-16 text-center">
+              <CubeIcon className="mx-auto h-12 w-12 text-slate-700 animate-pulse" />
+              <p className="mt-4 text-sm font-bold text-slate-200 uppercase tracking-wider">Select Application</p>
+              <p className="mt-2 text-xs text-slate-500 max-w-xs mx-auto leading-relaxed">
+                Choose an application from the inventory list to load security credentials and snippets.
+              </p>
             </div>
           )}
         </div>
 
-        <div className="card">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        {/* Inventory Column */}
+        <div className="premium-card rounded-2xl p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-white/[0.04] pb-5">
             <div>
-              <p className="page-eyebrow">Inventory</p>
-              <h2 className="text-2xl font-bold text-white">Application list</h2>
+              <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">Workspace</p>
+              <h2 className="text-xl font-bold text-white tracking-tight">Application Inventory</h2>
             </div>
             <div className="relative w-full sm:max-w-xs">
-              <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+              <MagnifyingGlassIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search applications"
-                className="input pl-9"
+                placeholder="Search applications..."
+                className="w-full rounded-xl border border-white/[0.06] bg-black/40 pl-10 pr-4 py-2.5 text-xs text-slate-100 placeholder:text-slate-500 transition-all focus:border-indigo-500/40 focus:bg-black/50 outline-none"
               />
             </div>
           </div>
 
-          <div className="mt-6 space-y-4">
+          <div className="mt-6 space-y-3.5">
             {loading || loadingApplications ? (
               <div className="flex justify-center py-24">
-                <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-400 border-t-transparent" />
+                <div className="relative w-8 h-8 flex items-center justify-center">
+                  <div className="absolute inset-0 rounded-full border-2 border-indigo-500/10 border-t-indigo-500 animate-spin" />
+                </div>
               </div>
             ) : applications.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-white/10 px-5 py-14 text-center text-sm text-slate-400">
-                No applications found.
+              <div className="rounded-2xl border border-dashed border-white/[0.06] px-5 py-14 text-center text-xs text-slate-500">
+                No applications found in inventory.
               </div>
             ) : (
               <>
-                 {applications.map((app: any, i: number) => {
+                {applications.map((app: any, i: number) => {
                   const isSelected = selectedApp?._id === app._id
                   const isOwner = app.userId === user?.id
                   const currentMember = app.team?.find((m: any) => {
@@ -409,43 +502,52 @@ export default function Applications() {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ duration: 0.4, delay: i * 0.05, ease: 'easeOut' }}
                       key={app._id}
-                      className={`rounded-2xl border p-5 transition-all ${
+                      className={`rounded-2xl border p-5 transition-all duration-300 border-l-2 ${
                         isSelected
-                          ? 'border-indigo-400/25 bg-indigo-400/10 shadow-lg shadow-indigo-950/30'
-                          : 'border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.05]'
+                          ? 'border-indigo-500/35 bg-indigo-500/[0.08] shadow-lg shadow-indigo-950/40 border-l-indigo-400'
+                          : 'border-white/[0.04] bg-white/[0.01] hover:border-white/[0.08] hover:bg-white/[0.03] border-l-slate-700'
                       }`}
                     >
-                      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                         <div>
                           <div className="flex flex-wrap items-center gap-3">
-                             <h3 className="text-xl font-bold text-white">{app.name}</h3>
+                            <h3 className="text-base font-black text-slate-100">{app.name}</h3>
                             <span
-                              className={`badge ${
+                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-wider ${
                                 app.status === 'active'
-                                  ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-200'
-                                  : 'border-zinc-400/20 bg-zinc-400/10 text-zinc-200'
+                                  ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300'
+                                  : 'border-zinc-500/20 bg-zinc-500/10 text-zinc-400'
                               }`}
                             >
+                              {app.status === 'active' && <span className="h-1 w-1 rounded-full bg-emerald-400 animate-pulse" />}
                               {app.status}
                             </span>
                           </div>
-                          <div className="mt-3 flex flex-wrap gap-4 text-sm text-slate-400">
-                            <span className="inline-flex items-center gap-2">
-                              <CubeIcon className="h-4 w-4" />
-                              Version {app.version}
+                          <div className="mt-2.5 flex flex-wrap gap-4 text-[11px] font-medium text-slate-400">
+                            <span className="inline-flex items-center gap-1.5">
+                              <CubeIcon className="h-3.5 w-3.5 text-slate-500" />
+                              v{app.version}
                             </span>
-                            <span className="inline-flex items-center gap-2">
-                              <UserGroupIcon className="h-4 w-4" />
-                              {app.userCount || 0} linked users
+                            <span className="inline-flex items-center gap-1.5">
+                              <UserGroupIcon className="h-3.5 w-3.5 text-slate-500" />
+                              {app.userCount || 0} users
                             </span>
                           </div>
                         </div>
 
-                        <div className="flex flex-wrap gap-2">
-                          <button onClick={() => selectApp(app)} className={`btn px-3 py-2 text-xs ${isSelected ? 'btn-secondary' : 'btn-primary'}`}>
-                            <CheckIcon className="h-4 w-4" />
+                        <div className="flex flex-wrap gap-1.5">
+                          <button 
+                            onClick={() => selectApp(app)} 
+                            className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[10px] font-black uppercase tracking-wider border transition-all ${
+                              isSelected 
+                                ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-300' 
+                                : 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white border-indigo-400/20'
+                            }`}
+                          >
+                            <CheckIcon className="h-3 w-3" />
                             {isSelected ? 'Selected' : 'Select'}
                           </button>
+                          
                           {hasManageSettings && (
                             <button
                               onClick={() => {
@@ -453,21 +555,29 @@ export default function Applications() {
                                 setNewName(app.name)
                                 setShowRenameModal(true)
                               }}
-                              className="btn btn-secondary px-3 py-2 text-xs"
+                              className="tactical-btn rounded-lg px-2.5 py-1.5 text-[10px] font-black uppercase tracking-wider text-slate-300 inline-flex items-center gap-1"
                             >
-                              <PencilIcon className="h-4 w-4" />
+                              <PencilIcon className="h-3 w-3" />
                               Rename
                             </button>
                           )}
+                          
                           {hasManageSettings && (
-                            <button onClick={() => toggleStatus(app)} className="btn btn-secondary px-3 py-2 text-xs">
-                              {app.status === 'active' ? <PauseIcon className="h-4 w-4" /> : <PlayIcon className="h-4 w-4" />}
+                            <button 
+                              onClick={() => toggleStatus(app)} 
+                              className="tactical-btn rounded-lg px-2.5 py-1.5 text-[10px] font-black uppercase tracking-wider text-slate-300 inline-flex items-center gap-1"
+                            >
+                              {app.status === 'active' ? <PauseIcon className="h-3 w-3" /> : <PlayIcon className="h-3 w-3" />}
                               {app.status === 'active' ? 'Pause' : 'Resume'}
                             </button>
                           )}
+                          
                           {isOwner && (
-                            <button onClick={() => deleteApplication(app._id)} className="btn btn-danger px-3 py-2 text-xs">
-                              <TrashIcon className="h-4 w-4" />
+                            <button 
+                              onClick={() => deleteApplication(app._id)} 
+                              className="rounded-lg px-2.5 py-1.5 text-[10px] font-black uppercase tracking-wider bg-rose-500/10 hover:bg-rose-500/15 border border-rose-500/20 hover:border-rose-500/40 text-rose-300 inline-flex items-center gap-1 transition-colors"
+                            >
+                              <TrashIcon className="h-3 w-3" />
                               Delete
                             </button>
                           )}
@@ -477,24 +587,24 @@ export default function Applications() {
                   )
                 })}
 
-                {/* Pagination Controls — KeyAuth Style */}
-                <div className="flex items-center justify-between px-2 py-4 bg-transparent border-t border-white/5">
+                {/* Pagination Controls */}
+                <div className="flex items-center justify-between px-2 pt-4 bg-transparent border-t border-white/[0.04]">
                   <button
                     onClick={() => handlePageChange(currentPage - 1)}
                     disabled={currentPage === 1}
-                    className="px-5 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-gray-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                    className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-wider text-gray-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                   >
                     Previous
                   </button>
                   
-                  <div className="text-xs font-medium text-gray-500">
-                    Showing page <span className="text-gray-200">{currentPage}</span> of <span className="text-gray-200">{totalPages || 1}</span>
+                  <div className="text-[10px] font-black uppercase tracking-wider text-gray-500">
+                    Page <span className="text-gray-200">{currentPage}</span> of <span className="text-gray-200">{totalPages || 1}</span>
                   </div>
 
                   <button
                     onClick={() => handlePageChange(currentPage + 1)}
                     disabled={currentPage === totalPages || totalPages === 0}
-                    className="px-5 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-gray-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                    className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-wider text-gray-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                   >
                     Next
                   </button>
@@ -505,34 +615,56 @@ export default function Applications() {
         </div>
       </section>
 
+      {/* Create Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
-          <div className="modal-card w-full max-w-md">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-[#0a0b10]/95 border border-white/[0.08] rounded-3xl p-8 backdrop-blur-2xl shadow-[0_0_80px_-20px_rgba(99,102,241,0.25)] animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="page-eyebrow">Create</p>
-                <h2 className="text-2xl font-bold text-white">New application</h2>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Registry</p>
+                <h2 className="text-2xl font-black text-white tracking-tight">New application</h2>
               </div>
-              <button onClick={() => setShowCreateModal(false)} className="rounded-xl border border-white/10 p-2 text-slate-400">
+              <button 
+                onClick={() => setShowCreateModal(false)} 
+                className="rounded-xl border border-white/10 p-2 text-slate-400 hover:text-white transition-colors"
+              >
                 <XMarkIcon className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="mt-6 space-y-4">
+            <div className="mt-6 space-y-5">
               <div>
-                <label className="mb-2 block text-sm font-medium text-slate-300">Application Name</label>
-                <input type="text" value={newAppName} onChange={(e) => setNewAppName(e.target.value)} className="input" placeholder="My Application" />
+                <label className="mb-2 block text-xs font-bold text-slate-300 uppercase tracking-wide">Application Name</label>
+                <input 
+                  type="text" 
+                  value={newAppName} 
+                  onChange={(e) => setNewAppName(e.target.value)} 
+                  className="w-full rounded-xl border border-white/[0.06] bg-black/30 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 transition-all duration-200 focus:border-indigo-400/50 focus:bg-black/40 outline-none" 
+                  placeholder="My Application" 
+                />
               </div>
               <div>
-                <label className="mb-2 block text-sm font-medium text-slate-300">Version</label>
-                <input type="text" value={newAppVersion} onChange={(e) => setNewAppVersion(e.target.value)} className="input" placeholder="1.0" />
+                <label className="mb-2 block text-xs font-bold text-slate-300 uppercase tracking-wide">Version</label>
+                <input 
+                  type="text" 
+                  value={newAppVersion} 
+                  onChange={(e) => setNewAppVersion(e.target.value)} 
+                  className="w-full rounded-xl border border-white/[0.06] bg-black/30 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 transition-all duration-200 focus:border-indigo-400/50 focus:bg-black/40 outline-none" 
+                  placeholder="1.0" 
+                />
               </div>
-              <div className="flex gap-3">
-                <button onClick={() => setShowCreateModal(false)} className="btn btn-secondary flex-1">
+              <div className="flex gap-3 pt-2">
+                <button 
+                  onClick={() => setShowCreateModal(false)} 
+                  className="flex-1 px-4 py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 text-[10px] font-black uppercase tracking-wider text-gray-300 rounded-xl transition-all"
+                >
                   Cancel
                 </button>
-                <button onClick={createApplication} className="btn btn-primary flex-1">
-                  Create
+                <button 
+                  onClick={createApplication} 
+                  className="flex-1 px-4 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all shadow-lg shadow-indigo-900/35"
+                >
+                  Create App
                 </button>
               </div>
             </div>
@@ -540,65 +672,81 @@ export default function Applications() {
         </div>
       )}
 
+      {/* Rename Modal */}
       {showRenameModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
-          <div className="modal-card w-full max-w-md">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-[#0a0b10]/95 border border-white/[0.08] rounded-3xl p-8 backdrop-blur-2xl shadow-[0_0_80px_-20px_rgba(99,102,241,0.25)] animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="page-eyebrow">Rename</p>
-                <h2 className="text-2xl font-bold text-white">Update application name</h2>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Rename</p>
+                <h2 className="text-2xl font-black text-white tracking-tight">Update Application Name</h2>
               </div>
-              <button onClick={() => setShowRenameModal(false)} className="rounded-xl border border-white/10 p-2 text-slate-400">
+              <button 
+                onClick={() => setShowRenameModal(false)} 
+                className="rounded-xl border border-white/10 p-2 text-slate-400 hover:text-white transition-colors"
+              >
                 <XMarkIcon className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="mt-6 space-y-4">
+            <div className="mt-6 space-y-5">
               <div>
-                <label className="mb-2 block text-sm font-medium text-slate-300">New Name</label>
-                <input type="text" value={newName} onChange={(e) => setNewName(e.target.value)} className="input" placeholder="New application name" />
+                <label className="mb-2 block text-xs font-bold text-slate-300 uppercase tracking-wide">New Name</label>
+                <input 
+                  type="text" 
+                  value={newName} 
+                  onChange={(e) => setNewName(e.target.value)} 
+                  className="w-full rounded-xl border border-white/[0.06] bg-black/30 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 transition-all duration-200 focus:border-indigo-400/50 focus:bg-black/40 outline-none" 
+                  placeholder="New application name" 
+                />
               </div>
-              <div className="flex gap-3">
-                <button onClick={() => setShowRenameModal(false)} className="btn btn-secondary flex-1">
+              <div className="flex gap-3 pt-2">
+                <button 
+                  onClick={() => setShowRenameModal(false)} 
+                  className="flex-1 px-4 py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 text-[10px] font-black uppercase tracking-wider text-gray-300 rounded-xl transition-all"
+                >
                   Cancel
                 </button>
-                <button onClick={renameApplication} className="btn btn-primary flex-1">
-                  Rename
+                <button 
+                  onClick={renameApplication} 
+                  className="flex-1 px-4 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all shadow-lg shadow-indigo-900/35"
+                >
+                  Save Changes
                 </button>
               </div>
             </div>
           </div>
         </div>
       )}
+
       {/* ── Custom Confirmation Modal ────────────────────────────────────── */}
       {confirmModal.show && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-200">
-          <div className="w-full max-w-sm bg-[#13131a] border border-white/5 rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-200">
+          <div className="w-full max-w-sm bg-[#0a0b10] border border-white/[0.08] rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="flex flex-col items-center text-center">
-              {/* Icon Based on Type */}
-              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 ${
-                confirmModal.type === 'danger' ? 'bg-red-500/20 text-red-400' :
-                confirmModal.type === 'warning' ? 'bg-yellow-500/20 text-yellow-400' :
-                'bg-blue-500/20 text-blue-400'
+              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 border ${
+                confirmModal.type === 'danger' ? 'bg-red-500/10 border-red-500/20 text-red-400' :
+                confirmModal.type === 'warning' ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400' :
+                'bg-indigo-500/10 border-indigo-500/20 text-indigo-400'
               }`}>
                 {confirmModal.type === 'danger' ? '🗑️' : confirmModal.type === 'warning' ? '⚠️' : '🔄'}
               </div>
               
-              <h3 className="text-xl font-bold text-white mb-2">{confirmModal.title}</h3>
-              <p className="text-sm text-gray-400 mb-8 leading-relaxed">
+              <h3 className="text-lg font-black text-white mb-2">{confirmModal.title}</h3>
+              <p className="text-xs text-slate-400 mb-8 leading-relaxed">
                 {confirmModal.message}
               </p>
 
               <div className="flex gap-3 w-full">
                 <button
                   onClick={() => setConfirmModal(prev => ({ ...prev, show: false }))}
-                  className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-gray-300 rounded-2xl text-sm font-bold transition-all"
+                  className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-slate-300 rounded-2xl text-[10px] font-black uppercase tracking-wider transition-all border border-white/10"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={confirmModal.onConfirm}
-                  className={`flex-1 px-4 py-3 rounded-2xl text-sm font-bold text-white transition-all shadow-lg ${
+                  className={`flex-1 px-4 py-3 rounded-2xl text-[10px] font-black uppercase tracking-wider text-white transition-all shadow-lg ${
                     confirmModal.type === 'danger' ? 'bg-red-600 hover:bg-red-500 shadow-red-900/20' :
                     confirmModal.type === 'warning' ? 'bg-yellow-600 hover:bg-yellow-500 shadow-yellow-900/20' :
                     'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-900/20'
