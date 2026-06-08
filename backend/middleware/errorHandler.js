@@ -2,14 +2,7 @@ const AuditLog = require('../models/AuditLog');
 
 // Generic error handler
 const errorHandler = (err, req, res, next) => {
-  const statusCode = err.statusCode || err.status || 500;
-
-  // Log clean warnings for 400 client errors (like JSON parsing issues), and full stack traces for 500 server errors
-  if (statusCode >= 400 && statusCode < 500) {
-    console.warn(`[Client Warning] ${err.message || 'Bad Request'} (IP: ${req.ip}, Path: ${req.path}, Status: ${statusCode})`);
-  } else {
-    console.error('Unhandled Server Error:', err);
-  }
+  console.error('Error:', err);
 
   // Log critical errors
   if (err.severity === 'critical') {
@@ -23,12 +16,12 @@ const errorHandler = (err, req, res, next) => {
 
   // Don't expose internal errors in production
   if (process.env.NODE_ENV === 'production') {
-    return res.status(statusCode).json({
-      error: statusCode === 400 ? (err.message || 'Bad Request') : 'An error occurred'
+    return res.status(err.statusCode || 500).json({
+      error: 'An error occurred'
     });
   }
 
-  res.status(statusCode).json({
+  res.status(err.statusCode || 500).json({
     error: err.message || 'Internal server error',
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });

@@ -12,11 +12,6 @@ const nextConfig = {
       { protocol: 'https', hostname: 'images2.imgbox.com' },
     ],
   },
-  experimental: {
-    serverActions: {
-      allowedOrigins: ['adarshauth.online', 'localhost:3000']
-    }
-  }
 }
 
 module.exports = nextConfig

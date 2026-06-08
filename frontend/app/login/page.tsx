@@ -9,18 +9,25 @@ import api, { clearStoredAuth, refreshAccessToken } from '@/lib/api'
 import { useAuthStore } from '@/lib/store'
 import toast from 'react-hot-toast'
 import ParticleField from '@/components/ParticleField'
-import Script from 'next/script'
 
-declare global {
-  interface Window {
-    turnstile?: {
-      render: (container: string | HTMLElement, options: any) => string;
-      remove: (widgetId: string) => void;
-    };
+// DJB2 Hash function
+function djb2Hash(str: string): number {
+  let hash = 5381;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) + hash) + str.charCodeAt(i);
+    hash = hash & hash; // Convert to 32bit integer
   }
+  return Math.abs(hash);
 }
 
-const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'
+// Slow nested hashing for browser verification
+function slowHash(salt: string, nonce: string): number {
+  let val = salt + nonce;
+  for (let i = 0; i < 250; i++) {
+    val = djb2Hash(val).toString();
+  }
+  return djb2Hash(val);
+}
 
 export default function Login() {
   const router = useRouter()
@@ -101,62 +108,53 @@ export default function Login() {
     setLoading(true)
     setVerifyingBrowser(true)
     setVerificationStep(1)
-  }
 
-  useEffect(() => {
-    if (!verifyingBrowser) return
-
-    let widgetId: string | null = null
-
-    const renderTurnstile = () => {
-      if (window.turnstile && document.getElementById('turnstile-container')) {
-        try {
-          widgetId = window.turnstile.render('#turnstile-container', {
-            sitekey: siteKey,
-            callback: (token: string) => {
-              handleVerifySuccess(token)
-            },
-            'error-callback': () => {
-              handleVerifyError()
-            },
-            theme: 'dark'
-          })
-        } catch (err) {
-          console.error('[Turnstile] Render error:', err)
-        }
-      }
-    }
-
-    if (window.turnstile) {
-      renderTurnstile()
-    } else {
-      const interval = setInterval(() => {
-        if (window.turnstile) {
-          clearInterval(interval)
-          renderTurnstile()
-        }
-      }, 100)
-      return () => clearInterval(interval)
-    }
-
-    return () => {
-      if (widgetId && window.turnstile) {
-        try {
-          window.turnstile.remove(widgetId)
-        } catch (err) {
-          console.error('[Turnstile] Clean error:', err)
-        }
-      }
-    }
-  }, [verifyingBrowser])
-
-  const handleVerifySuccess = async (token: string) => {
     try {
-      // Submit credentials along with turnstile token
+      // 1. Fetch challenge from backend
+      const challengeRes = await api.get('/auth/challenge')
+      const { salt, difficulty, expiresAt, signature } = challengeRes.data
+
+      // 2. Solve challenge in background (asynchronously so UI does not freeze completely)
+      let nonce = 0
+      const startTime = Date.now()
+
+      const solveChallenge = (): Promise<number> => {
+        return new Promise((resolve) => {
+          const chunk = () => {
+            for (let i = 0; i < 500; i++) {
+              const hashVal = slowHash(salt, nonce.toString())
+              if (hashVal % difficulty === 0) {
+                resolve(nonce)
+                return
+              }
+              nonce++
+            }
+            // Yield execution back to event loop to keep loader animation smooth
+            setTimeout(chunk, 0)
+          }
+          chunk()
+        })
+      }
+
+      const solvedNonce = await solveChallenge()
+
+      // Enforce minimum 1.2 second animation for keyauth aesthetic feel
+      const elapsed = Date.now() - startTime
+      if (elapsed < 1200) {
+        await new Promise(resolve => setTimeout(resolve, 1200 - elapsed))
+      }
+
+      // 3. Submit credentials along with solved challenge
       const response = await api.post('/auth/login', {
         email,
         password,
-        turnstileToken: token
+        challenge: {
+          nonce: solvedNonce,
+          salt,
+          difficulty,
+          expiresAt,
+          signature
+        }
       })
       const { user, accessToken, refreshToken } = response.data
 
@@ -175,13 +173,6 @@ export default function Login() {
     } finally {
       setLoading(false)
     }
-  }
-
-  const handleVerifyError = () => {
-    setVerifyingBrowser(false)
-    setVerificationStep(0)
-    setLoading(false)
-    toast.error('Security verification failed. Please try again.')
   }
 
   const handleRequestOTP = async (e: React.FormEvent) => {
@@ -231,19 +222,12 @@ export default function Login() {
 
   if (verifyingBrowser) {
     return (
-      <div className="relative flex min-h-screen items-center justify-center bg-[#07070a] overflow-hidden text-white">
-        <ParticleField
-          className="absolute inset-0 pointer-events-none opacity-70"
-          particleColor="rgba(161, 161, 170, 0.2)"
-          lineColor="rgba(99, 102, 241, 0.14)"
-          count={60}
-        />
-        
+      <div className="flex min-h-screen items-center justify-center bg-[#2b4c7e] relative overflow-hidden">
         {/* Decorative background blur objects */}
         <div className="absolute top-1/4 left-1/4 w-[30rem] h-[30rem] bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-1/4 right-1/4 w-[30rem] h-[30rem] bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="relative z-10 w-full max-w-[440px] p-9 rounded-3xl bg-[#0f1015]/80 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.6)] text-white text-center">
+        <div className="relative z-10 w-full max-w-[440px] p-9 rounded-2xl bg-[#0f1015] border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.5)] text-white text-center">
           <h2 className="text-2xl font-bold mb-6 tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">
             Adarsh Auth
           </h2>
@@ -251,20 +235,28 @@ export default function Login() {
           <p className="text-lg font-semibold mb-1 text-white">Checking your browser...</p>
           <p className="text-xs text-slate-400 mb-8">This process is automatic. Your browser will redirect shortly.</p>
 
-          {/* Custom Turnstile Container Card */}
-          <div className="relative flex flex-col items-center justify-center p-6 bg-white/[0.02] border border-white/5 rounded-2xl max-w-[320px] mx-auto mb-8 shadow-inner overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent pointer-events-none" />
-            <div className="mb-4 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 flex items-center gap-1.5">
-              <svg className="w-3.5 h-3.5 text-indigo-400 animate-spin" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-              </svg>
-              <span>Security Check</span>
+          {/* Altcha simulator widget */}
+          <div className="flex items-center justify-between p-4 bg-black/40 border border-white/5 rounded-xl max-w-[320px] mx-auto mb-8 text-left shadow-inner">
+            <div className="flex items-center gap-3">
+              <div className="relative flex items-center justify-center">
+                {verificationStep === 1 ? (
+                  <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <div className="w-5 h-5 flex items-center justify-center bg-indigo-500 rounded text-white font-bold text-[11px]">✓</div>
+                )}
+              </div>
+              <span className="text-sm text-slate-300 font-semibold tracking-wide">
+                {verificationStep === 1 ? 'Verifying...' : 'Verified'}
+              </span>
             </div>
-            <div id="turnstile-container" className="min-h-[65px] flex items-center justify-center" />
+            <div className="text-right">
+              <p className="text-[9px] text-slate-500 uppercase tracking-widest font-bold">Protected by</p>
+              <p className="text-xs text-indigo-400 font-black tracking-tight">ALTCHA</p>
+            </div>
           </div>
 
           {verificationStep === 2 && (
-            <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-2xl text-sm font-semibold animate-pulse">
+            <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-sm font-semibold animate-pulse">
               ✓ Verification successful! Redirecting..
             </div>
           )}
@@ -583,10 +575,6 @@ export default function Login() {
           </div>
         </div>
       )}
-      <Script 
-        src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" 
-        strategy="afterInteractive"
-      />
     </div>
   )
 }
