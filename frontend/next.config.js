@@ -12,6 +12,14 @@ const nextConfig = {
       { protocol: 'https', hostname: 'images2.imgbox.com' },
     ],
   },
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: 'https://adarsh-auth-backend-production.up.railway.app/api/:path*',
+      },
+    ]
+  },
   experimental: {
     serverActions: {
       allowedOrigins: ['adarshauth.store', '*.adarshauth.store', 'localhost:3000'],
