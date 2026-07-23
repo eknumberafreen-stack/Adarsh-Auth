@@ -823,7 +823,7 @@ function renderSystematicSnippet(lang: string, app: any) {
   const ownerid = app.ownerId;
   const secret = app.appSecret || 'YOUR_APP_SECRET';
   const version = app.version || '1.0';
-  const url = 'https://api.adarshauth.online/api/client';
+  const url = 'https://api.adarshauth.store/api/client';
 
   if (lang === 'C++') {
     return (
@@ -890,7 +890,7 @@ function getSnippet(lang: string, app: any) {
   const ownerid = app.ownerId
   const secret = app.appSecret || 'YOUR_APP_SECRET'
   const version = app.version || '1.0'
-  const url = 'https://api.adarshauth.online/api/client'
+  const url = 'https://api.adarshauth.store/api/client'
 
   switch (lang) {
     case 'C++':

@@ -3,7 +3,7 @@ import React from 'react'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '@/lib/store'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.adarshauth.online/api'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.adarshauth.store/api'
 
 const api = axios.create({
   baseURL: API_URL,

@@ -137,7 +137,7 @@ passport.use(googleStrategy);
 
 // ── Routes ────────────────────────────────────────────────────
 
-const FRONTEND_URL = process.env.FRONTEND_URL || 'https://adarshauth.online'
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://adarshauth.store'
 
 // Step 1: Redirect to Google
 router.get('/', passport.authenticate('google', {
