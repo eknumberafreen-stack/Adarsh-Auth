@@ -22,7 +22,7 @@ namespace Keyauth
         public static long responseTime;
 
         // ── Server URL ───────────────────────────────────────────────────────
-        private const string API_BASE = "https://api.adarshauth.online/api/client";
+        private const string API_BASE = "https://api.adarshauth.store/api/client";
 
         // ── Session state ────────────────────────────────────────────────────
         private byte[] _sessionEnc;

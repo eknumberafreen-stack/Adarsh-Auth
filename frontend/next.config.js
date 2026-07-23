@@ -14,7 +14,7 @@ const nextConfig = {
   },
   experimental: {
     serverActions: {
-      allowedOrigins: ['adarshauth.online', '*.adarshauth.online', 'localhost:3000'],
+      allowedOrigins: ['adarshauth.store', '*.adarshauth.store', 'localhost:3000'],
     },
   },
 }
