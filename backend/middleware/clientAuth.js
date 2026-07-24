@@ -175,11 +175,11 @@ const verifyClientRequest = async (req, res, next) => {
 
     if (!application) {
       if (owner_id && /^[a-zA-Z0-9]{10,64}$/.test(owner_id)) {
-        application = await Application.findOne({ ownerId: owner_id, name: app_name }).lean();
+        application = await Application.findOne({ ownerId: owner_id, name: { $regex: new RegExp(`^${app_name}$`, 'i') } }).lean();
       }
       if (!application) {
-        // Fallback lookup by application name alone (supports legacy KeyAuth ownerId strings)
-        application = await Application.findOne({ name: app_name }).lean();
+        // Fallback lookup by application name alone (case-insensitive)
+        application = await Application.findOne({ name: { $regex: new RegExp(`^${app_name}$`, 'i') } }).lean();
       }
 
       if (application) {
