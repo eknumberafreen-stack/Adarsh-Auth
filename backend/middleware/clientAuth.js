@@ -160,12 +160,7 @@ const verifyClientRequest = async (req, res, next) => {
     }
 
     // ── Step 3: Lookup application (with Redis caching) ─────────────────────
-    // Sanitize owner_id — support 10 to 64 chars
-    if (!/^[a-zA-Z0-9]{10,64}$/.test(owner_id)) {
-      return fail(req, res, 400);
-    }
-
-    const appCacheKey = `app:${owner_id}:${app_name}`;
+    const appCacheKey = `app:${owner_id || 'any'}:${app_name}`;
     let application = null;
 
     try {
@@ -179,11 +174,17 @@ const verifyClientRequest = async (req, res, next) => {
     }
 
     if (!application) {
-      application = await Application.findOne({ ownerId: owner_id, name: app_name }).lean();
+      if (owner_id && /^[a-zA-Z0-9]{10,64}$/.test(owner_id)) {
+        application = await Application.findOne({ ownerId: owner_id, name: app_name }).lean();
+      }
+      if (!application) {
+        // Fallback lookup by application name alone (supports legacy KeyAuth ownerId strings)
+        application = await Application.findOne({ name: app_name }).lean();
+      }
+
       if (application) {
         try {
           const redis = getRedisClient();
-          // Cache it for 60s
           await redis.setEx(appCacheKey, APP_CACHE_TTL, JSON.stringify(application));
         } catch (redisErr) {
           console.warn('[clientAuth] Redis warning during app cache set:', redisErr.message);
@@ -192,8 +193,8 @@ const verifyClientRequest = async (req, res, next) => {
     }
 
     if (!application) {
-      await audit('suspicious_activity', 'warning', ip, null, { reason: 'unknown_owner_id' });
-      return fail(req, res);
+      await audit('suspicious_activity', 'warning', ip, null, { reason: 'unknown_owner_id_or_app', app_name });
+      return fail(req, res, 401, 'appNotFound', 'Application not found');
     }
 
     // ── Step 4: App status enforcement ───────────────────────────────────────
