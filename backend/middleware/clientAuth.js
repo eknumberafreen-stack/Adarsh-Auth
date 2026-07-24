@@ -174,12 +174,20 @@ const verifyClientRequest = async (req, res, next) => {
     }
 
     if (!application) {
+      const cleanName = app_name ? app_name.trim().replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&').replace(/\s+/g, '\\s*') : '';
+      const nameRegex = cleanName ? new RegExp(`^${cleanName}$`, 'i') : null;
+
       if (owner_id && /^[a-zA-Z0-9]{10,64}$/.test(owner_id)) {
-        application = await Application.findOne({ ownerId: owner_id, name: { $regex: new RegExp(`^${app_name}$`, 'i') } }).lean();
+        if (nameRegex) {
+          application = await Application.findOne({ ownerId: owner_id, name: nameRegex }).lean();
+        }
+        if (!application) {
+          application = await Application.findOne({ ownerId: owner_id }).lean();
+        }
       }
-      if (!application) {
-        // Fallback lookup by application name alone (case-insensitive)
-        application = await Application.findOne({ name: { $regex: new RegExp(`^${app_name}$`, 'i') } }).lean();
+
+      if (!application && nameRegex) {
+        application = await Application.findOne({ name: nameRegex }).lean();
       }
 
       if (application) {
