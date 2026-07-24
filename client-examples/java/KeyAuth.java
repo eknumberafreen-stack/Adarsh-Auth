@@ -14,13 +14,15 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.UUID;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 /**
  * Official AdarshAuth Server Replacement for KeyAuth.java
- * Package: com.adarshcheats
  * Target API: https://adarshauth.store/api/client
  */
 public class KeyAuth {
@@ -34,12 +36,10 @@ public class KeyAuth {
     private final Context context;
     private String sessionid;
 
-    // Standard constructor (No secret required)
     public KeyAuth(String appname, String ownerid, String version, String url, Context context) {
         this(appname, ownerid, "", version, url, context);
     }
 
-    // Hardened constructor (With secret for HMAC anti-crack protection)
     public KeyAuth(String appname, String ownerid, String secret, String version, String url, Context context) {
         this.appname = appname;
         this.ownerid = ownerid;
@@ -63,14 +63,9 @@ public class KeyAuth {
 
     public void init() throws Exception {
         JSONObject json = new JSONObject();
-        json.put("name", appname);
-        json.put("ownerid", ownerid);
-        if (!secret.isEmpty()) json.put("secret", secret);
-        json.put("version", version);
-
-        JSONObject response = makeApiCall(apiUrl + "/init", json);
+        JSONObject response = makeApiCall("/init", json);
         if (!response.optBoolean("success", false)) {
-            throw new Exception(response.optString("message", "Initialization failed"));
+            throw new Exception(response.optString("message", "Application not found"));
         }
         this.sessionid = response.optString("sessionToken", "active_session");
     }
@@ -81,15 +76,11 @@ public class KeyAuth {
         }
 
         JSONObject json = new JSONObject();
-        json.put("name", appname);
-        json.put("ownerid", ownerid);
-        if (!secret.isEmpty()) json.put("secret", secret);
-        json.put("version", version);
         json.put("username", username);
         json.put("password", password);
         json.put("hwid", getHWID(context));
 
-        JSONObject response = makeApiCall(apiUrl + "/login", json);
+        JSONObject response = makeApiCall("/login", json);
         if (!response.optBoolean("success", false)) {
             throw new Exception(response.optString("message", "Login failed"));
         }
@@ -120,14 +111,10 @@ public class KeyAuth {
         }
 
         JSONObject json = new JSONObject();
-        json.put("name", appname);
-        json.put("ownerid", ownerid);
-        if (!secret.isEmpty()) json.put("secret", secret);
-        json.put("version", version);
         json.put("key", key);
         json.put("hwid", getHWID(context));
 
-        JSONObject response = makeApiCall(apiUrl + "/license", json);
+        JSONObject response = makeApiCall("/license", json);
         if (!response.optBoolean("success", false)) {
             throw new Exception(response.optString("message", "License activation failed"));
         }
@@ -155,9 +142,31 @@ public class KeyAuth {
     }
 
     private JSONObject makeApiCall(String endpoint, JSONObject payload) throws Exception {
+        long timestamp = System.currentTimeMillis();
+        String nonce = UUID.randomUUID().toString().replace("-", "");
+
+        payload.put("app_name", appname);
+        payload.put("owner_id", ownerid);
+        payload.put("timestamp", timestamp);
+        payload.put("nonce", nonce);
+        payload.put("version", version);
+
+        // Build sorted map for HMAC signature calculation
+        Map<String, Object> sortedMap = new TreeMap<>();
+        Iterator<String> keys = payload.keys();
+        while (keys.hasNext()) {
+            String k = keys.next();
+            sortedMap.put(k, payload.get(k));
+        }
+
+        JSONObject sortedJson = new JSONObject(sortedMap);
+        String dataToSign = appname + ownerid + timestamp + nonce + sortedJson.toString();
+        String signature = calculateHMAC(dataToSign, secret);
+        payload.put("signature", signature);
+
         HttpURLConnection connection = null;
         try {
-            connection = (HttpURLConnection) new URL(endpoint).openConnection();
+            connection = (HttpURLConnection) new URL(apiUrl + endpoint).openConnection();
             connection.setRequestMethod("POST");
             connection.setDoOutput(true);
             connection.setDoInput(true);
@@ -191,16 +200,7 @@ public class KeyAuth {
 
             String responseText = responseSb.toString();
             if (responseText == null || responseText.trim().isEmpty()) {
-                throw new Exception("Empty response from authentication server (HTTP " + responseCode + ")");
-            }
-
-            // HMAC Response Verification
-            String receivedSig = connection.getHeaderField("X-AdarshAuth-Signature");
-            if (receivedSig != null && !receivedSig.isEmpty() && !secret.isEmpty()) {
-                String calculatedSig = calculateHMAC(responseText, secret);
-                if (!calculatedSig.equalsIgnoreCase(receivedSig)) {
-                    throw new Exception("Security Alert: Server response signature verification failed!");
-                }
+                throw new Exception("Empty response from server (HTTP " + responseCode + ")");
             }
 
             return new JSONObject(responseText);
@@ -211,18 +211,23 @@ public class KeyAuth {
         }
     }
 
-    private static String calculateHMAC(String data, String key) throws Exception {
-        SecretKeySpec secretKeySpec = new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
-        Mac mac = Mac.getInstance("HmacSHA256");
-        mac.init(secretKeySpec);
-        byte[] hash = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
-        StringBuilder hexString = new StringBuilder();
-        for (byte b : hash) {
-            String hex = Integer.toHexString(0xff & b);
-            if (hex.length() == 1) hexString.append('0');
-            hexString.append(hex);
+    private static String calculateHMAC(String data, String key) {
+        try {
+            if (key == null) key = "";
+            SecretKeySpec secretKeySpec = new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+            Mac mac = Mac.getInstance("HmacSHA256");
+            mac.init(secretKeySpec);
+            byte[] hash = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (Exception e) {
+            return "";
         }
-        return hexString.toString();
     }
 
     public String getSessionId() {
