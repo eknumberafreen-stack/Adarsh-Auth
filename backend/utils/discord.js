@@ -10,13 +10,24 @@ const { URL } = require('url');
  * Send a Discord embed message to a webhook URL
  */
 const sendDiscordWebhook = async (webhookUrl, embed) => {
-  if (!webhookUrl || !webhookUrl.startsWith('https://discord.com/api/webhooks/')) return;
+  if (!webhookUrl) return;
+  const cleanUrl = String(webhookUrl).trim();
+  if (!cleanUrl.includes('/api/webhooks/')) return;
 
-  const payload = JSON.stringify({ embeds: [embed] });
+  let body = {};
+  if (embed && Array.isArray(embed.embeds)) {
+    body = embed;
+  } else if (embed && typeof embed === 'object') {
+    body = { embeds: [embed] };
+  } else {
+    return;
+  }
+
+  const payload = JSON.stringify(body);
 
   try {
-    const url = new URL(webhookUrl);
-    await new Promise((resolve, reject) => {
+    const url = new URL(cleanUrl);
+    await new Promise((resolve) => {
       const req = https.request({
         hostname: url.hostname,
         path: url.pathname + url.search,
@@ -24,17 +35,27 @@ const sendDiscordWebhook = async (webhookUrl, embed) => {
         headers: {
           'Content-Type': 'application/json',
           'Content-Length': Buffer.byteLength(payload),
+          'User-Agent': 'AdarshAuth-Webhook/1.0'
         },
       }, (res) => {
-        res.on('data', () => {});
-        res.on('end', resolve);
+        let respData = '';
+        res.on('data', (chunk) => { respData += chunk; });
+        res.on('end', () => {
+          if (res.statusCode >= 400) {
+            console.error(`[Discord Webhook] HTTP ${res.statusCode}:`, respData);
+          }
+          resolve();
+        });
       });
-      req.on('error', reject);
+      req.on('error', (err) => {
+        console.error('[Discord Webhook] Request error:', err.message);
+        resolve(); // Never crash calling process
+      });
       req.write(payload);
       req.end();
     });
   } catch (err) {
-    console.error('[Discord Webhook] Failed:', err.message);
+    console.error('[Discord Webhook] Exception:', err.message);
   }
 };
 
