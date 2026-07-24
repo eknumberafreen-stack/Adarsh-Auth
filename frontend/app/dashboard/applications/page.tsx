@@ -870,13 +870,16 @@ function renderSystematicSnippet(lang: string, app: any) {
   if (lang === 'Java') {
     return (
       <div className="space-y-0.5">
-        <div><span className="text-slate-500">// Java Integration</span></div>
-        <div><span className="text-blue-400">public static</span> api AuthApp = <span className="text-blue-400">new</span> api(</div>
+        <div><span className="text-slate-500">// Java / Android Integration</span></div>
+        <div><span className="text-blue-400">AdarshAuth</span> auth = <span className="text-blue-400">new</span> <span className="text-indigo-300">AdarshAuth</span>(</div>
         <div className="pl-4"><span className="text-orange-400">"{name}"</span>,</div>
         <div className="pl-4"><span className="text-orange-400">"{ownerid}"</span>,</div>
         <div className="pl-4"><span className="text-orange-400">"{secret}"</span>,</div>
         <div className="pl-4"><span className="text-orange-400">"{version}"</span></div>
         <div>);</div>
+        <div className="pt-2 text-slate-500">// Initialize & Login</div>
+        <div>auth.<span className="text-yellow-300">init</span>();</div>
+        <div><span className="text-indigo-300">AdarshAuth.UserData</span> user = auth.<span className="text-yellow-300">login</span>(username, password);</div>
       </div>
     );
   }
@@ -890,7 +893,6 @@ function getSnippet(lang: string, app: any) {
   const ownerid = app.ownerId
   const secret = app.appSecret || 'YOUR_APP_SECRET'
   const version = app.version || '1.0'
-  const url = 'https://api.adarshauth.store/api/client'
 
   switch (lang) {
     case 'C++':
@@ -898,7 +900,7 @@ function getSnippet(lang: string, app: any) {
 std::string ownerid = skCrypt("${ownerid}").decrypt();
 std::string secret = skCrypt("${secret}").decrypt();
 std::string version = skCrypt("${version}").decrypt();
-std::string url = skCrypt("${url}").decrypt();
+std::string url = skCrypt("https://adarshauth.store/api/client").decrypt();
 
 AdarshAuth::api KeyAuthApp(name, ownerid, version, url, secret);`
     case 'C#':
@@ -918,12 +920,15 @@ auth = adarsh_auth.api(
     version="${version}"
 )`
     case 'Java':
-      return `public static api AuthApp = new api(
+      return `AdarshAuth auth = new AdarshAuth(
     "${name}",
     "${ownerid}",
     "${secret}",
     "${version}"
-);`
+);
+
+auth.init();
+AdarshAuth.UserData user = auth.login(username, password);`
     default:
       return ''
   }
