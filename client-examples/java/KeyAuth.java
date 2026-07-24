@@ -13,29 +13,37 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.security.MessageDigest;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 
 /**
- * Drop-in KeyAuth.java Replacement for AdarshAuth Server
+ * Official AdarshAuth Server Replacement for KeyAuth.java
  * Package: com.adarshcheats
- * Target Server: https://adarshauth.store/api/client
+ * Target API: https://adarshauth.store/api/client
  */
 public class KeyAuth {
     private static final String DEFAULT_API_BASE = "https://adarshauth.store/api/client";
 
     private final String appname;
     private final String ownerid;
+    private final String secret;
     private final String version;
     private String apiUrl;
     private final Context context;
     private String sessionid;
 
+    // Standard constructor (No secret required)
     public KeyAuth(String appname, String ownerid, String version, String url, Context context) {
+        this(appname, ownerid, "", version, url, context);
+    }
+
+    // Hardened constructor (With secret for HMAC anti-crack protection)
+    public KeyAuth(String appname, String ownerid, String secret, String version, String url, Context context) {
         this.appname = appname;
         this.ownerid = ownerid;
+        this.secret = secret != null ? secret : "";
         this.version = version;
         this.apiUrl = normalizeApiUrl(url);
         this.context = context;
@@ -57,6 +65,7 @@ public class KeyAuth {
         JSONObject json = new JSONObject();
         json.put("name", appname);
         json.put("ownerid", ownerid);
+        if (!secret.isEmpty()) json.put("secret", secret);
         json.put("version", version);
 
         JSONObject response = makeApiCall(apiUrl + "/init", json);
@@ -74,6 +83,7 @@ public class KeyAuth {
         JSONObject json = new JSONObject();
         json.put("name", appname);
         json.put("ownerid", ownerid);
+        if (!secret.isEmpty()) json.put("secret", secret);
         json.put("version", version);
         json.put("username", username);
         json.put("password", password);
@@ -86,7 +96,6 @@ public class KeyAuth {
 
         this.sessionid = response.optString("sessionToken", this.sessionid);
         
-        // Transform response into KeyAuth format expected by UserData.java
         JSONObject info = new JSONObject();
         info.put("username", response.optString("username", username));
         
@@ -113,6 +122,7 @@ public class KeyAuth {
         JSONObject json = new JSONObject();
         json.put("name", appname);
         json.put("ownerid", ownerid);
+        if (!secret.isEmpty()) json.put("secret", secret);
         json.put("version", version);
         json.put("key", key);
         json.put("hwid", getHWID(context));
@@ -184,12 +194,35 @@ public class KeyAuth {
                 throw new Exception("Empty response from authentication server (HTTP " + responseCode + ")");
             }
 
+            // HMAC Response Verification
+            String receivedSig = connection.getHeaderField("X-AdarshAuth-Signature");
+            if (receivedSig != null && !receivedSig.isEmpty() && !secret.isEmpty()) {
+                String calculatedSig = calculateHMAC(responseText, secret);
+                if (!calculatedSig.equalsIgnoreCase(receivedSig)) {
+                    throw new Exception("Security Alert: Server response signature verification failed!");
+                }
+            }
+
             return new JSONObject(responseText);
         } finally {
             if (connection != null) {
                 connection.disconnect();
             }
         }
+    }
+
+    private static String calculateHMAC(String data, String key) throws Exception {
+        SecretKeySpec secretKeySpec = new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+        Mac mac = Mac.getInstance("HmacSHA256");
+        mac.init(secretKeySpec);
+        byte[] hash = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
+        StringBuilder hexString = new StringBuilder();
+        for (byte b : hash) {
+            String hex = Integer.toHexString(0xff & b);
+            if (hex.length() == 1) hexString.append('0');
+            hexString.append(hex);
+        }
+        return hexString.toString();
     }
 
     public String getSessionId() {
