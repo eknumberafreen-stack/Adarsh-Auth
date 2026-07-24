@@ -173,20 +173,23 @@ const verifyClientRequest = async (req, res, next) => {
     }
 
     if (!application) {
+      // 1. Normalize app_name with flexible spaces & case sensitivity
       const cleanName = app_name ? app_name.trim().replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&').replace(/\s+/g, '\\s*') : '';
       const nameRegex = cleanName ? new RegExp(`^${cleanName}$`, 'i') : null;
 
-      if (owner_id && /^[a-zA-Z0-9]{10,64}$/.test(owner_id)) {
-        if (nameRegex) {
-          application = await Application.findOne({ ownerId: owner_id, name: nameRegex }).lean();
-        }
-        if (!application) {
-          application = await Application.findOne({ ownerId: owner_id }).lean();
-        }
+      // 2. Try exact ownerId + name match first
+      if (owner_id && /^[a-zA-Z0-9]{10,64}$/.test(owner_id) && nameRegex) {
+        application = await Application.findOne({ ownerId: owner_id, name: nameRegex }).lean();
       }
 
+      // 3. Try name alone (case and whitespace insensitive)
       if (!application && nameRegex) {
         application = await Application.findOne({ name: nameRegex }).lean();
+      }
+
+      // 4. Try ownerId alone if valid
+      if (!application && owner_id && /^[a-zA-Z0-9]{10,64}$/.test(owner_id)) {
+        application = await Application.findOne({ ownerId: owner_id }).lean();
       }
 
       if (application) {
