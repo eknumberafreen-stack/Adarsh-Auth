@@ -4,7 +4,17 @@ import { useEffect, useState, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { EyeIcon, EyeSlashIcon, FingerPrintIcon, KeyIcon, LockClosedIcon, ShieldCheckIcon } from '@heroicons/react/24/outline'
+import { 
+  EyeIcon, 
+  EyeSlashIcon, 
+  FingerPrintIcon, 
+  KeyIcon, 
+  LockClosedIcon, 
+  ShieldCheckIcon,
+  CpuChipIcon,
+  SparklesIcon,
+  CheckCircleIcon
+} from '@heroicons/react/24/outline'
 import api, { clearStoredAuth, refreshAccessToken } from '@/lib/api'
 import { useAuthStore } from '@/lib/store'
 import toast from 'react-hot-toast'
@@ -328,50 +338,87 @@ export default function Login() {
         <div className="absolute top-1/4 left-1/4 w-[35rem] h-[35rem] bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none animate-drift" />
         <div className="absolute bottom-1/4 right-1/4 w-[35rem] h-[35rem] bg-purple-500/10 rounded-full blur-[120px] pointer-events-none animate-drift-reverse" />
 
-        <div className="relative z-10 w-full max-w-[450px] p-10 rounded-3xl bg-[#090a0f]/85 border border-white/[0.08] shadow-[0_20px_50px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.05),0_0_60px_rgba(99,102,241,0.08)] backdrop-blur-2xl text-white text-center overflow-hidden glow-laser animate-[fadeIn_0.5s_ease-out]">
-          <h2 className="text-3xl font-black mb-6 tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-indigo-300 to-purple-400 drop-shadow-[0_2px_10px_rgba(99,102,241,0.2)]">
-            Adarsh Auth
-          </h2>
+        {/* Main Luxury Glass Card */}
+        <div className="relative z-10 w-full max-w-[480px] p-8 sm:p-10 rounded-[2.25rem] bg-[#090b14]/85 border border-white/[0.09] shadow-[0_24px_80px_rgba(0,0,0,0.85),inset_0_1px_1px_rgba(255,255,255,0.12),0_0_80px_rgba(99,102,241,0.12)] backdrop-blur-3xl text-white text-center overflow-hidden transition-all duration-500">
+          
+          {/* Top Metallic Perimeter Light Edge */}
+          <div className="absolute top-0 inset-x-8 h-[1px] bg-gradient-to-r from-transparent via-indigo-400/80 via-purple-400/80 to-transparent" />
+          <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-48 h-12 bg-indigo-500/30 blur-xl pointer-events-none" />
 
-          <p className="text-xl font-bold mb-1 text-slate-100">Checking your browser...</p>
-          <p className="text-xs text-slate-400 mb-8 max-w-[280px] mx-auto leading-relaxed">This process is automatic. Your browser will redirect shortly.</p>
+          {/* Brand Badge */}
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] shadow-[inset_0_1px_2px_rgba(255,255,255,0.08)] mb-6">
+            <span className="relative flex h-2 w-2">
+              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${verificationStep === 2 ? 'bg-emerald-400' : 'bg-indigo-400'}`} />
+              <span className={`relative inline-flex rounded-full h-2 w-2 ${verificationStep === 2 ? 'bg-emerald-500' : 'bg-indigo-500'}`} />
+            </span>
+            <span className="text-[10px] font-bold tracking-widest uppercase text-slate-300">
+              {verificationStep === 2 ? 'Zero-Trust Authenticated' : 'Security Checkpoint'}
+            </span>
+          </div>
 
-          {/* Premium Verification Box */}
-          <div className="flex flex-col items-center justify-center p-8 bg-black/60 border border-white/[0.04] rounded-2xl max-w-[350px] mx-auto mb-8 text-center shadow-[inset_0_4px_12px_rgba(0,0,0,0.8)] relative overflow-hidden">
-            {/* Scanning Line Animation */}
-            {verificationStep === 1 && (
-              <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent animate-[pan_2s_ease-in-out_infinite]" />
+          {/* Hero Logo & Title */}
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <div className="relative w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 p-[1px] shadow-[0_0_20px_rgba(99,102,241,0.4)]">
+              <div className="w-full h-full bg-[#090b14] rounded-2xl flex items-center justify-center">
+                <ShieldCheckIcon className="w-5 h-5 text-indigo-400" />
+              </div>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-100 to-slate-300">
+              Adarsh Auth
+            </h2>
+          </div>
+
+          <p className="text-xs sm:text-sm text-slate-400 mb-8 max-w-[320px] mx-auto leading-relaxed">
+            Verifying browser environment & security credentials before granting console access.
+          </p>
+
+          {/* Hologram Scanner Box */}
+          <div className="relative p-6 sm:p-7 rounded-2xl bg-gradient-to-b from-[#0b0e1b]/90 to-[#070810]/95 border border-white/[0.06] shadow-[inset_0_2px_8px_rgba(0,0,0,0.8),0_12px_36px_rgba(0,0,0,0.4)] mb-6 overflow-hidden">
+            
+            {/* Laser Scanline */}
+            {verificationStep < 2 && (
+              <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-75 animate-[scanline_2.4s_ease-in-out_infinite]" />
             )}
 
-            <div className="relative flex items-center justify-center mb-6">
-              {verificationStep === 1 ? (
-                <div className="relative w-20 h-20 flex items-center justify-center">
-                  {/* Outer spin ring */}
-                  <div className="absolute inset-0 rounded-full border border-indigo-500/10 border-t-indigo-500 border-r-purple-500 animate-[spin_2s_linear_infinite]" />
-                  {/* Inner counter-spin ring */}
-                  <div className="absolute inset-1.5 rounded-full border border-cyan-500/10 border-b-cyan-400 border-l-teal-400 animate-[spin_1.2s_linear_infinite_reverse]" />
-                  <ShieldCheckIcon className="absolute h-8 w-8 text-indigo-400 animate-pulse" />
+            {/* Central Holographic Rings */}
+            <div className="relative flex items-center justify-center mb-6 pt-2">
+              {verificationStep < 2 ? (
+                <div className="relative w-24 h-24 flex items-center justify-center">
+                  <div className="absolute inset-0 rounded-full border border-indigo-500/20 border-t-indigo-500 border-r-purple-500 animate-[spin_3s_linear_infinite]" />
+                  <div className="absolute inset-2 rounded-full border border-dashed border-cyan-400/30 animate-[spin_6s_linear_infinite_reverse]" />
+                  <div className="absolute inset-4 rounded-full border border-purple-500/30 border-b-cyan-400 border-l-indigo-400 animate-[spin_1.5s_linear_infinite]" />
+                  
+                  <div className="relative z-10 w-11 h-11 rounded-full bg-indigo-500/10 border border-indigo-500/30 backdrop-blur-md flex items-center justify-center shadow-[0_0_20px_rgba(99,102,241,0.35)]">
+                    <LockClosedIcon className="w-5 h-5 text-indigo-300 animate-pulse" />
+                  </div>
                 </div>
               ) : (
-                <div className="relative w-20 h-20 flex items-center justify-center">
-                  {/* Expanding Ripple ring */}
-                  <div className="absolute inset-0 rounded-full bg-emerald-500/20 border border-emerald-500/30 animate-ripple" />
-                  <div className="w-16 h-16 flex items-center justify-center bg-gradient-to-tr from-emerald-500 to-teal-400 rounded-full shadow-[0_0_25px_rgba(16,185,129,0.5)] text-white scale-110 transition-transform duration-300 relative z-10">
-                    <svg className="w-8 h-8 text-white stroke-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                    </svg>
+                <div className="relative w-24 h-24 flex items-center justify-center">
+                  <div className="absolute inset-0 rounded-full bg-emerald-500/20 border border-emerald-500/40 animate-pulse" />
+                  <div className="relative z-10 w-16 h-16 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 p-[2px] shadow-[0_0_35px_rgba(16,185,129,0.55)] scale-105 transition-transform duration-300">
+                    <div className="w-full h-full bg-[#07130f] rounded-full flex items-center justify-center">
+                      <CheckCircleIcon className="w-9 h-9 text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                    </div>
                   </div>
                 </div>
               )}
             </div>
 
-            <span className="text-sm font-bold tracking-wide text-slate-200 mb-1 h-5 flex items-center transition-all duration-300">
-              {securityStatus}
-            </span>
-            <span className="text-[9px] text-indigo-400/80 font-black uppercase tracking-widest mb-4">
-              Protected by Cloudflare Turnstile
-            </span>
+            {/* Telemetry Status Line */}
+            <div className="flex flex-col items-center justify-center gap-1.5 mb-5">
+              <span className="text-sm font-semibold tracking-wide text-slate-100 flex items-center gap-2">
+                {verificationStep < 2 && (
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
+                )}
+                {securityStatus}
+              </span>
+              <div className="flex items-center gap-1.5 text-[10px] text-indigo-300/80 font-mono tracking-wider">
+                <CpuChipIcon className="w-3.5 h-3.5" />
+                <span>TLS 1.3 • AES-256 ENCRYPTION</span>
+              </div>
+            </div>
 
+            {/* Turnstile Container */}
             {verificationStep === 1 && (
               <div className="flex justify-center w-full my-2 transition-all duration-300 transform scale-95 hover:scale-100">
                 <div 
@@ -382,9 +429,32 @@ export default function Login() {
             )}
           </div>
 
-          {verificationStep === 2 && (
-            <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-xs font-bold animate-pulse tracking-wide shadow-[0_0_15px_rgba(16,185,129,0.1)]">
-              ✓ Verification successful! Redirecting..
+          {/* Bottom Trust Telemetry Badges */}
+          <div className="grid grid-cols-3 gap-2 text-left mb-6">
+            <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.04] text-center">
+              <p className="text-[9px] uppercase font-bold text-slate-500 tracking-wider">Engine</p>
+              <p className="text-[11px] font-semibold text-slate-300 truncate">Turnstile</p>
+            </div>
+            <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.04] text-center">
+              <p className="text-[9px] uppercase font-bold text-slate-500 tracking-wider">Protocol</p>
+              <p className="text-[11px] font-semibold text-slate-300 truncate">Zero-Trust</p>
+            </div>
+            <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.04] text-center">
+              <p className="text-[9px] uppercase font-bold text-slate-500 tracking-wider">Latency</p>
+              <p className="text-[11px] font-semibold text-emerald-400 truncate">&lt; 15ms</p>
+            </div>
+          </div>
+
+          {/* Bottom Action / Status Pill */}
+          {verificationStep === 2 ? (
+            <div className="py-3 px-4 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.15)] animate-pulse">
+              <SparklesIcon className="w-4 h-4 text-emerald-400" />
+              <span>Authenticated successfully — Redirecting to console...</span>
+            </div>
+          ) : (
+            <div className="py-2.5 px-4 bg-white/[0.02] border border-white/[0.05] rounded-xl text-[11px] font-medium text-slate-400 flex items-center justify-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-indigo-400 animate-ping" />
+              <span>Protected by Cloudflare Anti-DDoS & Turnstile</span>
             </div>
           )}
         </div>
