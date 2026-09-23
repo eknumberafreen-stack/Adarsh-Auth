@@ -103,6 +103,15 @@ namespace AdarshAuth {
             return false;
         }
 
+        bool upgrade(const std::string& username, const std::string& license_key) {
+            check_init();
+            std::string extra = "{\"username\":\"" + escape_json(username) + "\",\"license_key\":\"" + escape_json(license_key) + "\"}";
+            std::string res = post_request("/upgrade", extra);
+            response.success = parse_bool(res, "success");
+            response.message = parse_string(res, "message");
+            return response.success;
+        }
+
         bool license(const std::string& license_key) {
             check_init();
             std::string hwid = get_hwid();

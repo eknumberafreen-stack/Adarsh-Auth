@@ -147,6 +147,24 @@ public class AdarshAuth {
         }
     }
 
+    public boolean upgrade(String username, String licenseKey) {
+        checkInit();
+        try {
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("username", username);
+            payload.put("license_key", licenseKey);
+
+            SimpleJson res = postRequest("/upgrade", payload);
+            response.success = res.getBoolean("success", false);
+            response.message = res.getString("message", "");
+            return response.success;
+        } catch (Exception e) {
+            response.success = false;
+            response.message = e.getMessage();
+            return false;
+        }
+    }
+
     public boolean license(String licenseKey) {
         checkInit();
         try {

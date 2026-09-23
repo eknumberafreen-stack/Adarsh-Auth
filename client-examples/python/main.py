@@ -1,20 +1,29 @@
 """
 ================================================================
   AdarshAuth — Python Example Application
-  Interactive CLI Login, Registration & License Authentication
+  Production-Grade Authentication for Python Applications
 ================================================================
 """
 
 import sys
+import os
+import time
+import platform
 import adarshauth
 
-# ── Configure Your Application Credentials ─────────────────────
-# Replace with your credentials from https://adarshauth.store/dashboard/applications
-APP_NAME    = "Adarsh Internal"
+# ── Application Credentials ────────────────────────────────────
+APP_NAME    = "TESTING"
 OWNER_ID    = "uYwqaPDGiD"
-APP_SECRET  = "bdcdd245ee4df9e2baa3872f412755d98554fb398558bd0d3b8affc16353a9fd"
+APP_SECRET  = "d75618f252aebbc05a1522118ed738094365844b21c4e76e46d23bfa5ce88ba1"
 APP_VERSION = "1.0"
 API_URL     = "https://adarshauth.store/api/client"
+
+
+def clear():
+    if platform.system() == 'Windows':
+        os.system('cls & title AdarshAuth Python Example')
+    else:
+        os.system('clear')
 
 
 def print_banner():
@@ -33,9 +42,10 @@ def print_banner():
 
 
 def main():
+    clear()
     print_banner()
 
-    print("\n[*] Initializing AdarshAuth client...")
+    print("\n[*] Initializing AdarshAuth...")
     auth = adarshauth.api(
         name=APP_NAME,
         ownerid=OWNER_ID,
@@ -44,85 +54,90 @@ def main():
         url=API_URL
     )
 
-    try:
-        if not auth.init():
-            print(f"[-] Initialization Failed: {auth.response.message}")
-            input("\nPress Enter to exit...")
-            sys.exit(1)
-    except Exception as e:
-        print(f"[-] Connection Error: {e}")
-        input("\nPress Enter to exit...")
+    if not auth.init():
+        print(f"[-] Status: {auth.response.message}")
+        time.sleep(2)
         sys.exit(1)
 
-    print(f"[+] Initialized successfully! Version: {auth.app_data.version}")
+    print(f"[+] Status: Initialized successfully! (v{auth.app_data.version})")
 
-    print("\nSelect an option:")
-    print("  [1] Login (Username & Password)")
-    print("  [2] Register (Username, Password & License Key)")
-    print("  [3] License Key Only")
-    print("  [4] Exit")
+    print("""
+1. Login
+2. Register
+3. Upgrade
+4. License Key Only
+    """)
 
-    choice = input("\nOption [1-4]: ").strip()
+    ans = input("Select Option: ").strip()
 
-    if choice == "1":
-        username = input("Username: ").strip()
-        password = input("Password: ").strip()
+    if ans == "1":
+        user = input('Provide username: ').strip()
+        password = input('Provide password: ').strip()
         print("\n[*] Logging in...")
-        if auth.login(username, password):
-            print("\n[+] Authentication Successful!")
-        else:
-            print(f"\n[-] Login Failed: {auth.response.message}")
-            input("\nPress Enter to exit...")
+        if not auth.login(user, password):
+            print(f"\n[-] Status: {auth.response.message}")
+            time.sleep(2)
             sys.exit(1)
 
-    elif choice == "2":
-        username = input("Username: ").strip()
-        password = input("Password: ").strip()
-        license_key = input("License Key: ").strip()
-        print("\n[*] Registering account...")
-        if auth.register(username, password, license_key):
-            print("\n[+] Registration & Login Successful!")
-        else:
-            print(f"\n[-] Registration Failed: {auth.response.message}")
-            input("\nPress Enter to exit...")
+    elif ans == "2":
+        user = input('Provide username: ').strip()
+        password = input('Provide password: ').strip()
+        license_key = input('Provide License: ').strip()
+        print("\n[*] Registering...")
+        if not auth.register(user, password, license_key):
+            print(f"\n[-] Status: {auth.response.message}")
+            time.sleep(2)
             sys.exit(1)
 
-    elif choice == "3":
-        license_key = input("License Key: ").strip()
-        print("\n[*] Activating license key...")
-        if auth.license(license_key):
-            print("\n[+] License Key Validated Successfully!")
+    elif ans == "3":
+        user = input('Provide username: ').strip()
+        license_key = input('Provide License: ').strip()
+        print("\n[*] Upgrading account...")
+        if auth.upgrade(user, license_key):
+            print("\n[+] Status: Successfully upgraded user account!")
         else:
-            print(f"\n[-] Activation Failed: {auth.response.message}")
-            input("\nPress Enter to exit...")
-            sys.exit(1)
-
-    elif choice == "4":
-        print("\nExiting...")
+            print(f"\n[-] Status: {auth.response.message}")
+        time.sleep(2)
         sys.exit(0)
+
+    elif ans == "4":
+        key = input('Enter your license: ').strip()
+        print("\n[*] Activating license key...")
+        if not auth.license(key):
+            print(f"\n[-] Status: {auth.response.message}")
+            time.sleep(2)
+            sys.exit(1)
+
     else:
-        print("\n[-] Invalid option selected.")
+        print("\n[-] Invalid option")
+        time.sleep(2)
         sys.exit(1)
 
-    # Display User Details
-    print("-" * 50)
-    print("               USER PROFILE DATA")
-    print("-" * 50)
-    print(f"  Username     : {auth.user_data.username}")
-    print(f"  IP Address   : {auth.user_data.ip}")
-    print(f"  HWID         : {auth.user_data.hwid}")
-    print(f"  Subscription : {auth.user_data.subscription}")
-    print(f"  Expiry Date  : {auth.user_data.expiry}")
-    print(f"  Created Date : {auth.user_data.createdate}")
-    print(f"  Last Login   : {auth.user_data.lastlogin}")
-    print("-" * 50)
+    print("\n[+] Logged In!")
 
-    # Session verification test
-    print("\n[*] Verifying active session with server...")
+    # Display User Data
+    print("\nUser data: ")
+    print("Username: " + auth.user_data.username)
+    print("IP address: " + auth.user_data.ip)
+    print("Hardware-Id: " + auth.user_data.hwid)
+
+    subs = auth.user_data.subscriptions
+    for i in range(len(subs)):
+        sub = subs[i].get("subscription", "default")
+        expiry = subs[i].get("expiry", "Lifetime")
+        timeleft = subs[i].get("timeleft", expiry)
+        print(f"[{i + 1} / {len(subs)}] | Subscription: {sub} - Expiry: {expiry} - Timeleft: {timeleft}")
+
+    print("Created at: " + auth.user_data.createdate)
+    if auth.user_data.lastlogin:
+        print("Last login at: " + auth.user_data.lastlogin)
+    print("Expires at: " + auth.user_data.expires)
+
+    print("\n[*] Validating session with server...")
     if auth.check():
         print("[+] Session verified active!")
     else:
-        print("[-] Session invalid or expired.")
+        print("[-] Session check failed.")
 
     input("\nPress Enter to exit...")
 

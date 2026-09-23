@@ -1,0 +1,14 @@
+C:\Users\Adarsh\Downloads\KeyAuth Examples\AdarshAuth\CSharp\bin\Debug\net8.0\AdarshAuth-Example.exe
+C:\Users\Adarsh\Downloads\KeyAuth Examples\AdarshAuth\CSharp\bin\Debug\net8.0\AdarshAuth-Example.deps.json
+C:\Users\Adarsh\Downloads\KeyAuth Examples\AdarshAuth\CSharp\bin\Debug\net8.0\AdarshAuth-Example.runtimeconfig.json
+C:\Users\Adarsh\Downloads\KeyAuth Examples\AdarshAuth\CSharp\bin\Debug\net8.0\AdarshAuth-Example.dll
+C:\Users\Adarsh\Downloads\KeyAuth Examples\AdarshAuth\CSharp\bin\Debug\net8.0\AdarshAuth-Example.pdb
+C:\Users\Adarsh\Downloads\KeyAuth Examples\AdarshAuth\CSharp\obj\Debug\net8.0\AdarshAuth.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Adarsh\Downloads\KeyAuth Examples\AdarshAuth\CSharp\obj\Debug\net8.0\AdarshAuth.AssemblyInfoInputs.cache
+C:\Users\Adarsh\Downloads\KeyAuth Examples\AdarshAuth\CSharp\obj\Debug\net8.0\AdarshAuth.AssemblyInfo.cs
+C:\Users\Adarsh\Downloads\KeyAuth Examples\AdarshAuth\CSharp\obj\Debug\net8.0\AdarshAuth.csproj.CoreCompileInputs.cache
+C:\Users\Adarsh\Downloads\KeyAuth Examples\AdarshAuth\CSharp\obj\Debug\net8.0\AdarshAuth-Example.dll
+C:\Users\Adarsh\Downloads\KeyAuth Examples\AdarshAuth\CSharp\obj\Debug\net8.0\refint\AdarshAuth-Example.dll
+C:\Users\Adarsh\Downloads\KeyAuth Examples\AdarshAuth\CSharp\obj\Debug\net8.0\AdarshAuth-Example.pdb
+C:\Users\Adarsh\Downloads\KeyAuth Examples\AdarshAuth\CSharp\obj\Debug\net8.0\AdarshAuth.genruntimeconfig.cache
+C:\Users\Adarsh\Downloads\KeyAuth Examples\AdarshAuth\CSharp\obj\Debug\net8.0\ref\AdarshAuth-Example.dll

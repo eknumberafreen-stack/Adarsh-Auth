@@ -1,14 +1,14 @@
 using System;
+using System.Threading;
 
 namespace AdarshAuth
 {
     class Program
     {
-        // ── Configure Your Application Credentials ─────────────────────
-        // Replace with your credentials from https://adarshauth.store/dashboard/applications
-        static string name = "Adarsh Internal";
+        // ── Application Credentials ────────────────────────────────────
+        static string name = "TESTING";
         static string ownerid = "uYwqaPDGiD";
-        static string secret = "bdcdd245ee4df9e2baa3872f412755d98554fb398558bd0d3b8affc16353a9fd";
+        static string secret = "d75618f252aebbc05a1522118ed738094365844b21c4e76e46d23bfa5ce88ba1";
         static string version = "1.0";
         static string url = "https://adarshauth.store/api/client";
 
@@ -19,106 +19,110 @@ namespace AdarshAuth
             Console.Title = "AdarshAuth C# Example";
             PrintBanner();
 
-            Console.WriteLine("\n[*] Initializing AdarshAuth client...");
+            Console.WriteLine("\n[*] Connecting to AdarshAuth...");
             AdarshAuthApp.init();
 
             if (!AdarshAuthApp.response.success)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"\n[-] Initialization Failed: {AdarshAuthApp.response.message}");
+                Console.WriteLine($"\n[-] Status: {AdarshAuthApp.response.message}");
                 Console.ResetColor();
-                Console.WriteLine("\nPress Enter to exit...");
-                Console.ReadLine();
-                return;
+                Thread.Sleep(2500);
+                Environment.Exit(1);
             }
 
             Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine($"[+] Initialized successfully! Version: {AdarshAuthApp.app_data.version}");
+            Console.WriteLine($"[+] Status: Initialized successfully! (v{AdarshAuthApp.app_data.version})");
             Console.ResetColor();
 
-            Console.WriteLine("\nSelect an option:");
-            Console.WriteLine("  [1] Login (Username & Password)");
-            Console.WriteLine("  [2] Register (Username, Password & License Key)");
-            Console.WriteLine("  [3] License Key Only");
-            Console.WriteLine("  [4] Exit");
-
-            Console.Write("\nOption [1-4]: ");
+            Console.Write("\n [1] Login\n [2] Register\n [3] Upgrade\n [4] License key only\n\n Choose option: ");
             string? choice = Console.ReadLine()?.Trim();
+
+            string username, password, key;
 
             switch (choice)
             {
                 case "1":
-                    Console.Write("Username: ");
-                    string? user = Console.ReadLine()?.Trim() ?? "";
-                    Console.Write("Password: ");
-                    string? pass = Console.ReadLine()?.Trim() ?? "";
+                    Console.Write("\n Enter username: ");
+                    username = Console.ReadLine()?.Trim() ?? "";
+                    Console.Write(" Enter password: ");
+                    password = Console.ReadLine()?.Trim() ?? "";
 
                     Console.WriteLine("\n[*] Logging in...");
-                    AdarshAuthApp.login(user, pass);
+                    AdarshAuthApp.login(username, password);
                     break;
 
                 case "2":
-                    Console.Write("Username: ");
-                    string? regUser = Console.ReadLine()?.Trim() ?? "";
-                    Console.Write("Password: ");
-                    string? regPass = Console.ReadLine()?.Trim() ?? "";
-                    Console.Write("License Key: ");
-                    string? regKey = Console.ReadLine()?.Trim() ?? "";
+                    Console.Write("\n Enter username: ");
+                    username = Console.ReadLine()?.Trim() ?? "";
+                    Console.Write(" Enter password: ");
+                    password = Console.ReadLine()?.Trim() ?? "";
+                    Console.Write(" Enter license: ");
+                    key = Console.ReadLine()?.Trim() ?? "";
 
-                    Console.WriteLine("\n[*] Registering account...");
-                    AdarshAuthApp.register(regUser, regPass, regKey);
+                    Console.WriteLine("\n[*] Registering...");
+                    AdarshAuthApp.register(username, password, key);
                     break;
 
                 case "3":
-                    Console.Write("License Key: ");
-                    string? key = Console.ReadLine()?.Trim() ?? "";
+                    Console.Write("\n Enter username: ");
+                    username = Console.ReadLine()?.Trim() ?? "";
+                    Console.Write(" Enter license: ");
+                    key = Console.ReadLine()?.Trim() ?? "";
+
+                    Console.WriteLine("\n[*] Upgrading account...");
+                    AdarshAuthApp.upgrade(username, key);
+                    Console.WriteLine("\n Status: " + AdarshAuthApp.response.message);
+                    Thread.Sleep(2500);
+                    Environment.Exit(0);
+                    break;
+
+                case "4":
+                    Console.Write("\n Enter license: ");
+                    key = Console.ReadLine()?.Trim() ?? "";
 
                     Console.WriteLine("\n[*] Activating license key...");
                     AdarshAuthApp.license(key);
                     break;
 
-                case "4":
-                    Environment.Exit(0);
-                    break;
-
                 default:
-                    Console.WriteLine("\n[-] Invalid option selected.");
-                    Console.ReadLine();
-                    return;
+                    Console.WriteLine("\n[-] Invalid selection.");
+                    Thread.Sleep(2000);
+                    Environment.Exit(1);
+                    break;
             }
 
             if (!AdarshAuthApp.response.success)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"\n[-] Authentication Failed: {AdarshAuthApp.response.message}");
+                Console.WriteLine($"\n[-] Status: {AdarshAuthApp.response.message}");
                 Console.ResetColor();
-                Console.WriteLine("\nPress Enter to exit...");
-                Console.ReadLine();
-                return;
+                Thread.Sleep(2500);
+                Environment.Exit(1);
             }
 
             Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine("\n[+] Authentication Successful!");
+            Console.WriteLine("\n[+] Logged In!");
             Console.ResetColor();
 
-            // Display User Profile Data
-            Console.WriteLine(new string('-', 52));
-            Console.WriteLine("                USER PROFILE DATA");
-            Console.WriteLine(new string('-', 52));
-            Console.WriteLine($"  Username     : {AdarshAuthApp.user_data.username}");
-            Console.WriteLine($"  IP Address   : {AdarshAuthApp.user_data.ip}");
-            Console.WriteLine($"  HWID         : {AdarshAuthApp.user_data.hwid}");
-            Console.WriteLine($"  Created Date : {AdarshAuthApp.user_data.createdate}");
-            Console.WriteLine($"  Last Login   : {AdarshAuthApp.user_data.lastlogin}");
+            // Display User Data
+            Console.WriteLine("\n User data:");
+            Console.WriteLine(" Username: " + AdarshAuthApp.user_data.username);
+            Console.WriteLine(" IP address: " + AdarshAuthApp.user_data.ip);
+            Console.WriteLine(" Hardware-Id: " + AdarshAuthApp.user_data.hwid);
+            Console.WriteLine(" Created at: " + AdarshAuthApp.user_data.createdate);
+            if (!string.IsNullOrEmpty(AdarshAuthApp.user_data.lastlogin))
+            {
+                Console.WriteLine(" Last login: " + AdarshAuthApp.user_data.lastlogin);
+            }
 
             if (AdarshAuthApp.user_data.subscriptions.Count > 0)
             {
-                Console.WriteLine($"  Subscription : {AdarshAuthApp.user_data.subscriptions[0].subscription}");
-                Console.WriteLine($"  Expiry Date  : {AdarshAuthApp.user_data.subscriptions[0].expiry}");
+                Console.WriteLine(" Subscription: " + AdarshAuthApp.user_data.subscriptions[0].subscription);
+                Console.WriteLine(" Expiry Date: " + AdarshAuthApp.user_data.subscriptions[0].expiry);
             }
-            Console.WriteLine(new string('-', 52));
 
-            // Validate session check
+            // Session check
             Console.WriteLine("\n[*] Validating session with server...");
             if (AdarshAuthApp.check())
             {

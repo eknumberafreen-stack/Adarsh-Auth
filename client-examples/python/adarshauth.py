@@ -17,8 +17,8 @@ import subprocess
 import threading
 import urllib.request
 import urllib.error
-from dataclasses import dataclass
-from typing import Optional, Dict, Any
+from dataclasses import dataclass, field
+from typing import Optional, List, Dict, Any
 
 API_BASE_DEFAULT = "https://adarshauth.store/api/client"
 
@@ -32,6 +32,8 @@ class UserData:
     lastlogin: str = ""
     subscription: str = ""
     expiry: str = ""
+    expires: str = ""
+    subscriptions: list = field(default_factory=list)
 
 
 @dataclass
@@ -174,7 +176,14 @@ class api:
         self.user_data.createdate = str(res.get("createdate", ""))
         self.user_data.lastlogin = str(res.get("lastlogin", ""))
         self.user_data.subscription = res.get("subscription", "default")
-        self.user_data.expiry = str(res.get("expiryDate", res.get("expiry", "Lifetime")))
+        expiry_val = str(res.get("expiryDate", res.get("expiry", "Lifetime")))
+        self.user_data.expiry = expiry_val
+        self.user_data.expires = expiry_val
+        self.user_data.subscriptions = [{
+            "subscription": self.user_data.subscription,
+            "expiry": expiry_val,
+            "timeleft": expiry_val
+        }]
 
     def login(self, username: str, password: str) -> bool:
         """Logs in a user with username and password."""
@@ -214,6 +223,18 @@ class api:
             self._start_heartbeat()
             return True
         return False
+
+    def upgrade(self, username: str, license_key: str) -> bool:
+        """Upgrades an existing user account using a license key."""
+        self._check_init()
+        payload = {
+            "username": username,
+            "license_key": license_key
+        }
+        res = self._post("/upgrade", payload)
+        self.response.success = bool(res.get("success", False))
+        self.response.message = res.get("message", "")
+        return self.response.success
 
     def license(self, license_key: str) -> bool:
         """Authenticates directly using a license key."""

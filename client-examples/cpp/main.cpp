@@ -2,11 +2,10 @@
 #include <string>
 #include "adarshauth.hpp"
 
-// ── Configure Your Application Credentials ─────────────────────
-// Replace with your credentials from https://adarshauth.store/dashboard/applications
-const std::string name = "Adarsh Internal";
+// ── Application Credentials ────────────────────────────────────
+const std::string name = "TESTING";
 const std::string ownerid = "uYwqaPDGiD";
-const std::string secret = "bdcdd245ee4df9e2baa3872f412755d98554fb398558bd0d3b8affc16353a9fd";
+const std::string secret = "d75618f252aebbc05a1522118ed738094365844b21c4e76e46d23bfa5ce88ba1";
 const std::string version = "1.0";
 const std::string url = "https://adarshauth.store/api/client";
 
@@ -30,32 +29,25 @@ int main() {
     SetConsoleTitleA("AdarshAuth C++ Example");
     print_banner();
 
-    std::cout << "\n[*] Initializing AdarshAuth client..." << std::endl;
+    std::cout << "\n[*] Connecting to AdarshAuth..." << std::endl;
     if (!AdarshAuthApp.init()) {
-        std::cerr << "\n[-] Initialization Failed: " << AdarshAuthApp.response.message << std::endl;
-        std::cout << "\nPress Enter to exit...";
-        std::cin.get();
+        std::cerr << "\n[-] Status: " << AdarshAuthApp.response.message << std::endl;
+        Sleep(2500);
         return 1;
     }
 
-    std::cout << "[+] Initialized successfully! Version: " << AdarshAuthApp.app_data.version << std::endl;
+    std::cout << "[+] Status: Initialized successfully! (v" << AdarshAuthApp.app_data.version << ")" << std::endl;
 
-    std::cout << "\nSelect an option:" << std::endl;
-    std::cout << "  [1] Login (Username & Password)" << std::endl;
-    std::cout << "  [2] Register (Username, Password & License Key)" << std::endl;
-    std::cout << "  [3] License Key Only" << std::endl;
-    std::cout << "  [4] Exit" << std::endl;
-
-    std::cout << "\nOption [1-4]: ";
+    std::cout << "\n [1] Login\n [2] Register\n [3] Upgrade\n [4] License key only\n\n Choose option: ";
     int choice = 0;
     std::cin >> choice;
     std::cin.ignore();
 
     if (choice == 1) {
         std::string user, pass;
-        std::cout << "Username: ";
+        std::cout << "\n Enter username: ";
         std::getline(std::cin, user);
-        std::cout << "Password: ";
+        std::cout << " Enter password: ";
         std::getline(std::cin, pass);
 
         std::cout << "\n[*] Logging in..." << std::endl;
@@ -63,53 +55,62 @@ int main() {
     }
     else if (choice == 2) {
         std::string user, pass, key;
-        std::cout << "Username: ";
+        std::cout << "\n Enter username: ";
         std::getline(std::cin, user);
-        std::cout << "Password: ";
+        std::cout << " Enter password: ";
         std::getline(std::cin, pass);
-        std::cout << "License Key: ";
+        std::cout << " Enter license: ";
         std::getline(std::cin, key);
 
-        std::cout << "\n[*] Registering account..." << std::endl;
+        std::cout << "\n[*] Registering..." << std::endl;
         AdarshAuthApp.regstr(user, pass, key);
     }
     else if (choice == 3) {
+        std::string user, key;
+        std::cout << "\n Enter username: ";
+        std::getline(std::cin, user);
+        std::cout << " Enter license: ";
+        std::getline(std::cin, key);
+
+        std::cout << "\n[*] Upgrading account..." << std::endl;
+        AdarshAuthApp.upgrade(user, key);
+        std::cout << "\n Status: " << AdarshAuthApp.response.message << std::endl;
+        Sleep(2500);
+        return 0;
+    }
+    else if (choice == 4) {
         std::string key;
-        std::cout << "License Key: ";
+        std::cout << "\n Enter license: ";
         std::getline(std::cin, key);
 
         std::cout << "\n[*] Activating license key..." << std::endl;
         AdarshAuthApp.license(key);
     }
-    else if (choice == 4) {
-        return 0;
-    }
     else {
-        std::cerr << "\n[-] Invalid option selected." << std::endl;
+        std::cerr << "\n[-] Invalid selection." << std::endl;
+        Sleep(2000);
         return 1;
     }
 
     if (!AdarshAuthApp.response.success) {
-        std::cerr << "\n[-] Authentication Failed: " << AdarshAuthApp.response.message << std::endl;
-        std::cout << "\nPress Enter to exit...";
-        std::cin.get();
+        std::cerr << "\n[-] Status: " << AdarshAuthApp.response.message << std::endl;
+        Sleep(2500);
         return 1;
     }
 
-    std::cout << "\n[+] Authentication Successful!" << std::endl;
+    std::cout << "\n[+] Logged In!" << std::endl;
 
     // Display User Details
-    std::cout << "--------------------------------------------------" << std::endl;
-    std::cout << "                USER PROFILE DATA" << std::endl;
-    std::cout << "--------------------------------------------------" << std::endl;
-    std::cout << "  Username     : " << AdarshAuthApp.user_data.username << std::endl;
-    std::cout << "  IP Address   : " << AdarshAuthApp.user_data.ip << std::endl;
-    std::cout << "  HWID         : " << AdarshAuthApp.user_data.hwid << std::endl;
-    std::cout << "  Subscription : " << AdarshAuthApp.user_data.subscription << std::endl;
-    std::cout << "  Expiry Date  : " << AdarshAuthApp.user_data.expiry << std::endl;
-    std::cout << "  Created Date : " << AdarshAuthApp.user_data.createdate << std::endl;
-    std::cout << "  Last Login   : " << AdarshAuthApp.user_data.lastlogin << std::endl;
-    std::cout << "--------------------------------------------------" << std::endl;
+    std::cout << "\n User data:" << std::endl;
+    std::cout << " Username: " + AdarshAuthApp.user_data.username << std::endl;
+    std::cout << " IP address: " + AdarshAuthApp.user_data.ip << std::endl;
+    std::cout << " Hardware-Id: " + AdarshAuthApp.user_data.hwid << std::endl;
+    std::cout << " Created at: " + AdarshAuthApp.user_data.createdate << std::endl;
+    if (!AdarshAuthApp.user_data.lastlogin.empty()) {
+        std::cout << " Last login: " + AdarshAuthApp.user_data.lastlogin << std::endl;
+    }
+    std::cout << " Subscription: " + AdarshAuthApp.user_data.subscription << std::endl;
+    std::cout << " Expiry Date: " + AdarshAuthApp.user_data.expiry << std::endl;
 
     // Validate active session
     std::cout << "\n[*] Validating session with server..." << std::endl;

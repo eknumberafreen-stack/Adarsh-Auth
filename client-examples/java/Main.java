@@ -3,101 +3,102 @@ package com.adarshauth;
 import java.util.Scanner;
 
 public class Main {
-    // ── Configure Your Application Credentials ─────────────────────
-    // Replace with your credentials from https://adarshauth.store/dashboard/applications
-    private static final String APP_NAME = "Adarsh Internal";
+    // ── Application Credentials ────────────────────────────────────
+    private static final String APP_NAME = "TESTING";
     private static final String OWNER_ID = "uYwqaPDGiD";
-    private static final String APP_SECRET = "bdcdd245ee4df9e2baa3872f412755d98554fb398558bd0d3b8affc16353a9fd";
+    private static final String APP_SECRET = "d75618f252aebbc05a1522118ed738094365844b21c4e76e46d23bfa5ce88ba1";
     private static final String APP_VERSION = "1.0";
     private static final String API_URL = "https://adarshauth.store/api/client";
 
     public static void main(String[] args) {
         printBanner();
 
-        System.out.println("\n[*] Initializing AdarshAuth client...");
+        System.out.println("\n[*] Connecting to AdarshAuth...");
         AdarshAuth auth = new AdarshAuth(APP_NAME, OWNER_ID, APP_SECRET, APP_VERSION, API_URL);
 
         if (!auth.init()) {
-            System.err.println("\n[-] Initialization Failed: " + auth.response.message);
-            System.out.println("\nPress Enter to exit...");
-            new Scanner(System.in).nextLine();
+            System.err.println("\n[-] Status: " + auth.response.message);
+            try { Thread.sleep(2500); } catch (Exception ignored) {}
             System.exit(1);
         }
 
-        System.out.println("[+] Initialized successfully! Version: " + auth.appData.version);
+        System.out.println("[+] Status: Initialized successfully! (v" + auth.appData.version + ")");
 
         Scanner scanner = new Scanner(System.in);
-        System.out.println("\nSelect an option:");
-        System.out.println("  [1] Login (Username & Password)");
-        System.out.println("  [2] Register (Username, Password & License Key)");
-        System.out.println("  [3] License Key Only");
-        System.out.println("  [4] Exit");
-
-        System.out.print("\nOption [1-4]: ");
+        System.out.print("\n [1] Login\n [2] Register\n [3] Upgrade\n [4] License key only\n\n Choose option: ");
         String choice = scanner.nextLine().trim();
+
+        String username, password, key;
 
         switch (choice) {
             case "1":
-                System.out.print("Username: ");
-                String user = scanner.nextLine().trim();
-                System.out.print("Password: ");
-                String pass = scanner.nextLine().trim();
+                System.out.print("\n Enter username: ");
+                username = scanner.nextLine().trim();
+                System.out.print(" Enter password: ");
+                password = scanner.nextLine().trim();
 
                 System.out.println("\n[*] Logging in...");
-                auth.login(user, pass);
+                auth.login(username, password);
                 break;
 
             case "2":
-                System.out.print("Username: ");
-                String regUser = scanner.nextLine().trim();
-                System.out.print("Password: ");
-                String regPass = scanner.nextLine().trim();
-                System.out.print("License Key: ");
-                String regKey = scanner.nextLine().trim();
+                System.out.print("\n Enter username: ");
+                username = scanner.nextLine().trim();
+                System.out.print(" Enter password: ");
+                password = scanner.nextLine().trim();
+                System.out.print(" Enter license: ");
+                key = scanner.nextLine().trim();
 
-                System.out.println("\n[*] Registering account...");
-                auth.register(regUser, regPass, regKey);
+                System.out.println("\n[*] Registering...");
+                auth.register(username, password, key);
                 break;
 
             case "3":
-                System.out.print("License Key: ");
-                String key = scanner.nextLine().trim();
+                System.out.print("\n Enter username: ");
+                username = scanner.nextLine().trim();
+                System.out.print(" Enter license: ");
+                key = scanner.nextLine().trim();
+
+                System.out.println("\n[*] Upgrading account...");
+                auth.upgrade(username, key);
+                System.out.println("\n Status: " + auth.response.message);
+                try { Thread.sleep(2500); } catch (Exception ignored) {}
+                System.exit(0);
+                break;
+
+            case "4":
+                System.out.print("\n Enter license: ");
+                key = scanner.nextLine().trim();
 
                 System.out.println("\n[*] Activating license key...");
                 auth.license(key);
                 break;
 
-            case "4":
-                System.out.println("\nExiting...");
-                System.exit(0);
-                break;
-
             default:
-                System.err.println("\n[-] Invalid option selected.");
+                System.err.println("\n[-] Invalid selection.");
+                try { Thread.sleep(2000); } catch (Exception ignored) {}
                 System.exit(1);
         }
 
         if (!auth.response.success) {
-            System.err.println("\n[-] Authentication Failed: " + auth.response.message);
-            System.out.println("\nPress Enter to exit...");
-            scanner.nextLine();
+            System.err.println("\n[-] Status: " + auth.response.message);
+            try { Thread.sleep(2500); } catch (Exception ignored) {}
             System.exit(1);
         }
 
-        System.out.println("\n[+] Authentication Successful!");
+        System.out.println("\n[+] Logged In!");
 
         // Display User Details
-        System.out.println("--------------------------------------------------");
-        System.out.println("                USER PROFILE DATA");
-        System.out.println("--------------------------------------------------");
-        System.out.println("  Username     : " + auth.userData.username);
-        System.out.println("  IP Address   : " + auth.userData.ip);
-        System.out.println("  HWID         : " + auth.userData.hwid);
-        System.out.println("  Subscription : " + auth.userData.subscription);
-        System.out.println("  Expiry Date  : " + auth.userData.expiryDate);
-        System.out.println("  Created Date : " + auth.userData.createdate);
-        System.out.println("  Last Login   : " + auth.userData.lastlogin);
-        System.out.println("--------------------------------------------------");
+        System.out.println("\n User data:");
+        System.out.println(" Username: " + auth.userData.username);
+        System.out.println(" IP address: " + auth.userData.ip);
+        System.out.println(" Hardware-Id: " + auth.userData.hwid);
+        System.out.println(" Created at: " + auth.userData.createdate);
+        if (auth.userData.lastlogin != null && !auth.userData.lastlogin.isEmpty()) {
+            System.out.println(" Last login: " + auth.userData.lastlogin);
+        }
+        System.out.println(" Subscription: " + auth.userData.subscription);
+        System.out.println(" Expiry Date: " + auth.userData.expiryDate);
 
         // Validate active session
         System.out.println("\n[*] Validating session with server...");

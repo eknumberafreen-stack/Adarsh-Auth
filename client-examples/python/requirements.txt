@@ -1,0 +1,2 @@
+# AdarshAuth Python Client
+# No external dependencies required! Uses Python standard library (urllib, hmac, hashlib, json).

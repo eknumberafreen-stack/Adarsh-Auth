@@ -122,6 +122,19 @@ namespace AdarshAuth
             }
         }
 
+        public void upgrade(string username, string key)
+        {
+            CheckInit();
+            var payload = new Dictionary<string, object>
+            {
+                ["username"] = username,
+                ["license_key"] = key
+            };
+            var result = PostRequest("/upgrade", payload);
+            response.success = result.success;
+            response.message = result.message;
+        }
+
         public void license(string key)
         {
             CheckInit();
