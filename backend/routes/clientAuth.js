@@ -555,6 +555,67 @@ router.post('/license',
   })
 );
 
+// ─── POST /api/client/upgrade ────────────────────────────────────────────────
+router.post('/upgrade',
+  endpointLimiter('upgrade', 15, 60_000),
+  verifyClientRequest,
+  asyncHandler(async (req, res) => {
+    const { username, license_key } = req.clientBody;
+    const key = license_key || req.clientBody.key;
+
+    if (!username || !key) {
+      return fail(req, res, 400, 'invalidCreds', 'Missing username or license key');
+    }
+
+    const user = await AppUser.findOne({ 
+      username: username.trim(), 
+      applicationId: req.application._id 
+    });
+    if (!user) {
+      return fail(req, res, 404, 'userNotFound', 'User does not exist');
+    }
+
+    // Atomic license validation
+    const license = await License.findOneAndUpdate(
+      {
+        key: key.trim(),
+        applicationId: req.application._id,
+        used: false,
+        revoked: false,
+        blacklisted: false
+      },
+      { $set: { used: true, usedAt: new Date(), usedBy: user._id } },
+      { new: true }
+    );
+
+    if (!license) {
+      return fail(req, res, 400, 'licenseUsed', 'Invalid or already used license key');
+    }
+
+    // Calculate new expiryDate
+    let newExpiry = user.expiryDate;
+    if (license.expiryUnit === 'lifetime') {
+      newExpiry = null;
+    } else if (license.expiryDuration) {
+      const baseTime = (newExpiry && new Date(newExpiry) > new Date()) ? new Date(newExpiry) : new Date();
+      newExpiry = License.calcExpiry(license.expiryUnit, license.expiryDuration, baseTime);
+    }
+
+    user.expiryDate = newExpiry;
+    if (license.subscription) {
+      user.subscription = license.subscription;
+    }
+    await user.save();
+
+    await License.findByIdAndUpdate(license._id, { expiryDate: newExpiry });
+
+    return res.sendSigned({
+      success: true,
+      message: 'Successfully upgraded user account'
+    });
+  })
+);
+
 // ─── POST /api/client/validate ────────────────────────────────────────────────
 router.post('/validate',
   endpointLimiter('validate', 200, 60_000),
