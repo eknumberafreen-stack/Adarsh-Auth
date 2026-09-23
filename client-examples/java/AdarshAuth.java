@@ -6,21 +6,21 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
-import org.json.JSONObject;
 
 /**
- * Official AdarshAuth SDK for Java / Android Applications
- * Endpoint target: https://adarshauth.store/api/client
+ * ================================================================
+ *   AdarshAuth — Java & Android Authentication SDK
+ *   Zero-dependency, standalone, production-grade client
+ *   Dashboard: https://adarshauth.store
+ * ================================================================
  */
 public class AdarshAuth {
-    private static final String API_BASE_DEFAULT = "https://adarshauth.store/api/client";
+    private static final String DEFAULT_API_BASE = "https://adarshauth.store/api/client";
 
     private final String appName;
     private final String ownerId;
@@ -29,137 +29,224 @@ public class AdarshAuth {
     private final String apiBase;
 
     private String sessionToken;
-    private UserData userData;
+    private boolean initialized = false;
+    public UserData userData = new UserData();
+    public AppData appData = new AppData();
+    public ResponseData response = new ResponseData();
 
     public static class UserData {
-        public String username;
-        public String ip;
-        public String hwid;
-        public String createdate;
-        public String lastlogin;
-        public String subscription;
-        public String expiryDate;
-        public int activeSessions;
+        public String username = "";
+        public String ip = "";
+        public String hwid = "";
+        public String createdate = "";
+        public String lastlogin = "";
+        public String subscription = "default";
+        public String expiryDate = "Lifetime";
+        public int activeSessions = 1;
+    }
 
-        public UserData(JSONObject json) {
-            this.username = json.optString("username", "");
-            this.ip = json.optString("ip", "");
-            this.hwid = json.optString("hwid", "");
-            this.createdate = json.optString("createdate", "");
-            this.lastlogin = json.optString("lastlogin", "");
-            this.subscription = json.optString("subscription", "default");
-            this.expiryDate = json.optString("expiryDate", "Lifetime");
-            this.activeSessions = json.optInt("activeSessions", 1);
-        }
+    public static class AppData {
+        public String version = "1.0";
+    }
+
+    public static class ResponseData {
+        public boolean success = false;
+        public String message = "";
     }
 
     public AdarshAuth(String appName, String ownerId, String appSecret, String version) {
-        this(appName, ownerId, appSecret, version, API_BASE_DEFAULT);
+        this(appName, ownerId, appSecret, version, DEFAULT_API_BASE);
     }
 
     public AdarshAuth(String appName, String ownerId, String appSecret, String version, String apiBase) {
-        this.appName = appName;
-        this.ownerId = ownerId;
-        this.appSecret = appSecret;
-        this.version = version;
-        this.apiBase = (apiBase != null && !apiBase.isEmpty()) ? apiBase : API_BASE_DEFAULT;
+        if (appName == null || appName.trim().isEmpty() || ownerId == null || ownerId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Application name and Owner ID cannot be empty.");
+        }
+        this.appName = appName.trim();
+        this.ownerId = ownerId.trim();
+        this.appSecret = appSecret != null ? appSecret.trim() : "";
+        this.version = (version != null && !version.trim().isEmpty()) ? version.trim() : "1.0";
+        this.apiBase = (apiBase != null && !apiBase.trim().isEmpty()) ? apiBase.trim().replaceAll("/+$", "") : DEFAULT_API_BASE;
+        this.appData.version = this.version;
     }
 
-    /**
-     * Initializes connection with AdarshAuth server
-     */
-    public boolean init() throws Exception {
-        Map<String, String> payload = new HashMap<>();
-        JSONObject response = postRequest("/init", payload);
-        return response.optBoolean("success", false);
-    }
+    public boolean init() {
+        try {
+            Map<String, Object> payload = new LinkedHashMap<>();
+            SimpleJson res = postRequest("/init", payload);
+            response.success = res.getBoolean("success", false);
+            response.message = res.getString("message", "Unknown error");
 
-    /**
-     * Authenticates a user with username and password
-     */
-    public UserData login(String username, String password) throws Exception {
-        Map<String, String> payload = new HashMap<>();
-        payload.put("username", username);
-        payload.put("password", password);
-        payload.put("hwid", getHWID());
-
-        JSONObject response = postRequest("/login", payload);
-        if (response.optBoolean("success", false)) {
-            this.sessionToken = response.optString("sessionToken", "");
-            this.userData = new UserData(response);
-            return this.userData;
-        } else {
-            throw new Exception(response.optString("message", "Login failed"));
+            if (response.success) {
+                this.initialized = true;
+                this.appData.version = res.getString("version", this.version);
+                return true;
+            }
+            return false;
+        } catch (Exception e) {
+            response.success = false;
+            response.message = e.getMessage();
+            return false;
         }
     }
 
-    /**
-     * Registers a new user account using a license key
-     */
-    public UserData register(String username, String password, String licenseKey) throws Exception {
-        Map<String, String> payload = new HashMap<>();
-        payload.put("username", username);
-        payload.put("password", password);
-        payload.put("license_key", licenseKey);
-        payload.put("hwid", getHWID());
-
-        JSONObject response = postRequest("/register", payload);
-        if (response.optBoolean("success", false)) {
-            this.sessionToken = response.optString("sessionToken", "");
-            this.userData = new UserData(response);
-            return this.userData;
-        } else {
-            throw new Exception(response.optString("message", "Registration failed"));
+    public void checkInit() {
+        if (!initialized) {
+            throw new IllegalStateException("You must call AdarshAuth.init() before attempting authentication.");
         }
     }
 
-    /**
-     * Authenticates using a License Key directly
-     */
-    public UserData license(String licenseKey) throws Exception {
-        Map<String, String> payload = new HashMap<>();
-        payload.put("key", licenseKey);
-        payload.put("hwid", getHWID());
+    public boolean login(String username, String password) {
+        checkInit();
+        try {
+            String hwid = getHWID();
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("username", username);
+            payload.put("password", password);
+            payload.put("hwid", hwid);
 
-        JSONObject response = postRequest("/license", payload);
-        if (response.optBoolean("success", false)) {
-            this.sessionToken = response.optString("sessionToken", "");
-            this.userData = new UserData(response);
-            return this.userData;
-        } else {
-            throw new Exception(response.optString("message", "License activation failed"));
+            SimpleJson res = postRequest("/login", payload);
+            response.success = res.getBoolean("success", false);
+            response.message = res.getString("message", "");
+
+            if (response.success) {
+                loadUserData(res, hwid);
+                return true;
+            }
+            return false;
+        } catch (Exception e) {
+            response.success = false;
+            response.message = e.getMessage();
+            return false;
         }
     }
 
-    /**
-     * Validates active session token
-     */
-    public boolean check() throws Exception {
-        if (sessionToken == null || sessionToken.isEmpty()) return false;
-        Map<String, String> payload = new HashMap<>();
-        payload.put("sessionToken", sessionToken);
-        payload.put("hwid", getHWID());
+    public boolean register(String username, String password, String licenseKey) {
+        checkInit();
+        try {
+            String hwid = getHWID();
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("username", username);
+            payload.put("password", password);
+            payload.put("license_key", licenseKey);
+            payload.put("hwid", hwid);
 
-        JSONObject response = postRequest("/check", payload);
-        return response.optBoolean("success", false);
-    }
+            SimpleJson res = postRequest("/register", payload);
+            response.success = res.getBoolean("success", false);
+            response.message = res.getString("message", "");
 
-    /**
-     * Fetches custom server variable
-     */
-    public String var(String varId) throws Exception {
-        Map<String, String> payload = new HashMap<>();
-        payload.put("varId", varId);
-        JSONObject response = postRequest("/var", payload);
-        if (response.optBoolean("success", false)) {
-            return response.optString("value", "");
+            if (response.success) {
+                loadUserData(res, hwid);
+                return true;
+            }
+            return false;
+        } catch (Exception e) {
+            response.success = false;
+            response.message = e.getMessage();
+            return false;
         }
-        throw new Exception(response.optString("message", "Variable fetch failed"));
     }
 
-    /**
-     * Generates persistent hardware ID (Supports Android & Standard Java)
-     */
+    public boolean license(String licenseKey) {
+        checkInit();
+        try {
+            String hwid = getHWID();
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("key", licenseKey);
+            payload.put("hwid", hwid);
+
+            SimpleJson res = postRequest("/license", payload);
+            response.success = res.getBoolean("success", false);
+            response.message = res.getString("message", "");
+
+            if (response.success) {
+                loadUserData(res, hwid);
+                return true;
+            }
+            return false;
+        } catch (Exception e) {
+            response.success = false;
+            response.message = e.getMessage();
+            return false;
+        }
+    }
+
+    public boolean check() {
+        checkInit();
+        if (sessionToken == null || sessionToken.isEmpty()) {
+            response.success = false;
+            response.message = "No active session.";
+            return false;
+        }
+        try {
+            String hwid = getHWID();
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("session_token", sessionToken);
+            payload.put("hwid", hwid);
+
+            SimpleJson res = postRequest("/validate", payload);
+            response.success = res.getBoolean("success", false);
+            response.message = res.getString("message", "");
+            if (response.success) {
+                loadUserData(res, hwid);
+                return true;
+            }
+            sessionToken = null;
+            return false;
+        } catch (Exception e) {
+            response.success = false;
+            response.message = e.getMessage();
+            return false;
+        }
+    }
+
+    public String var(String varId) {
+        checkInit();
+        try {
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("varid", varId);
+            payload.put("session_token", sessionToken != null ? sessionToken : "");
+
+            SimpleJson res = postRequest("/var", payload);
+            return res.getString("value", null);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    public void log(String message) {
+        checkInit();
+        try {
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("message", message);
+            payload.put("session_token", sessionToken != null ? sessionToken : "");
+            postRequest("/log", payload);
+        } catch (Exception ignored) {}
+    }
+
+    public void logout() {
+        this.sessionToken = null;
+        this.initialized = false;
+        this.response.success = true;
+        this.response.message = "Logged out successfully.";
+    }
+
+    public String getSessionToken() {
+        return sessionToken;
+    }
+
+    private void loadUserData(SimpleJson res, String hwid) {
+        this.sessionToken = res.getString("sessionToken", res.getString("session_token", ""));
+        this.userData.username = res.getString("username", "");
+        this.userData.ip = res.getString("ip", "");
+        this.userData.hwid = res.getString("hwid", hwid);
+        this.userData.createdate = res.getString("createdate", "");
+        this.userData.lastlogin = res.getString("lastlogin", "");
+        this.userData.subscription = res.getString("subscription", "default");
+        this.userData.expiryDate = res.getString("expiryDate", res.getString("expiry", "Lifetime"));
+        this.userData.activeSessions = res.getInt("activeSessions", 1);
+    }
+
     public static String getHWID() {
         try {
             StringBuilder sb = new StringBuilder();
@@ -179,36 +266,67 @@ public class AdarshAuth {
             }
             return hexString.toString();
         } catch (Exception e) {
-            return "UNKNOWN_HWID_DEVICE";
+            return UUID.randomUUID().toString();
         }
     }
 
-    private JSONObject postRequest(String endpoint, Map<String, String> extraPayload) throws Exception {
-        String fullUrl = apiBase + endpoint;
-        HttpURLConnection conn = (HttpURLConnection) new URL(fullUrl).openConnection();
+    private SimpleJson postRequest(String endpoint, Map<String, Object> extraPayload) throws Exception {
+        long timestamp = System.currentTimeMillis();
+        String nonce = UUID.randomUUID().toString().replace("-", "");
 
+        // Build sorted JSON string for HMAC signature
+        Map<String, Object> sortedMap = new TreeMap<>(extraPayload);
+        StringBuilder sortedJsonSb = new StringBuilder("{");
+        boolean first = true;
+        for (Map.Entry<String, Object> entry : sortedMap.entrySet()) {
+            if (!first) sortedJsonSb.append(",");
+            first = false;
+            sortedJsonSb.append("\"").append(entry.getKey()).append("\":");
+            if (entry.getValue() instanceof Number || entry.getValue() instanceof Boolean) {
+                sortedJsonSb.append(entry.getValue());
+            } else {
+                sortedJsonSb.append("\"").append(escapeJson(String.valueOf(entry.getValue()))).append("\"");
+            }
+        }
+        sortedJsonSb.append("}");
+
+        String dataToSign = appName + ownerId + timestamp + nonce + sortedJsonSb.toString();
+        String signature = (appSecret != null && !appSecret.isEmpty()) ? calculateHMAC(dataToSign, appSecret) : "";
+
+        // Build full request body
+        Map<String, Object> fullPayload = new LinkedHashMap<>(extraPayload);
+        fullPayload.put("app_name", appName);
+        fullPayload.put("owner_id", ownerId);
+        fullPayload.put("timestamp", timestamp);
+        fullPayload.put("nonce", nonce);
+        fullPayload.put("signature", signature);
+        fullPayload.put("version", version);
+
+        StringBuilder jsonBody = new StringBuilder("{");
+        first = true;
+        for (Map.Entry<String, Object> entry : fullPayload.entrySet()) {
+            if (!first) jsonBody.append(",");
+            first = false;
+            jsonBody.append("\"").append(entry.getKey()).append("\":");
+            if (entry.getValue() instanceof Number || entry.getValue() instanceof Boolean) {
+                jsonBody.append(entry.getValue());
+            } else {
+                jsonBody.append("\"").append(escapeJson(String.valueOf(entry.getValue()))).append("\"");
+            }
+        }
+        jsonBody.append("}");
+
+        HttpURLConnection conn = (HttpURLConnection) new URL(apiBase + endpoint).openConnection();
         conn.setRequestMethod("POST");
         conn.setDoOutput(true);
         conn.setDoInput(true);
         conn.setConnectTimeout(15000);
         conn.setReadTimeout(15000);
-        conn.setRequestProperty("Content-Type", "application/json");
+        conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
         conn.setRequestProperty("Accept", "application/json");
         conn.setRequestProperty("User-Agent", "AdarshAuth-Java/1.0");
 
-        JSONObject bodyJson = new JSONObject();
-        bodyJson.put("name", appName);
-        bodyJson.put("ownerid", ownerId);
-        bodyJson.put("secret", appSecret);
-        bodyJson.put("version", version);
-
-        if (extraPayload != null) {
-            for (Map.Entry<String, String> entry : extraPayload.entrySet()) {
-                bodyJson.put(entry.getKey(), entry.getValue());
-            }
-        }
-
-        byte[] outputBytes = bodyJson.toString().getBytes(StandardCharsets.UTF_8);
+        byte[] outputBytes = jsonBody.toString().getBytes(StandardCharsets.UTF_8);
         try (OutputStream os = conn.getOutputStream()) {
             os.write(outputBytes);
             os.flush();
@@ -216,6 +334,9 @@ public class AdarshAuth {
 
         int statusCode = conn.getResponseCode();
         InputStream is = (statusCode >= 200 && statusCode < 400) ? conn.getInputStream() : conn.getErrorStream();
+        if (is == null) {
+            throw new Exception("HTTP " + statusCode + " - No response stream");
+        }
 
         BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
         StringBuilder responseSb = new StringBuilder();
@@ -225,42 +346,119 @@ public class AdarshAuth {
         }
         br.close();
 
-        String rawResponse = responseSb.toString();
-        if (rawResponse == null || rawResponse.trim().isEmpty()) {
-            throw new Exception("Empty response from authentication server (HTTP " + statusCode + ")");
+        return SimpleJson.parse(responseSb.toString());
+    }
+
+    private static String calculateHMAC(String data, String key) {
+        try {
+            SecretKeySpec secretKeySpec = new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+            Mac mac = Mac.getInstance("HmacSHA256");
+            mac.init(secretKeySpec);
+            byte[] hash = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private static String escapeJson(String raw) {
+        if (raw == null) return "";
+        return raw.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r");
+    }
+
+    /**
+     * Lightweight internal JSON parser for standalone, zero-dependency Java execution.
+     */
+    public static class SimpleJson {
+        private final Map<String, Object> data = new HashMap<>();
+
+        public static SimpleJson parse(String jsonStr) {
+            SimpleJson sj = new SimpleJson();
+            if (jsonStr == null) return sj;
+            String trimmed = jsonStr.trim();
+            if (!trimmed.startsWith("{") || !trimmed.endsWith("}")) {
+                sj.data.put("message", trimmed);
+                return sj;
+            }
+
+            String content = trimmed.substring(1, trimmed.length() - 1);
+            boolean inQuotes = false;
+            StringBuilder currentKey = new StringBuilder();
+            StringBuilder currentValue = new StringBuilder();
+            boolean readingKey = true;
+
+            for (int i = 0; i < content.length(); i++) {
+                char c = content.charAt(i);
+                if (c == '\"' && (i == 0 || content.charAt(i - 1) != '\\')) {
+                    inQuotes = !inQuotes;
+                    continue;
+                }
+                if (!inQuotes) {
+                    if (c == ':' && readingKey) {
+                        readingKey = false;
+                        continue;
+                    }
+                    if (c == ',') {
+                        saveEntry(sj, currentKey.toString().trim(), currentValue.toString().trim());
+                        currentKey.setLength(0);
+                        currentValue.setLength(0);
+                        readingKey = true;
+                        continue;
+                    }
+                }
+                if (readingKey) {
+                    currentKey.append(c);
+                } else {
+                    currentValue.append(c);
+                }
+            }
+            saveEntry(sj, currentKey.toString().trim(), currentValue.toString().trim());
+            return sj;
         }
 
-        // Response HMAC Verification
-        String receivedSig = conn.getHeaderField("X-AdarshAuth-Signature");
-        if (receivedSig != null && !receivedSig.isEmpty() && appSecret != null && !appSecret.isEmpty()) {
-            String calculatedSig = calculateHMAC(rawResponse, appSecret);
-            if (!calculatedSig.equalsIgnoreCase(receivedSig)) {
-                throw new Exception("Security Alert: Server response signature verification failed!");
+        private static void saveEntry(SimpleJson sj, String key, String val) {
+            if (key.isEmpty()) return;
+            if (val.startsWith("\"") && val.endsWith("\"") && val.length() >= 2) {
+                sj.data.put(key, val.substring(1, val.length() - 1));
+            } else if ("true".equalsIgnoreCase(val)) {
+                sj.data.put(key, Boolean.TRUE);
+            } else if ("false".equalsIgnoreCase(val)) {
+                sj.data.put(key, Boolean.FALSE);
+            } else {
+                try {
+                    sj.data.put(key, Integer.parseInt(val));
+                } catch (NumberFormatException e) {
+                    sj.data.put(key, val);
+                }
             }
         }
 
-        return new JSONObject(rawResponse);
-    }
-
-    private static String calculateHMAC(String data, String key) throws Exception {
-        SecretKeySpec secretKeySpec = new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
-        Mac mac = Mac.getInstance("HmacSHA256");
-        mac.init(secretKeySpec);
-        byte[] hash = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
-        StringBuilder hexString = new StringBuilder();
-        for (byte b : hash) {
-            String hex = Integer.toHexString(0xff & b);
-            if (hex.length() == 1) hexString.append('0');
-            hexString.append(hex);
+        public String getString(String key, String def) {
+            Object val = data.get(key);
+            return val != null ? String.valueOf(val) : def;
         }
-        return hexString.toString();
-    }
 
-    public UserData getUserData() {
-        return userData;
-    }
+        public boolean getBoolean(String key, boolean def) {
+            Object val = data.get(key);
+            if (val instanceof Boolean) return (Boolean) val;
+            if (val != null) return Boolean.parseBoolean(String.valueOf(val));
+            return def;
+        }
 
-    public String getSessionToken() {
-        return sessionToken;
+        public int getInt(String key, int def) {
+            Object val = data.get(key);
+            if (val instanceof Number) return ((Number) val).intValue();
+            try {
+                return Integer.parseInt(String.valueOf(val));
+            } catch (Exception e) {
+                return def;
+            }
+        }
     }
 }
