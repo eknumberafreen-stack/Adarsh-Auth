@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "postbuild": "node scripts/prepare-standalone.js",
+    "start": "node --no-deprecation start.js",
     "lint": "next lint",
     "test": "vitest run",
     "test:watch": "vitest"
