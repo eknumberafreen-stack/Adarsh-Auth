@@ -25,6 +25,7 @@ import {
 export default function Applications() {
   const { applications, setApplications, selectedApp, setSelectedApp, loadingApplications } = useAppStore()
   const { user } = useAuthStore()
+  const [pagedApps, setPagedApps] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showRenameModal, setShowRenameModal] = useState(false)
@@ -63,19 +64,28 @@ export default function Applications() {
     }
   }, [selectedApp])
 
+  const syncGlobalApps = async () => {
+    try {
+      const res = await api.get('/applications?all=true')
+      const allApps = res.data.applications || []
+      setApplications(allApps)
+      return allApps
+    } catch {
+      return applications
+    }
+  }
+
   const loadApplications = async (page = currentPage, searchTerm = search) => {
     setLoading(true)
     try {
-      const response = await api.get(`/applications?page=${page}&limit=${limit}&search=${searchTerm}`)
-      const apps = response.data.applications
-      setApplications(apps)
+      const response = await api.get(`/applications?page=${page}&limit=${limit}&search=${encodeURIComponent(searchTerm)}`)
+      const apps = response.data.applications || []
+      setPagedApps(apps)
       setTotalPages(response.data.pagination.pages)
       setTotalApps(response.data.pagination.total)
 
-      // Update local stats from pagination data for "Total Apps"
-      setStats(prev => ({ ...prev, total: response.data.pagination.total }))
-
-      // Note: Full stats like "Active Sessions" would still need a separate call or be returned by backend
+      // Keep global AppSelector list synced with ALL apps across every page
+      await syncGlobalApps()
     } catch {
       toast.error('Failed to load applications')
     } finally {
@@ -90,16 +100,12 @@ export default function Applications() {
   }
 
   useEffect(() => {
-    if (applications.length > 0) {
-      // Calculate stats based on existing applications
-      let sessions = 0
-      setStats({
-        total: applications.length,
-        active: applications.filter((app: any) => app.status === 'active').length,
-        paused: applications.filter((app: any) => app.status === 'paused').length,
-        sessions,
-      })
-    }
+    setStats({
+      total: applications.length,
+      active: applications.filter((app: any) => app.status === 'active').length,
+      paused: applications.filter((app: any) => app.status === 'paused').length,
+      sessions: 0,
+    })
   }, [applications])
 
   const selectApp = async (app: any) => {
@@ -198,8 +204,6 @@ export default function Applications() {
     navigator.clipboard.writeText(text)
     toast.success(label)
   }
-
-  const filtered = applications.filter((app: any) => app.name.toLowerCase().includes(search.toLowerCase()))
 
   const statTiles = [
     { label: 'Total Apps', value: stats.total, icon: CubeIcon, tone: 'text-indigo-300' },
@@ -533,13 +537,13 @@ export default function Applications() {
                   <div className="absolute inset-0 rounded-full border-2 border-indigo-500/10 border-t-indigo-500 animate-spin" />
                 </div>
               </div>
-            ) : applications.length === 0 ? (
+            ) : pagedApps.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-white/[0.06] px-5 py-14 text-center text-xs text-slate-500">
                 No applications found in inventory.
               </div>
             ) : (
               <>
-                {applications.map((app: any, i: number) => {
+                {pagedApps.map((app: any, i: number) => {
                   const isSelected = selectedApp?._id === app._id
                   const isOwner = app.userId === user?.id
                   const currentMember = app.team?.find((m: any) => {

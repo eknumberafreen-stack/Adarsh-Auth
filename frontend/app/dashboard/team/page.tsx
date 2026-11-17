@@ -143,7 +143,7 @@ export default function TeamPage() {
 
     // Fetch all apps to see which ones this member is already assigned to
     try {
-      const res = await api.get('/applications')
+      const res = await api.get('/applications?all=true')
       const allApps = res.data.applications
       const memberAppIds = allApps
         .filter((app: any) => app.team?.some((m: any) => m.userId?.toString() === member.userId?.toString()))

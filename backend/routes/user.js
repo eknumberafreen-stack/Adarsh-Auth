@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const AppUser = require('../models/AppUser');
 const License = require('../models/License');
 const Session = require('../models/Session');
@@ -13,6 +14,61 @@ const { checkPlanLimit } = require('../middleware/planLimit');
 
 const router = express.Router();
 router.use(verifyToken);
+
+const escapeRegex = (str = '') => String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const getSafeRedis = () => {
+  try {
+    return getRedisClient();
+  } catch {
+    return null;
+  }
+};
+
+// Shared user filter builder so paginated list and bulk operations match identically
+const buildUserFilter = (applicationId, { search = '', status = 'all' } = {}) => {
+  const andClauses = [{ applicationId }];
+  const trimmedSearch = String(search || '').trim();
+  if (trimmedSearch) {
+    const regex = { $regex: escapeRegex(trimmedSearch), $options: 'i' };
+    andClauses.push({
+      $or: [
+        { username: regex },
+        { email: regex },
+        { hwid: regex },
+        { lastIp: regex }
+      ]
+    });
+  }
+
+  const now = new Date();
+  switch (String(status || 'all').toLowerCase()) {
+    case 'banned':
+      andClauses.push({ banned: true });
+      break;
+    case 'paused':
+      andClauses.push({ banned: { $ne: true }, paused: true });
+      break;
+    case 'expired':
+      andClauses.push({
+        banned: { $ne: true },
+        paused: { $ne: true },
+        expiryDate: { $ne: null, $lt: now }
+      });
+      break;
+    case 'active':
+      andClauses.push({
+        banned: { $ne: true },
+        paused: { $ne: true },
+        $or: [{ expiryDate: null }, { expiryDate: { $gte: now } }]
+      });
+      break;
+    default:
+      break;
+  }
+
+  return andClauses.length === 1 ? andClauses[0] : { $and: andClauses };
+};
 
 // Helper to verify user permissions when we only have the AppUser document
 const verifyUserActionAccess = async (req, res, appUser, requiredPermission) => {
@@ -80,19 +136,16 @@ router.get('/application/:applicationId/online-status', verifyAppAccess(), async
   res.json({ online: onlineUserIds });
 }));
 
-// ─── Get all users for application (with pagination) ──────────────────────────
+// ─── Get all users for application (with pagination, search & status filter) ─
 
 router.get('/application/:applicationId', verifyAppAccess(), asyncHandler(async (req, res) => {
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 10;
+  const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+  const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 10, 1), 100);
   const search = req.query.search || '';
+  const status = req.query.status || 'all';
   const skip = (page - 1) * limit;
 
-  const filter = { applicationId: req.params.applicationId };
-  
-  if (search) {
-    filter.username = { $regex: search, $options: 'i' };
-  }
+  const filter = buildUserFilter(req.params.applicationId, { search, status });
 
   const [users, total] = await Promise.all([
     AppUser.find(filter)
@@ -112,6 +165,296 @@ router.get('/application/:applicationId', verifyAppAccess(), asyncHandler(async 
       limit,
       pages: Math.ceil(total / limit)
     }
+  });
+}));
+
+// ─── Bulk user actions (pause, unpause, reset-hwid, force-close, bans, extend, delete)
+router.post('/application/:applicationId/bulk', verifyAppAccess('manage_users'), asyncHandler(async (req, res) => {
+  const {
+    action,
+    userIds = [],
+    selectAllMatching = false,
+    search = '',
+    status = 'all',
+    payload = {}
+  } = req.body || {};
+
+  const allowedActions = [
+    'pause',
+    'unpause',
+    'reset-hwid',
+    'force-close',
+    'soft-ban',
+    'ban',
+    'unban',
+    'extend-time',
+    'delete'
+  ];
+
+  if (!allowedActions.includes(action)) {
+    return res.status(400).json({ error: `Invalid bulk action: ${action}` });
+  }
+
+  if (!selectAllMatching && (!Array.isArray(userIds) || userIds.length === 0)) {
+    return res.status(400).json({ error: 'Select at least one user to perform bulk action' });
+  }
+
+  const validUserIds = selectAllMatching
+    ? []
+    : [...new Set(userIds.map(String))].filter((id) => mongoose.Types.ObjectId.isValid(id));
+
+  if (!selectAllMatching && validUserIds.length === 0) {
+    return res.status(400).json({ error: 'No valid user IDs provided' });
+  }
+
+  const appId = req.params.applicationId;
+  const targetFilter = selectAllMatching
+    ? buildUserFilter(appId, { search, status })
+    : { _id: { $in: validUserIds }, applicationId: appId };
+
+  const targetUsers = await AppUser.find(targetFilter);
+  if (targetUsers.length === 0) {
+    return res.status(404).json({ error: 'No matching users found in this application' });
+  }
+
+  const targetIds = targetUsers.map(u => u._id);
+  const redis = getSafeRedis();
+  let affected = 0;
+  let extra = {};
+
+  switch (action) {
+    case 'pause': {
+      const unpaused = targetUsers.filter(u => !u.paused);
+      const nowMinusOne = new Date(Date.now() - 1000);
+      await Promise.all(unpaused.map(u => {
+        u.paused = true;
+        u.pausedExpiry = u.expiryDate;
+        u.expiryDate = nowMinusOne;
+        return u.save();
+      }));
+      if (unpaused.length > 0) {
+        await Session.deleteMany({ userId: { $in: unpaused.map(u => u._id) } });
+      }
+      affected = unpaused.length;
+      extra = { skippedAlreadyPaused: targetUsers.length - unpaused.length };
+      break;
+    }
+
+    case 'unpause': {
+      const paused = targetUsers.filter(u => u.paused);
+      await Promise.all(paused.map(u => {
+        u.paused = false;
+        u.expiryDate = u.pausedExpiry;
+        u.pausedExpiry = null;
+        return u.save();
+      }));
+      affected = paused.length;
+      extra = { skippedNotPaused: targetUsers.length - paused.length };
+      break;
+    }
+
+    case 'reset-hwid': {
+      const result = await AppUser.updateMany(
+        { _id: { $in: targetIds }, applicationId: appId },
+        { $set: { hwid: null }, $inc: { hwidResetCount: 1 } }
+      );
+      await Session.deleteMany({ userId: { $in: targetIds } });
+      affected = result.modifiedCount ?? targetIds.length;
+      break;
+    }
+
+    case 'force-close': {
+      if (!redis) {
+        return res.status(503).json({ error: 'Session store unavailable for crash command' });
+      }
+      const admin = await User.findById(req.userId).select('username email');
+      const adminName = admin ? (admin.username || admin.email) : 'Admin';
+      let crashedUsers = 0;
+      let sessionsClosed = 0;
+
+      for (const user of targetUsers) {
+        const userKey = `user_sessions:${user._id}:${appId}`;
+        const tokens = await redis.sMembers(userKey);
+        if (!tokens || tokens.length === 0) continue;
+
+        let userHadActive = false;
+        for (const token of tokens) {
+          const session = await redis.hGetAll(`sess:${token}`);
+          if (session && Object.keys(session).length > 0) {
+            await redis.hSet(`sess:${token}`, 'forceClose', 'true');
+            userHadActive = true;
+            sessionsClosed++;
+            try {
+              await AuditLog.create({
+                applicationId: appId,
+                userId: user._id,
+                action: 'session_crashed',
+                ip: req.ip || '127.0.0.1',
+                severity: 'info',
+                details: {
+                  event: 'session_crashed_bulk',
+                  crashedBy: adminName,
+                  crashedById: req.userId,
+                  clientUsername: user.username,
+                  hwid: session.hwid || user.hwid,
+                  clientIp: session.ip || user.lastIp,
+                  sessionToken: token
+                }
+              });
+            } catch (logErr) {
+              console.error('Failed to log bulk session crash:', logErr);
+            }
+          }
+        }
+        if (userHadActive) crashedUsers++;
+      }
+
+      if (crashedUsers === 0) {
+        return res.status(404).json({ error: 'None of the selected users are currently online' });
+      }
+      affected = crashedUsers;
+      extra = {
+        sessionsClosed,
+        offlineSkipped: targetUsers.length - crashedUsers
+      };
+      break;
+    }
+
+    case 'soft-ban':
+    case 'ban': {
+      const isSoftBan = action === 'soft-ban';
+      const reason = String(payload.reason || (isSoftBan ? 'Soft ban (bulk)' : 'Manual ban (bulk)')).trim();
+      const banMessage = isSoftBan ? null : (payload.banMessage || null);
+      const banIp = !isSoftBan && Boolean(payload.banIp);
+
+      await AppUser.updateMany(
+        { _id: { $in: targetIds }, applicationId: appId },
+        {
+          $set: {
+            banned: true,
+            bannedAt: new Date(),
+            banReason: reason,
+            banMessage
+          }
+        }
+      );
+
+      let licensesBlacklisted = 0;
+      if (!isSoftBan) {
+        const licenses = await License.find({
+          usedBy: { $in: targetIds },
+          applicationId: appId
+        });
+        for (const license of licenses) {
+          license.blacklist(reason);
+          await license.save();
+        }
+        licensesBlacklisted = licenses.length;
+      }
+
+      await Session.deleteMany({ userId: { $in: targetIds } });
+
+      let ipsBanned = 0;
+      if (banIp) {
+        const uniqueIps = [...new Set(targetUsers.map(u => u.lastIp).filter(Boolean))];
+        for (const ip of uniqueIps) {
+          await IPBan.findOneAndUpdate(
+            { ip },
+            { ip, reason: `Bulk user ban: ${reason}`, bannedBy: req.userId },
+            { upsert: true, new: true }
+          );
+          if (redis) await redis.del(`ipban:${ip}`);
+          ipsBanned++;
+        }
+      }
+
+      await AuditLog.insertMany(
+        targetUsers.map(u => ({
+          applicationId: appId,
+          userId: u._id,
+          action: 'login_failed',
+          ip: req.ip || '127.0.0.1',
+          severity: isSoftBan ? 'warning' : 'critical',
+          details: {
+            event: isSoftBan ? 'user_soft_banned_bulk' : 'user_permanent_banned_bulk',
+            reason,
+            ipBanned: banIp && !!u.lastIp
+          }
+        }))
+      );
+
+      affected = targetUsers.length;
+      extra = { licensesBlacklisted, ipsBanned };
+      break;
+    }
+
+    case 'unban': {
+      await AppUser.updateMany(
+        { _id: { $in: targetIds }, applicationId: appId },
+        {
+          $set: {
+            banned: false,
+            bannedAt: null,
+            banReason: null,
+            banMessage: null
+          }
+        }
+      );
+      affected = targetUsers.length;
+      break;
+    }
+
+    case 'extend-time': {
+      const days = Number(payload.days) || 0;
+      const hours = Number(payload.hours) || 0;
+      const makeLifetime = Boolean(payload.makeLifetime);
+      const addMs = (days * 24 + hours) * 60 * 60 * 1000;
+
+      if (!makeLifetime && (!Number.isFinite(addMs) || addMs <= 0)) {
+        return res.status(400).json({ error: 'Specify positive days/hours or select Lifetime' });
+      }
+
+      let updated = 0;
+      let skippedLifetime = 0;
+      const now = Date.now();
+
+      for (const u of targetUsers) {
+        const expiryField = u.paused ? 'pausedExpiry' : 'expiryDate';
+        if (u[expiryField] === null) {
+          skippedLifetime++;
+          continue;
+        }
+        if (makeLifetime) {
+          u[expiryField] = null;
+        } else {
+          const base = Math.max(new Date(u[expiryField]).getTime(), now);
+          u[expiryField] = new Date(base + addMs);
+        }
+        await u.save();
+        updated++;
+      }
+
+      affected = updated;
+      extra = { skippedLifetime };
+      break;
+    }
+
+    case 'delete': {
+      const delRes = await AppUser.deleteMany({ _id: { $in: targetIds }, applicationId: appId });
+      await Session.deleteMany({ userId: { $in: targetIds } });
+      req.application.userCount = await AppUser.countDocuments({ applicationId: appId });
+      await req.application.save();
+      affected = delRes.deletedCount ?? targetIds.length;
+      break;
+    }
+  }
+
+  res.json({
+    message: `Bulk action '${action}' completed`,
+    action,
+    totalMatched: targetUsers.length,
+    affected,
+    ...extra
   });
 }));
 
@@ -280,10 +623,12 @@ router.patch('/:id/pause', asyncHandler(async (req, res) => {
   const hasAccess = await verifyUserActionAccess(req, res, user, 'manage_users');
   if (!hasAccess) return res.status(403).json({ error: 'Access denied: You need manage_users permission.' });
 
-  user.paused = true;
-  user.pausedExpiry = user.expiryDate; // Store the actual date
-  user.expiryDate = new Date(Date.now() - 1000); // Set to expired for blocking
-  await user.save();
+  if (!user.paused) {
+    user.paused = true;
+    user.pausedExpiry = user.expiryDate; // Store the actual date
+    user.expiryDate = new Date(Date.now() - 1000); // Set to expired for blocking
+    await user.save();
+  }
   await Session.deleteMany({ userId: user._id });
   res.json({ message: 'User paused' });
 }));
@@ -296,10 +641,12 @@ router.patch('/:id/unpause', asyncHandler(async (req, res) => {
   const hasAccess = await verifyUserActionAccess(req, res, user, 'manage_users');
   if (!hasAccess) return res.status(403).json({ error: 'Access denied: You need manage_users permission.' });
 
-  user.paused = false;
-  user.expiryDate = user.pausedExpiry; // Restore from backup
-  user.pausedExpiry = null; // Clear backup
-  await user.save();
+  if (user.paused) {
+    user.paused = false;
+    user.expiryDate = user.pausedExpiry; // Restore from backup
+    user.pausedExpiry = null; // Clear backup
+    await user.save();
+  }
   res.json({ message: 'User unpaused' });
 }));
 
@@ -314,6 +661,7 @@ router.post('/:id/unban', asyncHandler(async (req, res) => {
   user.banned = false;
   user.bannedAt = null;
   user.banReason = null;
+  user.banMessage = null;
   await user.save();
 
   res.json({ message: 'User unbanned successfully' });
@@ -395,10 +743,16 @@ router.delete('/:id', asyncHandler(async (req, res) => {
   const hasAccess = await verifyUserActionAccess(req, res, user, 'manage_users');
   if (!hasAccess) return res.status(403).json({ error: 'Access denied: You need manage_users permission.' });
 
+  const appId = user.applicationId._id;
   await Promise.all([
     AppUser.deleteOne({ _id: user._id }),
     Session.deleteMany({ userId: user._id })
   ]);
+
+  if (user.applicationId) {
+    user.applicationId.userCount = await AppUser.countDocuments({ applicationId: appId });
+    await user.applicationId.save();
+  }
 
   res.json({ message: 'User deleted successfully' });
 }));

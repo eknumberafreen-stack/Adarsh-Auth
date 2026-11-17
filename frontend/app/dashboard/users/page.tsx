@@ -1,96 +1,248 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import api from '@/lib/api'
 import { useAppStore } from '@/lib/store'
 import toast from 'react-hot-toast'
 import { motion } from 'framer-motion'
-import { PlusIcon, EyeIcon, EyeSlashIcon, XMarkIcon, EllipsisVerticalIcon } from '@heroicons/react/24/outline'
+import {
+  ArrowPathIcon,
+  BoltSlashIcon,
+  CheckBadgeIcon,
+  CheckIcon,
+  ClockIcon,
+  CpuChipIcon,
+  EllipsisVerticalIcon,
+  ExclamationTriangleIcon,
+  EyeIcon,
+  EyeSlashIcon,
+  MagnifyingGlassIcon,
+  NoSymbolIcon,
+  PauseCircleIcon,
+  PencilSquareIcon,
+  PlayCircleIcon,
+  PlusIcon,
+  ShieldCheckIcon,
+  ShieldExclamationIcon,
+  TrashIcon,
+  UsersIcon,
+  XMarkIcon,
+} from '@heroicons/react/24/outline'
 
-// ── 3-dot dropdown per user row ───────────────────────────────────────────────
+type ConfirmIconType = 'delete' | 'ban' | 'reset' | 'crash' | 'warning' | 'info'
+
+// ── 3-dot dropdown per user row (with crisp vector icon badges) ────────────────
 function UserMenu({ user, onEdit, onBan, onPermanentBan, onUnban, onPause, onResetHwid, onDelete, onForceClose }: any) {
   const [open, setOpen] = useState(false)
+  const [menuPos, setMenuPos] = useState<{ top: number; right: number; openUp: boolean }>({
+    top: 0,
+    right: 0,
+    openUp: false,
+  })
   const ref = useRef<HTMLDivElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+      const target = e.target as Node
+      if (ref.current?.contains(target) || menuRef.current?.contains(target)) return
+      setOpen(false)
     }
+    const scrollHandler = () => setOpen(false)
     document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
+    window.addEventListener('scroll', scrollHandler, true)
+    return () => {
+      document.removeEventListener('mousedown', handler)
+      window.removeEventListener('scroll', scrollHandler, true)
+    }
   }, [])
+
+  const toggleMenu = () => {
+    if (!open && ref.current) {
+      const rect = ref.current.getBoundingClientRect()
+      const menuHeight = 320
+      const openUp = rect.bottom + menuHeight > window.innerHeight && rect.top > menuHeight
+      setMenuPos({
+        top: openUp ? rect.top - 4 : rect.bottom + 4,
+        right: Math.max(window.innerWidth - rect.right, 12),
+        openUp,
+      })
+    }
+    setOpen((prev) => !prev)
+  }
 
   return (
     <div className="relative" ref={ref}>
       <button
-        onClick={() => setOpen(!open)}
-        className="p-2 rounded-lg hover:bg-dark-hover text-gray-400 hover:text-white transition-colors"
+        type="button"
+        onClick={toggleMenu}
+        aria-label={`Actions for ${user.username}`}
+        className="p-2 rounded-xl border border-transparent hover:border-white/10 hover:bg-white/[0.06] text-slate-400 hover:text-white transition-all"
       >
         <EllipsisVerticalIcon className="w-5 h-5" />
       </button>
 
-      {open && (
-        <div className="fixed mt-1 w-44 bg-[#1a1a24] border border-dark-border rounded-xl shadow-2xl z-[9999] overflow-hidden py-1"
+      {open && typeof document !== 'undefined' && createPortal(
+        <div
+          ref={menuRef}
+          className="fixed w-52 bg-[#11131d]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_24px_60px_rgba(0,0,0,0.85)] z-[9999] overflow-hidden p-1.5 space-y-0.5"
           style={{
-            top: ref.current ? ref.current.getBoundingClientRect().bottom + window.scrollY + 4 : 0,
-            right: window.innerWidth - (ref.current ? ref.current.getBoundingClientRect().right : 0)
+            top: menuPos.openUp ? undefined : menuPos.top,
+            bottom: menuPos.openUp ? window.innerHeight - menuPos.top : undefined,
+            right: menuPos.right,
           }}
         >
-          <button onClick={() => { setOpen(false); onEdit(user) }} className="w-full text-left px-4 py-2.5 text-sm text-gray-200 hover:bg-dark-hover transition-colors flex items-center gap-2">
-            <span>✏️</span> Edit
+          <button
+            type="button"
+            onClick={() => { setOpen(false); onEdit(user) }}
+            className="w-full text-left px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-200 hover:bg-white/[0.06] transition-colors flex items-center gap-2.5 group"
+          >
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-500/15 border border-indigo-500/25 text-indigo-400 group-hover:scale-105 transition-transform">
+              <PencilSquareIcon className="w-4 h-4" />
+            </span>
+            <span>Edit User</span>
           </button>
-          <button onClick={() => { setOpen(false); onPause(user) }} className="w-full text-left px-4 py-2.5 text-sm text-yellow-400 hover:bg-yellow-500/10 transition-colors flex items-center gap-2">
-            <span>{user.paused ? '▶️' : '⏸️'}</span> {user.paused ? 'Unpause' : 'Pause'}
+
+          <button
+            type="button"
+            onClick={() => { setOpen(false); onPause(user) }}
+            className="w-full text-left px-2.5 py-2 rounded-xl text-xs font-semibold text-amber-300 hover:bg-amber-500/10 transition-colors flex items-center gap-2.5 group"
+          >
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-500/15 border border-amber-500/25 text-amber-400 group-hover:scale-105 transition-transform">
+              {user.paused ? <PlayCircleIcon className="w-4 h-4" /> : <PauseCircleIcon className="w-4 h-4" />}
+            </span>
+            <span>{user.paused ? 'Unpause' : 'Pause'}</span>
           </button>
-          <button onClick={() => { setOpen(false); onResetHwid(user._id) }} className="w-full text-left px-4 py-2.5 text-sm text-blue-400 hover:bg-blue-500/10 transition-colors flex items-center gap-2">
-            <span>🔄</span> Reset HWID
+
+          <button
+            type="button"
+            onClick={() => { setOpen(false); onResetHwid(user._id) }}
+            className="w-full text-left px-2.5 py-2 rounded-xl text-xs font-semibold text-sky-300 hover:bg-sky-500/10 transition-colors flex items-center gap-2.5 group"
+          >
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-sky-500/15 border border-sky-500/25 text-sky-400 group-hover:scale-105 transition-transform">
+              <ArrowPathIcon className="w-4 h-4" />
+            </span>
+            <span>Reset HWID</span>
           </button>
-          <button onClick={() => { setOpen(false); onForceClose(user._id) }} className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors flex items-center gap-2">
-            <span>💥</span> Crash it
+
+          <button
+            type="button"
+            onClick={() => { setOpen(false); onForceClose(user._id) }}
+            className="w-full text-left px-2.5 py-2 rounded-xl text-xs font-semibold text-rose-300 hover:bg-rose-500/10 transition-colors flex items-center gap-2.5 group"
+          >
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-rose-500/15 border border-rose-500/25 text-rose-400 group-hover:scale-105 transition-transform">
+              <BoltSlashIcon className="w-4 h-4" />
+            </span>
+            <span>Crash it</span>
           </button>
+
+          <div className="my-1 border-t border-white/[0.06]" />
+
           {user.banned ? (
-            <button onClick={() => { setOpen(false); onUnban(user._id) }} className="w-full text-left px-4 py-2.5 text-sm text-green-400 hover:bg-green-500/10 transition-colors flex items-center gap-2">
-              <span>✅</span> Unban
+            <button
+              type="button"
+              onClick={() => { setOpen(false); onUnban(user._id) }}
+              className="w-full text-left px-2.5 py-2 rounded-xl text-xs font-semibold text-emerald-300 hover:bg-emerald-500/10 transition-colors flex items-center gap-2.5 group"
+            >
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 group-hover:scale-105 transition-transform">
+                <CheckBadgeIcon className="w-4 h-4" />
+              </span>
+              <span>Unban</span>
             </button>
           ) : (
-            <button onClick={() => { setOpen(false); onBan(user) }} className="w-full text-left px-4 py-2.5 text-sm text-orange-400 hover:bg-orange-500/10 transition-colors flex items-center gap-2">
-              <span>🚫</span> Ban
+            <button
+              type="button"
+              onClick={() => { setOpen(false); onBan(user) }}
+              className="w-full text-left px-2.5 py-2 rounded-xl text-xs font-semibold text-orange-300 hover:bg-orange-500/10 transition-colors flex items-center gap-2.5 group"
+            >
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-orange-500/15 border border-orange-500/25 text-orange-400 group-hover:scale-105 transition-transform">
+                <NoSymbolIcon className="w-4 h-4" />
+              </span>
+              <span>Ban</span>
             </button>
           )}
-          <button onClick={() => { setOpen(false); onPermanentBan(user) }} className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors flex items-center gap-2">
-            <span>⛔</span> Full Ban
+
+          <button
+            type="button"
+            onClick={() => { setOpen(false); onPermanentBan(user) }}
+            className="w-full text-left px-2.5 py-2 rounded-xl text-xs font-semibold text-red-300 hover:bg-red-500/10 transition-colors flex items-center gap-2.5 group"
+          >
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-red-500/15 border border-red-500/30 text-red-400 group-hover:scale-105 transition-transform">
+              <ShieldExclamationIcon className="w-4 h-4" />
+            </span>
+            <span>Full Ban</span>
           </button>
-          <button onClick={() => { setOpen(false); onDelete(user._id) }} className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-500/10 transition-colors flex items-center gap-2">
-            <span>🗑️</span> Delete
+
+          <button
+            type="button"
+            onClick={() => { setOpen(false); onDelete(user._id) }}
+            className="w-full text-left px-2.5 py-2 rounded-xl text-xs font-semibold text-red-400 hover:bg-red-500/15 transition-colors flex items-center gap-2.5 group"
+          >
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-red-500/20 border border-red-500/35 text-red-400 group-hover:scale-105 transition-transform">
+              <TrashIcon className="w-4 h-4" />
+            </span>
+            <span>Delete</span>
           </button>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
 }
 
-const getCreatorDisplay = (creator: any, appOwnerId?: string) => {
-  if (!creator) return 'Owner';
-  const creatorId = typeof creator === 'string' ? creator : creator._id;
-  if (appOwnerId && creatorId === appOwnerId) return 'Owner';
-  if (typeof creator === 'object') {
-    return creator.username || creator.email || 'Owner';
+function ConfirmModalIcon({ iconType }: { iconType: ConfirmIconType }) {
+  switch (iconType) {
+    case 'delete':
+      return <TrashIcon className="w-7 h-7" />
+    case 'ban':
+      return <ShieldExclamationIcon className="w-7 h-7" />
+    case 'crash':
+      return <BoltSlashIcon className="w-7 h-7" />
+    case 'reset':
+      return <ArrowPathIcon className="w-7 h-7" />
+    case 'warning':
+      return <ExclamationTriangleIcon className="w-7 h-7" />
+    default:
+      return <ShieldCheckIcon className="w-7 h-7" />
   }
-  return 'Owner';
-};
+}
+
+const getCreatorDisplay = (creator: any, appOwnerId?: string) => {
+  if (!creator) return 'Owner'
+  const creatorId = typeof creator === 'string' ? creator : creator._id
+  if (appOwnerId && creatorId === appOwnerId) return 'Owner'
+  if (typeof creator === 'object') {
+    return creator.username || creator.email || 'Owner'
+  }
+  return 'Owner'
+}
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function Users() {
-  const { applications, selectedApp, loadingApplications } = useAppStore()
+  const { applications, setApplications, selectedApp, loadingApplications } = useAppStore()
   const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalUsers, setTotalUsers] = useState(0)
   const [searchTerm, setSearchTerm] = useState('')
-  const [onlineUsers, setOnlineUsers] = useState<Record<string, string | null>>({}) // userId -> ping
-  const limit = 10
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'paused' | 'expired' | 'banned'>('all')
+  const [limit, setLimit] = useState(10)
+  const [onlineUsers, setOnlineUsers] = useState<Record<string, string | null>>({})
   const onlineIntervalRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Mass Selection State
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([])
+  const [selectAllMatching, setSelectAllMatching] = useState(false)
+  const [bulkProcessing, setBulkProcessing] = useState(false)
+  const selectAllCheckboxRef = useRef<HTMLInputElement>(null)
+
+  // Bulk Extend Time Modal
+  const [showExtendModal, setShowExtendModal] = useState(false)
+  const [extendDays, setExtendDays] = useState('7')
+  const [extendHours, setExtendHours] = useState('0')
+  const [extendMakeLifetime, setExtendMakeLifetime] = useState(false)
 
   // Create user modal
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -107,40 +259,41 @@ export default function Users() {
   const [creating, setCreating] = useState(false)
 
   const isStrictValidDate = (dateStr: string) => {
-    if (!dateStr) return true;
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return false;
-    const digits = dateStr.match(/\d+/g);
-    if (!digits || digits.length < 3) return false;
-    let y = parseInt(digits[0]), m = parseInt(digits[1]), day = parseInt(digits[2]);
+    if (!dateStr) return true
+    const d = new Date(dateStr)
+    if (isNaN(d.getTime())) return false
+    const digits = dateStr.match(/\d+/g)
+    if (!digits || digits.length < 3) return false
+    let y = parseInt(digits[0]), m = parseInt(digits[1]), day = parseInt(digits[2])
     if (y < 1000 && parseInt(digits[2]) > 1000) {
-      day = parseInt(digits[0]); m = parseInt(digits[1]); y = parseInt(digits[2]);
+      day = parseInt(digits[0]); m = parseInt(digits[1]); y = parseInt(digits[2])
     }
-    return d.getFullYear() === y && (d.getMonth() + 1) === m && d.getDate() === day;
+    return d.getFullYear() === y && (d.getMonth() + 1) === m && d.getDate() === day
   }
 
   const formatToDDMMYYYY = (dateStr: string | null | undefined, fallback = 'Lifetime', includeTime = false) => {
-    if (!dateStr) return fallback;
-    const d = new Date(dateStr);
-    const day = d.getDate().toString().padStart(2, '0');
-    const month = (d.getMonth() + 1).toString().padStart(2, '0');
-    const year = d.getFullYear();
-    
+    if (!dateStr) return fallback
+    const d = new Date(dateStr)
+    const day = d.getDate().toString().padStart(2, '0')
+    const month = (d.getMonth() + 1).toString().padStart(2, '0')
+    const year = d.getFullYear()
+
     if (includeTime) {
-      let hours = d.getHours();
-      const actualAmPm = hours >= 12 ? 'PM' : 'AM';
-      hours = hours % 12;
-      hours = hours ? hours : 12;
-      const hoursStr = hours.toString().padStart(2, '0');
-      const minutes = d.getMinutes().toString().padStart(2, '0');
-      return `${day}-${month}-${year}, ${hoursStr}:${minutes} ${actualAmPm}`;
+      let hours = d.getHours()
+      const actualAmPm = hours >= 12 ? 'PM' : 'AM'
+      hours = hours % 12
+      hours = hours ? hours : 12
+      const hoursStr = hours.toString().padStart(2, '0')
+      const minutes = d.getMinutes().toString().padStart(2, '0')
+      return `${day}-${month}-${year}, ${hoursStr}:${minutes} ${actualAmPm}`
     }
-    return `${day}-${month}-${year}`;
+    return `${day}-${month}-${year}`
   }
 
-  // Ban modal
+  // Full Ban Modal (shared for single user OR bulk selection)
   const [showBanModal, setShowBanModal] = useState(false)
   const [banTarget, setBanTarget] = useState<any>(null)
+  const [isBulkBanMode, setIsBulkBanMode] = useState(false)
   const [banReason, setBanReason] = useState('')
   const [banMessage, setBanMessage] = useState('')
   const [banIp, setBanIp] = useState(false)
@@ -158,14 +311,21 @@ export default function Users() {
     message: '',
     onConfirm: () => {},
     type: 'danger' as 'danger' | 'warning' | 'info',
+    iconType: 'warning' as ConfirmIconType,
     confirmText: 'Confirm'
   })
 
-  useEffect(() => { 
+  // Clear selection when switching applications
+  useEffect(() => {
+    setSelectedUserIds([])
+    setSelectAllMatching(false)
+  }, [selectedApp?._id])
+
+  useEffect(() => {
     if (selectedApp?._id) {
       setCurrentPage(1)
-      loadUsers(1, searchTerm)
-      // Start polling live status
+      setSelectAllMatching(false)
+      loadUsers(1, searchTerm, statusFilter, limit)
       pollOnlineStatus()
       if (onlineIntervalRef.current) clearInterval(onlineIntervalRef.current)
       onlineIntervalRef.current = setInterval(pollOnlineStatus, 5000)
@@ -173,7 +333,7 @@ export default function Users() {
     return () => {
       if (onlineIntervalRef.current) clearInterval(onlineIntervalRef.current)
     }
-  }, [selectedApp?._id, searchTerm])
+  }, [selectedApp?._id, searchTerm, statusFilter, limit])
 
   const pollOnlineStatus = async () => {
     if (!selectedApp?._id) return
@@ -187,28 +347,156 @@ export default function Users() {
     } catch { /* silent fail */ }
   }
 
-  const loadUsers = async (page = currentPage, search = searchTerm) => {
+  const loadUsers = async (page = currentPage, search = searchTerm, status = statusFilter, pageLimit = limit) => {
     if (!selectedApp?._id) return
     setLoading(true)
     try {
-      const res = await api.get(`/users/application/${selectedApp._id}?page=${page}&limit=${limit}&search=${search}`)
+      const res = await api.get(
+        `/users/application/${selectedApp._id}?page=${page}&limit=${pageLimit}&search=${encodeURIComponent(search)}&status=${status}`
+      )
       setUsers(res.data.users)
       setTotalPages(res.data.pagination.pages)
       setTotalUsers(res.data.pagination.total)
-    } catch { toast.error('Failed to load users') }
-    finally { setLoading(false) }
+    } catch {
+      toast.error('Failed to load users')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const syncGlobalAppCounts = async () => {
+    try {
+      const res = await api.get('/applications?all=true')
+      if (res.data?.applications) setApplications(res.data.applications)
+    } catch { /* silent */ }
   }
 
   const handlePageChange = (newPage: number) => {
     if (newPage < 1 || newPage > totalPages) return
     setCurrentPage(newPage)
-    loadUsers(newPage)
+    loadUsers(newPage, searchTerm, statusFilter, limit)
   }
 
-  // ── Actions ────────────────────────────────────────────────────────────────
+  // ── Mass Selection Helpers ─────────────────────────────────────────────────
+  const pageUserIds = users.map((u) => u._id)
+  const selectedOnPageCount = selectAllMatching
+    ? users.length
+    : pageUserIds.filter((id) => selectedUserIds.includes(id)).length
+  const allOnPageSelected = users.length > 0 && selectedOnPageCount === users.length
+  const someOnPageSelected = selectedOnPageCount > 0 && !allOnPageSelected
+  const effectiveSelectedCount = selectAllMatching ? totalUsers : selectedUserIds.length
+
+  useEffect(() => {
+    if (selectAllCheckboxRef.current) {
+      selectAllCheckboxRef.current.indeterminate = someOnPageSelected
+    }
+  }, [someOnPageSelected])
+
+  const toggleSelectAllOnPage = () => {
+    if (allOnPageSelected || selectAllMatching) {
+      setSelectAllMatching(false)
+      setSelectedUserIds((prev) => prev.filter((id) => !pageUserIds.includes(id)))
+    } else {
+      setSelectedUserIds((prev) => Array.from(new Set([...prev, ...pageUserIds])))
+    }
+  }
+
+  const toggleSelectUser = (userId: string) => {
+    if (selectAllMatching) {
+      // Drop out of all-matching into explicit selection of visible page minus this user
+      setSelectAllMatching(false)
+      setSelectedUserIds(pageUserIds.filter((id) => id !== userId))
+      return
+    }
+    setSelectedUserIds((prev) =>
+      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
+    )
+  }
+
+  const clearSelection = () => {
+    setSelectedUserIds([])
+    setSelectAllMatching(false)
+  }
+
+  const executeBulkAction = async (
+    action: string,
+    payload: Record<string, any> = {},
+    successLabel?: string
+  ) => {
+    if (!selectedApp?._id || effectiveSelectedCount === 0) return
+    setBulkProcessing(true)
+    try {
+      const res = await api.post(`/users/application/${selectedApp._id}/bulk`, {
+        action,
+        userIds: selectAllMatching ? [] : selectedUserIds,
+        selectAllMatching,
+        search: searchTerm,
+        status: statusFilter,
+        payload,
+      })
+
+      const data = res.data
+      if (action === 'force-close') {
+        const offlineNote = data.offlineSkipped > 0 ? ` (${data.offlineSkipped} offline)` : ''
+        toast.success(`Crash sent to ${data.affected} online user(s)${offlineNote}`)
+      } else if (action === 'ban') {
+        toast.success(`Full banned ${data.affected} user(s) • ${data.licensesBlacklisted || 0} license(s) blacklisted`)
+      } else if (action === 'extend-time') {
+        const skippedNote = data.skippedLifetime > 0 ? ` (${data.skippedLifetime} already lifetime)` : ''
+        toast.success(`Updated time for ${data.affected} user(s)${skippedNote}`)
+      } else if (successLabel) {
+        toast.success(`${successLabel} (${data.affected} affected)`)
+      } else {
+        toast.success(data.message || 'Bulk action completed')
+      }
+
+      clearSelection()
+      await loadUsers(currentPage, searchTerm, statusFilter, limit)
+      if (action === 'delete') {
+        await syncGlobalAppCounts()
+      }
+    } catch (e: any) {
+      toast.error(e.response?.data?.error || 'Bulk operation failed')
+    } finally {
+      setBulkProcessing(false)
+    }
+  }
+
+  const confirmBulkAction = ({
+    action,
+    title,
+    message,
+    type,
+    iconType,
+    confirmText,
+    successLabel,
+  }: {
+    action: string
+    title: string
+    message: string
+    type: 'danger' | 'warning' | 'info'
+    iconType: ConfirmIconType
+    confirmText: string
+    successLabel: string
+  }) => {
+    setConfirmModal({
+      show: true,
+      title,
+      message,
+      type,
+      iconType,
+      confirmText,
+      onConfirm: async () => {
+        setConfirmModal((prev) => ({ ...prev, show: false }))
+        await executeBulkAction(action, {}, successLabel)
+      },
+    })
+  }
+
+  // ── Single & Shared Actions ────────────────────────────────────────────────
   const createUser = async () => {
     if (!newUser.username || !newUser.password) return toast.error('Username and password required')
-    
+
     if (!newUser.isLifetime) {
       if (!newUser.expiryDate) {
         return toast.error('Please enter a valid expiration date or check Lifetime')
@@ -236,13 +524,24 @@ export default function Users() {
       setShowCreateModal(false)
       setNewUser({ username: '', password: '', email: '', subscription: 'default', expiryDate: getDefaultExpiry(), hwidAffected: true, isLifetime: false })
       loadUsers()
+      syncGlobalAppCounts()
     } catch (e: any) {
       toast.error(e.response?.data?.error || 'Failed to create user')
     } finally { setCreating(false) }
   }
 
   const openBanModal = (user: any) => {
+    setIsBulkBanMode(false)
     setBanTarget(user)
+    setBanReason('')
+    setBanMessage('')
+    setBanIp(false)
+    setShowBanModal(true)
+  }
+
+  const openBulkBanModal = () => {
+    setIsBulkBanMode(true)
+    setBanTarget(null)
     setBanReason('')
     setBanMessage('')
     setBanIp(false)
@@ -255,6 +554,7 @@ export default function Users() {
       title: 'Ban User?',
       message: `Are you sure you want to ban "${user.username}"? They can regain access by resetting their PC/HWID.`,
       type: 'warning',
+      iconType: 'ban',
       confirmText: 'Ban User',
       onConfirm: async () => {
         try {
@@ -325,6 +625,18 @@ export default function Users() {
   }
 
   const executeBan = async () => {
+    if (isBulkBanMode) {
+      setBanning(true)
+      setShowBanModal(false)
+      await executeBulkAction('ban', {
+        reason: banReason || 'Manual ban (bulk)',
+        banMessage: banMessage || null,
+        banIp,
+      })
+      setBanning(false)
+      return
+    }
+
     if (!banTarget) return
     setBanning(true)
     try {
@@ -351,6 +663,7 @@ export default function Users() {
       title: 'Reset HWID?',
       message: 'Are you sure you want to reset the Hardware ID for this user?',
       type: 'info',
+      iconType: 'reset',
       confirmText: 'Reset Now',
       onConfirm: async () => {
         try { await api.post(`/users/${id}/reset-hwid`); toast.success('HWID reset'); loadUsers() }
@@ -366,6 +679,7 @@ export default function Users() {
       title: 'Crash User App?',
       message: 'Are you sure you want to force-close this user\'s running executable? This will terminate their active session.',
       type: 'danger',
+      iconType: 'crash',
       confirmText: 'Crash It',
       onConfirm: async () => {
         try {
@@ -386,18 +700,39 @@ export default function Users() {
       title: 'Delete User?',
       message: 'Are you sure you want to delete this user? This action cannot be undone.',
       type: 'danger',
+      iconType: 'delete',
       confirmText: 'Delete User',
       onConfirm: async () => {
-        try { await api.delete(`/users/${id}`); toast.success('User deleted'); loadUsers() }
+        try {
+          await api.delete(`/users/${id}`)
+          toast.success('User deleted')
+          setSelectedUserIds((prev) => prev.filter((uid) => uid !== id))
+          loadUsers()
+          syncGlobalAppCounts()
+        }
         catch (e: any) { toast.error(e.response?.data?.error || 'Failed to delete') }
         setConfirmModal(prev => ({ ...prev, show: false }))
       }
     })
   }
 
+  const submitExtendTime = async () => {
+    const days = parseInt(extendDays || '0', 10) || 0
+    const hours = parseInt(extendHours || '0', 10) || 0
+    if (!extendMakeLifetime && days <= 0 && hours <= 0) {
+      return toast.error('Enter positive days/hours or select Lifetime')
+    }
+    setShowExtendModal(false)
+    await executeBulkAction('extend-time', {
+      days,
+      hours,
+      makeLifetime: extendMakeLifetime,
+    })
+  }
+
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div>
+    <div className="pb-24">
       <style dangerouslySetInnerHTML={{__html: `
         .premium-card-indigo {
           background: linear-gradient(180deg, rgba(16, 17, 26, 0.75) 0%, rgba(9, 10, 15, 0.9) 100%);
@@ -424,24 +759,54 @@ export default function Users() {
       `}} />
 
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-black text-white tracking-tight">Users</h1>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-black text-white tracking-tight">Users</h1>
+          {selectedApp?._id && (
+            <p className="text-xs font-semibold text-slate-400 mt-1">
+              Managing <span className="text-indigo-300 font-bold">{selectedApp.name}</span> • {totalUsers} total user(s)
+            </p>
+          )}
+        </div>
+
         {selectedApp?._id && (
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Search input */}
             <div className="relative group">
               <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-gray-500 group-focus-within:text-indigo-400 transition-colors">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
+                <MagnifyingGlassIcon className="w-4 h-4" />
               </div>
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search users..."
-                className="w-64 pl-10 pr-4 py-2.5 bg-black/45 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-indigo-500/50 transition-all placeholder-gray-500 text-white"
+                placeholder="Search username, HWID, IP..."
+                className="w-64 pl-10 pr-8 py-2.5 bg-black/45 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-indigo-500/50 transition-all placeholder-gray-500 text-white"
               />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"
+                >
+                  <XMarkIcon className="w-4 h-4" />
+                </button>
+              )}
             </div>
+
+            {/* Rows per page */}
+            <select
+              value={limit}
+              onChange={(e) => setLimit(Number(e.target.value))}
+              aria-label="Users per page"
+              className="h-10 px-3 bg-black/45 border border-white/10 rounded-xl text-xs font-bold text-slate-300 focus:outline-none focus:border-indigo-500/50"
+            >
+              <option value={10} className="bg-[#0d0e16]">10 / page</option>
+              <option value={25} className="bg-[#0d0e16]">25 / page</option>
+              <option value={50} className="bg-[#0d0e16]">50 / page</option>
+              <option value={100} className="bg-[#0d0e16]">100 / page</option>
+            </select>
+
             <button
               onClick={() => setShowCreateModal(true)}
               className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-bold uppercase tracking-wider text-white shadow-[0_0_15px_rgba(99,102,241,0.2)] hover:shadow-[0_0_20px_rgba(99,102,241,0.35)] transition-all flex items-center gap-2"
@@ -452,6 +817,51 @@ export default function Users() {
         )}
       </div>
 
+      {/* Status Quick Filter Bar */}
+      {selectedApp?._id && !loadingApplications && applications.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {([
+              { id: 'all', label: 'All Users' },
+              { id: 'active', label: 'Active' },
+              { id: 'paused', label: 'Paused' },
+              { id: 'expired', label: 'Expired' },
+              { id: 'banned', label: 'Banned' },
+            ] as const).map((tab) => {
+              const active = statusFilter === tab.id
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setStatusFilter(tab.id)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider border transition-all ${
+                    active
+                      ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-200 shadow-[0_0_15px_rgba(99,102,241,0.15)]'
+                      : 'bg-white/[0.02] border-white/[0.06] text-slate-400 hover:text-white hover:bg-white/[0.05]'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              )
+            })}
+          </div>
+
+          {effectiveSelectedCount > 0 && (
+            <div className="flex items-center gap-2 text-xs font-bold text-indigo-300 bg-indigo-500/10 border border-indigo-500/25 px-3 py-1.5 rounded-xl">
+              <UsersIcon className="w-4 h-4" />
+              <span>{effectiveSelectedCount} selected</span>
+              <button
+                type="button"
+                onClick={clearSelection}
+                className="ml-1 text-slate-400 hover:text-white underline"
+              >
+                Clear
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {loadingApplications ? (
         <div className="flex justify-center py-24">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
@@ -460,165 +870,232 @@ export default function Users() {
         <div className="text-center py-12 text-gray-400">Create an application first</div>
       ) : (
         <>
+          {/* Smart Select-All-Across-Pages Banner */}
+          {users.length > 0 && allOnPageSelected && totalUsers > users.length && (
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-4 py-2.5 text-xs text-indigo-200">
+              {selectAllMatching ? (
+                <>
+                  <span>
+                    All <strong className="text-white">{totalUsers}</strong> matching users across all pages are selected.
+                  </span>
+                  <button
+                    type="button"
+                    onClick={clearSelection}
+                    className="font-bold text-indigo-300 hover:text-white underline"
+                  >
+                    Clear selection
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span>
+                    All <strong className="text-white">{users.length}</strong> users on this page are selected.
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectAllMatching(true)}
+                    className="font-bold text-indigo-300 hover:text-white underline"
+                  >
+                    Select all {totalUsers} matching users
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+
           {/* Users table */}
           {loading ? (
             <div className="flex justify-center py-12">
               <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-indigo-500" />
             </div>
           ) : users.length === 0 ? (
-            <div className="text-center py-12 text-gray-400">No users yet</div>
+            <div className="premium-card-indigo rounded-2xl text-center py-14 text-slate-400 text-sm">
+              No users found {statusFilter !== 'all' || searchTerm ? 'for the active filter' : 'yet'}.
+            </div>
           ) : (
-            <div className="premium-card-indigo rounded-2xl overflow-visible p-0">
+            <div className="premium-card-indigo rounded-2xl overflow-x-auto p-0">
               {(() => {
                 const showCreatedBy = selectedApp?.team?.length > 0 || users.some(u => u.createdBy)
                 return (
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="border-b border-white/[0.06] bg-white/[0.01]">
-                        <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Username</th>
-                        <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Status</th>
-                        <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">HWID</th>
-                        <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Created</th>
-                        <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Last Login</th>
-                        <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Last IP</th>
-                        <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Expiry</th>
+                      <tr className="border-b border-white/[0.06] bg-white/[0.015]">
+                        <th className="pl-5 pr-2 py-4 w-10">
+                          <label className="inline-flex items-center cursor-pointer" title="Select all on this page">
+                            <input
+                              ref={selectAllCheckboxRef}
+                              type="checkbox"
+                              checked={allOnPageSelected || selectAllMatching}
+                              onChange={toggleSelectAllOnPage}
+                              className="w-4 h-4 rounded border-white/20 bg-black/50 accent-indigo-500 cursor-pointer"
+                            />
+                          </label>
+                        </th>
+                        <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Username</th>
+                        <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Status</th>
+                        <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">HWID</th>
+                        <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Created</th>
+                        <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Last Login</th>
+                        <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Last IP</th>
+                        <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Expiry</th>
                         {showCreatedBy && (
-                          <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Created By</th>
+                          <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Created By</th>
                         )}
-                        <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">HWID Lock</th>
-                        <th className="px-5 py-4" />
+                        <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">HWID Lock</th>
+                        <th className="px-4 py-4" />
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/[0.04]">
-                      {users.map((user: any, i: number) => (
-                        <motion.tr 
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ duration: 0.3, delay: i * 0.03 }}
-                          key={user._id} 
-                          className="hover:bg-white/[0.02] transition-colors"
-                        >
-                          {/* Username */}
-                          <td className="px-5 py-4">
-                            <div className="flex items-center gap-2.5">
-                              {onlineUsers[user._id] !== undefined && (
-                                <span className="relative flex h-2 w-2 shrink-0">
-                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
-                                </span>
-                              )}
-                              <span className="font-bold text-slate-200 text-sm">{user.username}</span>
-                              {onlineUsers[user._id] !== undefined && (
-                                <span className="text-xs text-emerald-400/80 font-bold ml-1">
-                                  {onlineUsers[user._id] ? `${onlineUsers[user._id]}ms` : 'Live'}
-                                </span>
-                              )}
-                            </div>
-                          </td>
-
-                          {/* Status */}
-                          <td className="px-5 py-4">
-                            {user.banned ? (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-rose-500/10 border border-rose-500/20 text-xs font-bold text-rose-300 uppercase tracking-wider">
-                                Banned
-                              </span>
-                            ) : user.paused ? (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-purple-500/10 border border-purple-500/20 text-xs font-bold text-purple-300 uppercase tracking-wider">
-                                Paused
-                              </span>
-                            ) : user.expiryDate && new Date(user.expiryDate) < new Date() ? (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-xs font-bold text-amber-300 uppercase tracking-wider">
-                                Expired
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-xs font-bold text-emerald-300 uppercase tracking-wider">
-                                Active
-                              </span>
-                            )}
-                          </td>
-
-                          {/* HWID */}
-                          <td className="px-5 py-4 font-mono text-xs text-slate-400">
-                            <button
-                              onClick={() => {
-                                if (user.hwid) {
-                                  navigator.clipboard.writeText(user.hwid);
-                                  toast.success('HWID copied!');
-                                }
-                              }}
-                              className="hover:text-indigo-400 transition-colors cursor-pointer text-left"
-                              title="Click to copy full HWID"
-                            >
-                              {user.hwid ? `${user.hwid.substring(0, 12)}…` : 'Not set'}
-                            </button>
-                          </td>
-
-                          {/* Created */}
-                          <td className="px-5 py-4 text-xs font-semibold text-slate-300">
-                            {formatToDDMMYYYY(user.createdAt, 'Unknown', true)}
-                          </td>
-
-                          {/* Last Login */}
-                          <td className="px-5 py-4 text-xs font-semibold text-slate-300">
-                            {formatToDDMMYYYY(user.lastLogin, 'Never', true)}
-                          </td>
-
-                          {/* Last IP */}
-                          <td className="px-5 py-4 text-xs font-mono text-slate-400">
-                            {user.lastIp || 'N/A'}
-                          </td>
-
-                          {/* Expiry */}
-                          <td className="px-5 py-4 text-xs font-semibold text-slate-300">
-                            {user.paused 
-                              ? formatToDDMMYYYY(user.pausedExpiry, 'Lifetime', true)
-                              : formatToDDMMYYYY(user.expiryDate, 'Lifetime', true)}
-                          </td>
-
-                          {/* Created By */}
-                          {showCreatedBy && (
-                            <td className="px-5 py-4">
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/25 text-xs font-bold text-indigo-300 uppercase tracking-wider">
-                                {getCreatorDisplay(user.createdBy, selectedApp?.userId)}
-                              </span>
+                      {users.map((user: any, i: number) => {
+                        const isRowSelected = selectAllMatching || selectedUserIds.includes(user._id)
+                        return (
+                          <motion.tr
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.25, delay: Math.min(i * 0.02, 0.25) }}
+                            key={user._id}
+                            className={`transition-colors ${
+                              isRowSelected ? 'bg-indigo-500/[0.08] hover:bg-indigo-500/[0.12]' : 'hover:bg-white/[0.02]'
+                            }`}
+                          >
+                            {/* Checkbox */}
+                            <td className="pl-5 pr-2 py-4">
+                              <input
+                                type="checkbox"
+                                checked={isRowSelected}
+                                onChange={() => toggleSelectUser(user._id)}
+                                aria-label={`Select user ${user.username}`}
+                                className="w-4 h-4 rounded border-white/20 bg-black/50 accent-indigo-500 cursor-pointer"
+                              />
                             </td>
-                          )}
 
-                          {/* HWID Lock */}
-                          <td className="px-5 py-4">
-                            {user.hwidAffected ? (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-xs font-bold text-indigo-300 uppercase tracking-wider">
-                                Yes
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-slate-500/10 border border-slate-500/20 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                                No
-                              </span>
+                            {/* Username */}
+                            <td className="px-4 py-4">
+                              <div className="flex items-center gap-2.5">
+                                {onlineUsers[user._id] !== undefined && (
+                                  <span className="relative flex h-2 w-2 shrink-0">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+                                  </span>
+                                )}
+                                <span className="font-bold text-slate-200 text-sm">{user.username}</span>
+                                {onlineUsers[user._id] !== undefined && (
+                                  <span className="text-xs text-emerald-400/80 font-bold ml-1">
+                                    {onlineUsers[user._id] ? `${onlineUsers[user._id]}ms` : 'Live'}
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+
+                            {/* Status */}
+                            <td className="px-4 py-4">
+                              {user.banned ? (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-rose-500/10 border border-rose-500/20 text-xs font-bold text-rose-300 uppercase tracking-wider">
+                                  <NoSymbolIcon className="w-3.5 h-3.5 text-rose-400" />
+                                  Banned
+                                </span>
+                              ) : user.paused ? (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-purple-500/10 border border-purple-500/20 text-xs font-bold text-purple-300 uppercase tracking-wider">
+                                  <PauseCircleIcon className="w-3.5 h-3.5 text-purple-400" />
+                                  Paused
+                                </span>
+                              ) : user.expiryDate && new Date(user.expiryDate) < new Date() ? (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-xs font-bold text-amber-300 uppercase tracking-wider">
+                                  <ClockIcon className="w-3.5 h-3.5 text-amber-400" />
+                                  Expired
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-xs font-bold text-emerald-300 uppercase tracking-wider">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                                  Active
+                                </span>
+                              )}
+                            </td>
+
+                            {/* HWID */}
+                            <td className="px-4 py-4 font-mono text-xs text-slate-400">
+                              <button
+                                onClick={() => {
+                                  if (user.hwid) {
+                                    navigator.clipboard.writeText(user.hwid)
+                                    toast.success('HWID copied!')
+                                  }
+                                }}
+                                className="hover:text-indigo-400 transition-colors cursor-pointer text-left"
+                                title="Click to copy full HWID"
+                              >
+                                {user.hwid ? `${user.hwid.substring(0, 12)}…` : 'Not set'}
+                              </button>
+                            </td>
+
+                            {/* Created */}
+                            <td className="px-4 py-4 text-xs font-semibold text-slate-300 whitespace-nowrap">
+                              {formatToDDMMYYYY(user.createdAt, 'Unknown', true)}
+                            </td>
+
+                            {/* Last Login */}
+                            <td className="px-4 py-4 text-xs font-semibold text-slate-300 whitespace-nowrap">
+                              {formatToDDMMYYYY(user.lastLogin, 'Never', true)}
+                            </td>
+
+                            {/* Last IP */}
+                            <td className="px-4 py-4 text-xs font-mono text-slate-400">
+                              {user.lastIp || 'N/A'}
+                            </td>
+
+                            {/* Expiry */}
+                            <td className="px-4 py-4 text-xs font-semibold text-slate-300 whitespace-nowrap">
+                              {user.paused
+                                ? formatToDDMMYYYY(user.pausedExpiry, 'Lifetime', true)
+                                : formatToDDMMYYYY(user.expiryDate, 'Lifetime', true)}
+                            </td>
+
+                            {/* Created By */}
+                            {showCreatedBy && (
+                              <td className="px-4 py-4">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/25 text-xs font-bold text-indigo-300 uppercase tracking-wider">
+                                  {getCreatorDisplay(user.createdBy, selectedApp?.userId)}
+                                </span>
+                              </td>
                             )}
-                          </td>
 
-                          {/* Action Menu */}
-                          <td className="px-5 py-4 text-right">
-                            <UserMenu
-                              user={user}
-                              onEdit={openEditModal}
-                              onBan={softBan}
-                              onPermanentBan={openBanModal}
-                              onUnban={unbanUser}
-                              onPause={pauseUser}
-                              onResetHwid={resetHwid}
-                              onDelete={deleteUser}
-                              onForceClose={forceCloseUser}
-                            />
-                          </td>
-                        </motion.tr>
-                      ))}
+                            {/* HWID Lock */}
+                            <td className="px-4 py-4">
+                              {user.hwidAffected ? (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-xs font-bold text-indigo-300 uppercase tracking-wider">
+                                  <CpuChipIcon className="w-3.5 h-3.5 text-indigo-400" />
+                                  Yes
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-slate-500/10 border border-slate-500/20 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                                  No
+                                </span>
+                              )}
+                            </td>
+
+                            {/* Action Menu */}
+                            <td className="px-4 py-4 text-right">
+                              <UserMenu
+                                user={user}
+                                onEdit={openEditModal}
+                                onBan={softBan}
+                                onPermanentBan={openBanModal}
+                                onUnban={unbanUser}
+                                onPause={pauseUser}
+                                onResetHwid={resetHwid}
+                                onDelete={deleteUser}
+                                onForceClose={forceCloseUser}
+                              />
+                            </td>
+                          </motion.tr>
+                        )
+                      })}
                     </tbody>
                   </table>
                 )
               })()}
 
-              {/* Pagination Controls — KeyAuth Style */}
+              {/* Pagination Controls */}
               <div className="flex items-center justify-between px-6 py-4 bg-black/20 border-t border-white/5">
                 <button
                   onClick={() => handlePageChange(currentPage - 1)}
@@ -627,9 +1104,11 @@ export default function Users() {
                 >
                   Previous
                 </button>
-                
+
                 <div className="text-xs font-medium text-gray-500">
-                  Showing page <span className="text-gray-200">{currentPage}</span> of <span className="text-gray-200">{totalPages}</span>
+                  Showing page <span className="text-gray-200">{currentPage}</span> of <span className="text-gray-200">{totalPages || 1}</span>
+                  <span className="mx-2 text-slate-700">•</span>
+                  <span className="text-gray-300">{totalUsers}</span> users
                 </div>
 
                 <button
@@ -643,6 +1122,230 @@ export default function Users() {
             </div>
           )}
         </>
+      )}
+
+      {/* ── Floating Mass-Action Bar ───────────────────────────────────────── */}
+      {effectiveSelectedCount > 0 && (
+        <div className="fixed bottom-5 left-1/2 -translate-x-1/2 lg:left-[calc(50%+145px)] z-40 w-[calc(100%-2rem)] max-w-4xl">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-indigo-500/35 bg-[#0c0e18]/95 backdrop-blur-2xl px-4 py-3 shadow-[0_20px_60px_rgba(0,0,0,0.9),0_0_30px_rgba(99,102,241,0.2)]">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-500/20 border border-indigo-500/35 text-indigo-300">
+                <CheckIcon className="w-4 h-4 stroke-[2.5]" />
+              </span>
+              <div>
+                <p className="text-xs font-black text-white uppercase tracking-wider">
+                  {effectiveSelectedCount} User{effectiveSelectedCount === 1 ? '' : 's'} Selected
+                </p>
+                <button
+                  type="button"
+                  onClick={clearSelection}
+                  className="text-[11px] font-semibold text-slate-400 hover:text-white transition-colors"
+                >
+                  Deselect all
+                </button>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button
+                type="button"
+                disabled={bulkProcessing}
+                onClick={() => executeBulkAction('pause', {}, 'Paused selected users')}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/25 text-amber-300 text-xs font-bold transition-all disabled:opacity-50"
+              >
+                <PauseCircleIcon className="w-4 h-4" />
+                Pause
+              </button>
+
+              <button
+                type="button"
+                disabled={bulkProcessing}
+                onClick={() => executeBulkAction('unpause', {}, 'Unpaused selected users')}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/25 text-emerald-300 text-xs font-bold transition-all disabled:opacity-50"
+              >
+                <PlayCircleIcon className="w-4 h-4" />
+                Unpause
+              </button>
+
+              <button
+                type="button"
+                disabled={bulkProcessing}
+                onClick={() =>
+                  confirmBulkAction({
+                    action: 'reset-hwid',
+                    title: `Reset HWID for ${effectiveSelectedCount} User(s)?`,
+                    message: 'This clears the bound Hardware ID and disconnects active sessions for all selected users.',
+                    type: 'info',
+                    iconType: 'reset',
+                    confirmText: 'Reset HWIDs',
+                    successLabel: 'HWIDs reset',
+                  })
+                }
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/25 text-sky-300 text-xs font-bold transition-all disabled:opacity-50"
+              >
+                <ArrowPathIcon className="w-4 h-4" />
+                Reset HWID
+              </button>
+
+              <button
+                type="button"
+                disabled={bulkProcessing}
+                onClick={() => setShowExtendModal(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-200 text-xs font-bold transition-all disabled:opacity-50"
+              >
+                <ClockIcon className="w-4 h-4" />
+                Add Time
+              </button>
+
+              <button
+                type="button"
+                disabled={bulkProcessing}
+                onClick={() =>
+                  confirmBulkAction({
+                    action: 'force-close',
+                    title: `Crash ${effectiveSelectedCount} Selected User(s)?`,
+                    message: 'Sends a force-close signal to every currently online user in your selection.',
+                    type: 'danger',
+                    iconType: 'crash',
+                    confirmText: 'Crash Selected',
+                    successLabel: 'Crash command sent',
+                  })
+                }
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/25 text-rose-300 text-xs font-bold transition-all disabled:opacity-50"
+              >
+                <BoltSlashIcon className="w-4 h-4" />
+                Crash
+              </button>
+
+              <button
+                type="button"
+                disabled={bulkProcessing}
+                onClick={() =>
+                  confirmBulkAction({
+                    action: 'soft-ban',
+                    title: `Soft Ban ${effectiveSelectedCount} User(s)?`,
+                    message: 'Selected users will be banned until unbanned or PC/HWID reset.',
+                    type: 'warning',
+                    iconType: 'ban',
+                    confirmText: 'Ban Selected',
+                    successLabel: 'Users soft-banned',
+                  })
+                }
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/25 text-orange-300 text-xs font-bold transition-all disabled:opacity-50"
+              >
+                <NoSymbolIcon className="w-4 h-4" />
+                Ban
+              </button>
+
+              <button
+                type="button"
+                disabled={bulkProcessing}
+                onClick={openBulkBanModal}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-300 text-xs font-bold transition-all disabled:opacity-50"
+              >
+                <ShieldExclamationIcon className="w-4 h-4" />
+                Full Ban
+              </button>
+
+              <button
+                type="button"
+                disabled={bulkProcessing}
+                onClick={() => executeBulkAction('unban', {}, 'Unbanned selected users')}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/25 text-emerald-300 text-xs font-bold transition-all disabled:opacity-50"
+              >
+                <CheckBadgeIcon className="w-4 h-4" />
+                Unban
+              </button>
+
+              <button
+                type="button"
+                disabled={bulkProcessing}
+                onClick={() =>
+                  confirmBulkAction({
+                    action: 'delete',
+                    title: `Delete ${effectiveSelectedCount} User(s)?`,
+                    message: `Are you sure you want to permanently delete ${effectiveSelectedCount} selected user(s)? This cannot be undone.`,
+                    type: 'danger',
+                    iconType: 'delete',
+                    confirmText: `Delete ${effectiveSelectedCount}`,
+                    successLabel: 'Deleted selected users',
+                  })
+                }
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-600/80 hover:bg-red-500 border border-red-500/40 text-white text-xs font-bold transition-all disabled:opacity-50"
+              >
+                <TrashIcon className="w-4 h-4" />
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Bulk Extend Time Modal ────────────────────────────────────────── */}
+      {showExtendModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
+          <div className="modal-card max-w-md w-full">
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-400">
+                  <ClockIcon className="w-5 h-5" />
+                </span>
+                <div>
+                  <h2 className="text-lg font-bold text-white">Add Time to Selected Users</h2>
+                  <p className="text-xs text-slate-400">Applying to {effectiveSelectedCount} user(s)</p>
+                </div>
+              </div>
+              <button onClick={() => setShowExtendModal(false)} className="text-gray-400 hover:text-white">
+                <XMarkIcon className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between px-4 py-3 bg-dark-bg border border-dark-border rounded-xl">
+                <label htmlFor="bulkLifetimeCheck" className="text-sm font-medium text-slate-200 cursor-pointer">
+                  Upgrade selected users to Lifetime
+                </label>
+                <input
+                  type="checkbox"
+                  id="bulkLifetimeCheck"
+                  checked={extendMakeLifetime}
+                  onChange={(e) => setExtendMakeLifetime(e.target.checked)}
+                  className="w-4 h-4 accent-indigo-500"
+                />
+              </div>
+
+              {!extendMakeLifetime && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Days to Add</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={extendDays}
+                      onChange={(e) => setExtendDays(e.target.value)}
+                      className="input"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Hours to Add</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={extendHours}
+                      onChange={(e) => setExtendHours(e.target.value)}
+                      className="input"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-2">
+                <button onClick={() => setShowExtendModal(false)} className="btn btn-secondary flex-1">Cancel</button>
+                <button onClick={submitExtendTime} className="btn btn-primary flex-1">Apply Time</button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ── Create User Modal ─────────────────────────────────────────── */}
@@ -753,20 +1456,25 @@ export default function Users() {
         </div>
       )}
 
-      {/* ── Full Ban Modal ───────────────────────────────────────── */}
-      {showBanModal && banTarget && (
+      {/* ── Full Ban Modal (Single or Bulk) ──────────────────────────────── */}
+      {showBanModal && (banTarget || isBulkBanMode) && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
           <div className="modal-card w-full max-w-md">
             <div className="flex justify-between items-start mb-5">
               <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0">
-                    <span className="text-white text-xs font-bold">—</span>
+                <div className="flex items-center gap-2.5 mb-1">
+                  <div className="w-8 h-8 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center flex-shrink-0 text-red-400">
+                    <ShieldExclamationIcon className="w-5 h-5" />
                   </div>
-                  <h2 className="text-xl font-bold text-red-400">Full Ban</h2>
+                  <h2 className="text-xl font-bold text-red-400">
+                    {isBulkBanMode ? `Full Ban (${effectiveSelectedCount} Users)` : 'Full Ban'}
+                  </h2>
                 </div>
-                <p className="text-sm text-gray-400 ml-8">
-                  Banning: <span className="text-white font-semibold">{banTarget.username}</span>
+                <p className="text-sm text-gray-400 ml-10">
+                  Banning:{' '}
+                  <span className="text-white font-semibold">
+                    {isBulkBanMode ? `${effectiveSelectedCount} selected user(s)` : banTarget?.username}
+                  </span>
                 </p>
               </div>
               <button onClick={() => setShowBanModal(false)} className="text-gray-500 hover:text-white transition-colors">
@@ -810,14 +1518,16 @@ export default function Users() {
                   className="w-4 h-4 accent-red-600 flex-shrink-0"
                 />
                 <label htmlFor="banIpCheck" className="text-sm cursor-pointer">
-                  Also ban user's IP address ({banTarget.lastIp || 'unknown'})
+                  {isBulkBanMode
+                    ? "Also ban all selected users' last known IP addresses"
+                    : `Also ban user's IP address (${banTarget?.lastIp || 'unknown'})`}
                 </label>
               </div>
 
-              <div className="flex items-start gap-2 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
-                <span className="text-yellow-400 text-sm flex-shrink-0">⚠️</span>
+              <div className="flex items-start gap-2.5 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
+                <ExclamationTriangleIcon className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
                 <p className="text-xs text-red-300 leading-relaxed">
-                  Bans the user and blacklists their licenses permanently.
+                  Bans {isBulkBanMode ? 'all selected users' : 'the user'} and blacklists their licenses permanently.
                 </p>
               </div>
 
@@ -830,7 +1540,7 @@ export default function Users() {
                   disabled={banning}
                   className="flex-1 py-3 px-4 bg-red-600 hover:bg-red-500 disabled:opacity-50 rounded-xl text-sm font-semibold text-white transition-all flex items-center justify-center gap-2"
                 >
-                  {banning ? 'Banning...' : 'Full Ban'}
+                  {banning ? 'Banning...' : isBulkBanMode ? `Full Ban (${effectiveSelectedCount})` : 'Full Ban'}
                 </button>
               </div>
             </div>
@@ -838,19 +1548,19 @@ export default function Users() {
         </div>
       )}
 
-      {/* ── Custom Confirmation Modal ────────────────────────────────────── */}
+      {/* ── Custom Confirmation Modal (with Crisp Vector Icons) ──────────── */}
       {confirmModal.show && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-200">
           <div className="modal-card w-full max-w-sm animate-in zoom-in-95 duration-200">
             <div className="flex flex-col items-center text-center">
-              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 ${
-                confirmModal.type === 'danger' ? 'bg-red-500/20 text-red-400' :
-                confirmModal.type === 'warning' ? 'bg-yellow-500/20 text-yellow-400' :
-                'bg-blue-500/20 text-blue-400'
+              <div className={`w-14 h-14 rounded-2xl border flex items-center justify-center mb-4 ${
+                confirmModal.type === 'danger' ? 'bg-red-500/15 border-red-500/30 text-red-400' :
+                confirmModal.type === 'warning' ? 'bg-amber-500/15 border-amber-500/30 text-amber-400' :
+                'bg-sky-500/15 border-sky-500/30 text-sky-400'
               }`}>
-                {confirmModal.type === 'danger' ? '🗑️' : confirmModal.type === 'warning' ? '⚠️' : '🔄'}
+                <ConfirmModalIcon iconType={confirmModal.iconType} />
               </div>
-              
+
               <h3 className="text-xl font-bold text-white mb-2">{confirmModal.title}</h3>
               <p className="text-sm text-gray-400 mb-8 leading-relaxed">
                 {confirmModal.message}
@@ -867,7 +1577,7 @@ export default function Users() {
                   onClick={confirmModal.onConfirm}
                   className={`flex-1 px-4 py-3 rounded-2xl text-sm font-bold text-white transition-all shadow-lg ${
                     confirmModal.type === 'danger' ? 'bg-red-600 hover:bg-red-500 shadow-red-900/20' :
-                    confirmModal.type === 'warning' ? 'bg-yellow-600 hover:bg-yellow-500 shadow-yellow-900/20' :
+                    confirmModal.type === 'warning' ? 'bg-amber-600 hover:bg-amber-500 shadow-amber-900/20' :
                     'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-900/20'
                   }`}
                 >

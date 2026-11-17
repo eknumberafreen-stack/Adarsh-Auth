@@ -16,12 +16,15 @@ const router = express.Router();
 // All routes require authentication
 router.use(verifyToken);
 
-// Get all applications for user (Owner or Team Member) with pagination and search
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// Get all applications for user (Owner or Team Member) with optional full fetch or pagination and search
 router.get('/', asyncHandler(async (req, res) => {
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 10;
-  const search = req.query.search || '';
-  const skip = (page - 1) * limit;
+  const fetchAll = req.query.all === 'true' || req.query.limit === 'all';
+  const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+  const limit = fetchAll ? 0 : Math.min(Math.max(parseInt(req.query.limit, 10) || 10, 1), 200);
+  const search = (req.query.search || '').trim();
+  const skip = fetchAll ? 0 : (page - 1) * limit;
 
   const filter = {
     $and: [
@@ -45,15 +48,19 @@ router.get('/', asyncHandler(async (req, res) => {
   };
 
   if (search) {
-    filter.$and.push({ name: { $regex: search, $options: 'i' } });
+    filter.$and.push({ name: { $regex: escapeRegex(search), $options: 'i' } });
+  }
+
+  const query = Application.find(filter)
+    .select('-appSecret')
+    .sort({ createdAt: -1 });
+
+  if (!fetchAll) {
+    query.skip(skip).limit(limit);
   }
 
   const [applicationsRaw, total] = await Promise.all([
-    Application.find(filter)
-      .select('-appSecret')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit),
+    query,
     Application.countDocuments(filter)
   ]);
 
@@ -76,9 +83,9 @@ router.get('/', asyncHandler(async (req, res) => {
     applications,
     pagination: {
       total,
-      page,
-      limit,
-      pages: Math.ceil(total / limit)
+      page: fetchAll ? 1 : page,
+      limit: fetchAll ? total : limit,
+      pages: fetchAll ? 1 : Math.max(Math.ceil(total / limit), 1)
     }
   });
 }));

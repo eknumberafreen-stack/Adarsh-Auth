@@ -7,6 +7,7 @@ import api, { clearStoredAuth, refreshAccessToken } from '@/lib/api'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import ParticleField from '@/components/ParticleField'
+import AppSelector from '@/components/AppSelector'
 import {
   ArrowRightOnRectangleIcon,
   BanknotesIcon,
@@ -57,7 +58,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [checkingSession, setCheckingSession] = useState(true)
 
   // App Store for global data
-  const { applications, setApplications, selectedApp, setSelectedApp, setLoadingApplications } = useAppStore()
+  const { applications, setApplications, setSelectedApp, setLoadingApplications } = useAppStore()
 
   const isOwner = user?.email === (process.env.NEXT_PUBLIC_OWNER_EMAIL || 'donumberafreen@gmail.com')
 
@@ -171,29 +172,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       .catch(() => {})
   }, [accessToken, hasHydrated])
 
-  // Pre-load applications globally
+  // Pre-load ALL applications globally (without the 10-item pagination limit)
   useEffect(() => {
     if (!hasHydrated || !accessToken) return
-    
-    // Only fetch if we haven't loaded applications yet
-    if (applications.length === 0) {
-      api.get('/applications')
-        .then((res) => {
-          const apps = res.data.applications || []
-          setApplications(apps)
-          // Automatically select the first app if none is selected
-          if (apps.length > 0 && !selectedApp) {
-            setSelectedApp(apps[0])
-          }
-        })
-        .catch(() => {})
-        .finally(() => {
-          setLoadingApplications(false)
-        })
-    } else {
-      setLoadingApplications(false)
+
+    let active = true
+    api.get('/applications?all=true')
+      .then((res) => {
+        if (!active) return
+        const apps = res.data.applications || []
+        setApplications(apps)
+        const currentSelected = useAppStore.getState().selectedApp
+        if (apps.length > 0 && (!currentSelected || !apps.some((a: any) => a._id === currentSelected._id))) {
+          setSelectedApp(apps[0])
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (active) setLoadingApplications(false)
+      })
+
+    return () => {
+      active = false
     }
-  }, [accessToken, hasHydrated, applications.length, selectedApp, setApplications, setSelectedApp, setLoadingApplications])
+  }, [accessToken, hasHydrated, setApplications, setSelectedApp, setLoadingApplications])
 
   useEffect(() => {
     setMobileOpen(false)
@@ -362,7 +364,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         <div className="flex min-h-screen flex-1 flex-col lg:pl-[290px]">
           <header className="sticky top-0 z-20 border-b border-white/10 bg-slate-950/60 backdrop-blur-xl">
-            <div className="flex items-center gap-4 px-4 py-4 sm:px-6 lg:px-8">
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4 px-4 py-3.5 sm:px-6 lg:px-8">
               <button className="rounded-2xl border border-white/10 p-2 text-slate-300 lg:hidden" onClick={() => setMobileOpen(true)}>
                 <Bars3Icon className="h-5 w-5" />
               </button>
@@ -372,24 +374,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <h1 className="truncate text-lg font-bold text-white">{activePage}</h1>
               </div>
 
-              {/* Global App Selector */}
+              {/* Global Searchable App Selector (shows ALL apps) */}
               {applications.length > 0 && (pathname.includes('/users') || pathname.includes('/licenses') || pathname.includes('/sessions') || pathname.includes('/settings') || pathname.includes('/team') || pathname.includes('/offsets')) && (
-                <div className="relative z-50 ml-8 flex items-center gap-3">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 whitespace-nowrap">Select Application:</span>
-                  <select
-                    value={selectedApp?._id || ''}
-                    onChange={(e) => {
-                      const app = applications.find(a => a._id === e.target.value)
-                      if (app) setSelectedApp(app)
-                    }}
-                    className="h-10 rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm font-semibold text-white outline-none focus:border-indigo-500/50 transition-all min-w-[180px]"
-                  >
-                    {applications.map((app) => (
-                      <option key={app._id} value={app._id} className="bg-[#0f0f13]">
-                        {app.name}
-                      </option>
-                    ))}
-                  </select>
+                <div className="sm:ml-4 lg:ml-6">
+                  <AppSelector />
                 </div>
               )}
 

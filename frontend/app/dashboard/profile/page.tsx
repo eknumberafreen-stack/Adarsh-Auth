@@ -70,7 +70,7 @@ export default function ProfilePage() {
       const [meRes, planRes, appsRes] = await Promise.all([
         api.get('/auth/me'),
         api.get('/plans/my').catch(() => ({ data: null })),
-        api.get('/applications').catch(() => ({ data: { applications: [] } })),
+        api.get('/applications?all=true').catch(() => ({ data: { applications: [] } })),
       ])
 
       const apps = appsRes.data.applications ?? []
