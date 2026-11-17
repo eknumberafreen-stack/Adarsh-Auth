@@ -191,6 +191,53 @@ function UserMenu({ user, onEdit, onBan, onPermanentBan, onUnban, onPause, onRes
   )
 }
 
+function GlassCheckbox({
+  checked,
+  indeterminate = false,
+  onChange,
+  ariaLabel,
+  title,
+  id,
+  accent = 'indigo',
+}: {
+  checked: boolean
+  indeterminate?: boolean
+  onChange: () => void
+  ariaLabel?: string
+  title?: string
+  id?: string
+  accent?: 'indigo' | 'red'
+}) {
+  const active = checked || indeterminate
+  const activeClasses =
+    accent === 'red'
+      ? 'bg-gradient-to-br from-rose-500 to-red-600 border-rose-400/70 shadow-[0_0_12px_rgba(244,63,94,0.45)]'
+      : 'bg-gradient-to-br from-indigo-500 to-purple-600 border-indigo-400/70 shadow-[0_0_12px_rgba(99,102,241,0.45)]'
+
+  return (
+    <button
+      id={id}
+      type="button"
+      role="checkbox"
+      aria-checked={indeterminate ? 'mixed' : checked}
+      aria-label={ariaLabel}
+      title={title}
+      onClick={onChange}
+      className={`relative inline-flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-md border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 ${
+        active
+          ? activeClasses
+          : 'bg-white/[0.04] border-white/15 hover:border-indigo-400/60 hover:bg-indigo-500/10'
+      }`}
+    >
+      {indeterminate ? (
+        <span className="h-[2px] w-2.5 rounded-full bg-white" />
+      ) : checked ? (
+        <CheckIcon className="h-3 w-3 text-white stroke-[3]" />
+      ) : null}
+    </button>
+  )
+}
+
 function ConfirmModalIcon({ iconType }: { iconType: ConfirmIconType }) {
   switch (iconType) {
     case 'delete':
@@ -236,7 +283,6 @@ export default function Users() {
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([])
   const [selectAllMatching, setSelectAllMatching] = useState(false)
   const [bulkProcessing, setBulkProcessing] = useState(false)
-  const selectAllCheckboxRef = useRef<HTMLInputElement>(null)
 
   // Bulk Extend Time Modal
   const [showExtendModal, setShowExtendModal] = useState(false)
@@ -385,12 +431,6 @@ export default function Users() {
   const allOnPageSelected = users.length > 0 && selectedOnPageCount === users.length
   const someOnPageSelected = selectedOnPageCount > 0 && !allOnPageSelected
   const effectiveSelectedCount = selectAllMatching ? totalUsers : selectedUserIds.length
-
-  useEffect(() => {
-    if (selectAllCheckboxRef.current) {
-      selectAllCheckboxRef.current.indeterminate = someOnPageSelected
-    }
-  }, [someOnPageSelected])
 
   const toggleSelectAllOnPage = () => {
     if (allOnPageSelected || selectAllMatching) {
@@ -913,7 +953,8 @@ export default function Users() {
               No users found {statusFilter !== 'all' || searchTerm ? 'for the active filter' : 'yet'}.
             </div>
           ) : (
-            <div className="premium-card-indigo rounded-2xl overflow-x-auto p-0">
+            <div className="premium-card-indigo rounded-2xl overflow-hidden p-0">
+              <div className="overflow-x-auto">
               {(() => {
                 const showCreatedBy = selectedApp?.team?.length > 0 || users.some(u => u.createdBy)
                 return (
@@ -921,15 +962,15 @@ export default function Users() {
                     <thead>
                       <tr className="border-b border-white/[0.06] bg-white/[0.015]">
                         <th className="pl-5 pr-2 py-4 w-10">
-                          <label className="inline-flex items-center cursor-pointer" title="Select all on this page">
-                            <input
-                              ref={selectAllCheckboxRef}
-                              type="checkbox"
+                          <div className="inline-flex items-center">
+                            <GlassCheckbox
                               checked={allOnPageSelected || selectAllMatching}
+                              indeterminate={someOnPageSelected}
                               onChange={toggleSelectAllOnPage}
-                              className="w-4 h-4 rounded border-white/20 bg-black/50 accent-indigo-500 cursor-pointer"
+                              ariaLabel="Select all users on this page"
+                              title="Select all on this page"
                             />
-                          </label>
+                          </div>
                         </th>
                         <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Username</th>
                         <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Status</th>
@@ -960,12 +1001,10 @@ export default function Users() {
                           >
                             {/* Checkbox */}
                             <td className="pl-5 pr-2 py-4">
-                              <input
-                                type="checkbox"
+                              <GlassCheckbox
                                 checked={isRowSelected}
                                 onChange={() => toggleSelectUser(user._id)}
-                                aria-label={`Select user ${user.username}`}
-                                className="w-4 h-4 rounded border-white/20 bg-black/50 accent-indigo-500 cursor-pointer"
+                                ariaLabel={`Select user ${user.username}`}
                               />
                             </td>
 
@@ -1094,6 +1133,7 @@ export default function Users() {
                   </table>
                 )
               })()}
+              </div>
 
               {/* Pagination Controls */}
               <div className="flex items-center justify-between px-6 py-4 bg-black/20 border-t border-white/5">
@@ -1305,12 +1345,11 @@ export default function Users() {
                 <label htmlFor="bulkLifetimeCheck" className="text-sm font-medium text-slate-200 cursor-pointer">
                   Upgrade selected users to Lifetime
                 </label>
-                <input
-                  type="checkbox"
+                <GlassCheckbox
                   id="bulkLifetimeCheck"
                   checked={extendMakeLifetime}
-                  onChange={(e) => setExtendMakeLifetime(e.target.checked)}
-                  className="w-4 h-4 accent-indigo-500"
+                  onChange={() => setExtendMakeLifetime((prev) => !prev)}
+                  ariaLabel="Upgrade selected users to Lifetime"
                 />
               </div>
 
@@ -1384,7 +1423,12 @@ export default function Users() {
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-sm font-medium">Expiration</label>
                   <div className="flex items-center gap-2">
-                    <input type="checkbox" id="createLifetime" checked={newUser.isLifetime} onChange={(e) => setNewUser({ ...newUser, isLifetime: e.target.checked })} className="w-3.5 h-3.5 accent-primary-600" />
+                    <GlassCheckbox
+                      id="createLifetime"
+                      checked={newUser.isLifetime}
+                      onChange={() => setNewUser({ ...newUser, isLifetime: !newUser.isLifetime })}
+                      ariaLabel="Lifetime Access"
+                    />
                     <label htmlFor="createLifetime" className="text-xs text-gray-400 cursor-pointer">Lifetime Access</label>
                   </div>
                 </div>
@@ -1393,8 +1437,13 @@ export default function Users() {
                 )}
               </div>
               <div className="flex items-center gap-3">
-                <input type="checkbox" id="hwidAffected" checked={newUser.hwidAffected} onChange={(e) => setNewUser({ ...newUser, hwidAffected: e.target.checked })} className="w-4 h-4 accent-primary-600" />
-                <label htmlFor="hwidAffected" className="text-sm">HWID Affected</label>
+                <GlassCheckbox
+                  id="hwidAffected"
+                  checked={newUser.hwidAffected}
+                  onChange={() => setNewUser({ ...newUser, hwidAffected: !newUser.hwidAffected })}
+                  ariaLabel="HWID Affected"
+                />
+                <label htmlFor="hwidAffected" className="text-sm cursor-pointer">HWID Affected</label>
               </div>
               <div className="flex gap-2 pt-2">
                 <button onClick={() => setShowCreateModal(false)} className="btn btn-secondary flex-1">Cancel</button>
@@ -1435,7 +1484,12 @@ export default function Users() {
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-sm font-medium">Expiration</label>
                   <div className="flex items-center gap-2">
-                    <input type="checkbox" id="editLifetime" checked={editData.isLifetime} onChange={(e) => setEditData({ ...editData, isLifetime: e.target.checked })} className="w-3.5 h-3.5 accent-primary-600" />
+                    <GlassCheckbox
+                      id="editLifetime"
+                      checked={editData.isLifetime}
+                      onChange={() => setEditData({ ...editData, isLifetime: !editData.isLifetime })}
+                      ariaLabel="Lifetime Access"
+                    />
                     <label htmlFor="editLifetime" className="text-xs text-gray-400 cursor-pointer">Lifetime Access</label>
                   </div>
                 </div>
@@ -1444,8 +1498,13 @@ export default function Users() {
                 )}
               </div>
               <div className="flex items-center gap-3">
-                <input type="checkbox" id="editHwidAffected" checked={editData.hwidAffected} onChange={(e) => setEditData({ ...editData, hwidAffected: e.target.checked })} className="w-4 h-4 accent-primary-600" />
-                <label htmlFor="editHwidAffected" className="text-sm">HWID Affected</label>
+                <GlassCheckbox
+                  id="editHwidAffected"
+                  checked={editData.hwidAffected}
+                  onChange={() => setEditData({ ...editData, hwidAffected: !editData.hwidAffected })}
+                  ariaLabel="HWID Affected"
+                />
+                <label htmlFor="editHwidAffected" className="text-sm cursor-pointer">HWID Affected</label>
               </div>
               <div className="flex gap-2 pt-2">
                 <button onClick={() => setShowEditModal(false)} className="btn btn-secondary flex-1">Cancel</button>
@@ -1510,12 +1569,12 @@ export default function Users() {
               </div>
 
               <div className="flex items-center gap-3 px-4 py-3 bg-dark-bg border border-dark-border rounded-xl">
-                <input
-                  type="checkbox"
+                <GlassCheckbox
                   id="banIpCheck"
                   checked={banIp}
-                  onChange={(e) => setBanIp(e.target.checked)}
-                  className="w-4 h-4 accent-red-600 flex-shrink-0"
+                  onChange={() => setBanIp((prev) => !prev)}
+                  accent="red"
+                  ariaLabel="Also ban IP address"
                 />
                 <label htmlFor="banIpCheck" className="text-sm cursor-pointer">
                   {isBulkBanMode
