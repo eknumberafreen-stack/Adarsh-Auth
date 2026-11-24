@@ -290,6 +290,11 @@ export default function Users() {
   const [extendHours, setExtendHours] = useState('0')
   const [extendMakeLifetime, setExtendMakeLifetime] = useState(false)
 
+  // IP Bans Manager Modal
+  const [showIpBansModal, setShowIpBansModal] = useState(false)
+  const [ipBans, setIpBans] = useState<any[]>([])
+  const [loadingIpBans, setLoadingIpBans] = useState(false)
+
   // Create user modal
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
@@ -415,6 +420,53 @@ export default function Users() {
       const res = await api.get('/applications?all=true')
       if (res.data?.applications) setApplications(res.data.applications)
     } catch { /* silent */ }
+  }
+
+  const loadIpBans = async () => {
+    setLoadingIpBans(true)
+    try {
+      const res = await api.get('/users/ip-bans')
+      setIpBans(res.data.bans || [])
+    } catch {
+      /* silent */
+    } finally {
+      setLoadingIpBans(false)
+    }
+  }
+
+  useEffect(() => {
+    loadIpBans()
+  }, [])
+
+  const unbanIpAddress = async (ip: string) => {
+    try {
+      await api.delete(`/users/ip-bans/${encodeURIComponent(ip)}`)
+      toast.success(`Unbanned IP ${ip}`)
+      setIpBans((prev) => prev.filter((b) => b.ip !== ip))
+    } catch (e: any) {
+      toast.error(e.response?.data?.error || 'Failed to remove IP ban')
+    }
+  }
+
+  const clearAllIpBans = async () => {
+    setConfirmModal({
+      show: true,
+      title: `Clear All ${ipBans.length} IP Ban(s)?`,
+      message: 'This removes every IP ban from the database and Redis cache immediately.',
+      type: 'warning',
+      iconType: 'reset',
+      confirmText: 'Clear All',
+      onConfirm: async () => {
+        setConfirmModal((prev) => ({ ...prev, show: false }))
+        try {
+          const res = await api.delete('/users/ip-bans')
+          toast.success(res.data?.message || 'Cleared all IP bans')
+          setIpBans([])
+        } catch (e: any) {
+          toast.error(e.response?.data?.error || 'Failed to clear IP bans')
+        }
+      },
+    })
   }
 
   const handlePageChange = (newPage: number) => {
@@ -673,6 +725,7 @@ export default function Users() {
         banMessage: banMessage || null,
         banIp,
       })
+      if (banIp) loadIpBans()
       setBanning(false)
       return
     }
@@ -688,6 +741,7 @@ export default function Users() {
       toast.success(`User banned. ${res.data.licensesBlacklisted} license(s) blacklisted.`)
       setShowBanModal(false)
       loadUsers()
+      if (banIp) loadIpBans()
     } catch (e: any) { toast.error(e.response?.data?.error || 'Failed to ban user') }
     finally { setBanning(false) }
   }
@@ -846,6 +900,20 @@ export default function Users() {
               <option value={50} className="bg-[#0d0e16]">50 / page</option>
               <option value={100} className="bg-[#0d0e16]">100 / page</option>
             </select>
+
+            <button
+              type="button"
+              onClick={() => { setShowIpBansModal(true); loadIpBans() }}
+              className="px-4 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/25 text-xs font-bold uppercase tracking-wider text-rose-300 transition-all flex items-center gap-2"
+            >
+              <ShieldExclamationIcon className="w-4 h-4" />
+              IP Bans
+              {ipBans.length > 0 && (
+                <span className="px-1.5 py-0.5 rounded-md bg-rose-500/25 text-[10px] font-black text-rose-200">
+                  {ipBans.length}
+                </span>
+              )}
+            </button>
 
             <button
               onClick={() => setShowCreateModal(true)}
@@ -1602,6 +1670,86 @@ export default function Users() {
                   {banning ? 'Banning...' : isBulkBanMode ? `Full Ban (${effectiveSelectedCount})` : 'Full Ban'}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── IP Bans Manager Modal ───────────────────────────────────────── */}
+      {showIpBansModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
+          <div className="modal-card w-full max-w-lg">
+            <div className="flex items-start justify-between mb-5">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-400">
+                  <ShieldExclamationIcon className="w-5 h-5" />
+                </span>
+                <div>
+                  <h2 className="text-lg font-bold text-white">Banned IP Addresses</h2>
+                  <p className="text-xs text-slate-400">
+                    {ipBans.length} active client IP ban(s)
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => setShowIpBansModal(false)} className="text-gray-400 hover:text-white">
+                <XMarkIcon className="w-5 h-5" />
+              </button>
+            </div>
+
+            {loadingIpBans ? (
+              <div className="flex justify-center py-10">
+                <div className="h-7 w-7 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+              </div>
+            ) : ipBans.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] py-10 text-center text-xs text-slate-400">
+                No IP addresses are currently banned.
+              </div>
+            ) : (
+              <div className="max-h-80 overflow-y-auto space-y-2 pr-1">
+                {ipBans.map((ban: any) => (
+                  <div
+                    key={ban._id || ban.ip}
+                    className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.07] bg-black/40 px-4 py-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-mono text-xs font-bold text-white truncate">{ban.ip}</p>
+                      <p className="text-[11px] text-slate-400 truncate mt-0.5">
+                        {ban.reason || 'Manual ban'} • {formatToDDMMYYYY(ban.createdAt, 'Unknown', true)}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => unbanIpAddress(ban.ip)}
+                      className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/25 text-emerald-300 text-xs font-bold transition-all"
+                    >
+                      <CheckBadgeIcon className="w-4 h-4" />
+                      Unban
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex items-center justify-between gap-3 pt-5 mt-4 border-t border-white/[0.06]">
+              {ipBans.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={clearAllIpBans}
+                  className="px-4 py-2.5 rounded-xl bg-red-600/80 hover:bg-red-500 text-xs font-bold uppercase tracking-wider text-white transition-all flex items-center gap-1.5"
+                >
+                  <TrashIcon className="w-4 h-4" />
+                  Clear All ({ipBans.length})
+                </button>
+              ) : (
+                <span />
+              )}
+              <button
+                type="button"
+                onClick={() => setShowIpBansModal(false)}
+                className="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold uppercase tracking-wider text-slate-300 transition-all"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

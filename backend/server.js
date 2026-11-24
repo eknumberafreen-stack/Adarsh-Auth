@@ -11,7 +11,7 @@ const { seedPlans } = require('./utils/seedPlans');
 const { globalRateLimiter } = require('./middleware/rateLimiter');
 const { errorHandler } = require('./middleware/errorHandler');
 const { sanitizeMiddleware } = require('./utils/sanitize');
-const { checkIPBan } = require('./middleware/ipBan');
+const { purgeProtectedProxyIPBans } = require('./middleware/ipBan');
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -43,8 +43,8 @@ app.use(passport.initialize());
 // Sanitize all inputs (NoSQL injection prevention)
 app.use(sanitizeMiddleware);
 
-// IP ban check on all routes
-app.use(checkIPBan);
+// Note: IP bans are enforced on /api/client routes only (clientAuth.js) so client IP bans
+// can never lock users or admins out of website login / Google OAuth / dashboard management.
 
 // Global rate limiter
 app.use(globalRateLimiter);
@@ -81,6 +81,7 @@ const startServer = async () => {
   try {
     await connectDB();
     await connectRedis();
+    await purgeProtectedProxyIPBans();
     await seedPlans();
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);

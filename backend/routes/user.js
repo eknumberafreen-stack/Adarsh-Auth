@@ -11,6 +11,7 @@ const { verifyToken, verifyAppAccess } = require('../middleware/auth');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { getRedisClient } = require('../config/redis');
 const { checkPlanLimit } = require('../middleware/planLimit');
+const { isProtectedProxyOrPrivateIp, normalizeIp } = require('../utils/ip');
 
 const router = express.Router();
 router.use(verifyToken);
@@ -355,15 +356,20 @@ router.post('/application/:applicationId/bulk', verifyAppAccess('manage_users'),
       await Session.deleteMany({ userId: { $in: targetIds } });
 
       let ipsBanned = 0;
+      let protectedIpsSkipped = 0;
       if (banIp) {
-        const uniqueIps = [...new Set(targetUsers.map(u => u.lastIp).filter(Boolean))];
+        const uniqueIps = [...new Set(targetUsers.map(u => normalizeIp(u.lastIp)).filter(Boolean))];
         for (const ip of uniqueIps) {
+          if (isProtectedProxyOrPrivateIp(ip)) {
+            protectedIpsSkipped++;
+            continue;
+          }
           await IPBan.findOneAndUpdate(
             { ip },
-            { ip, reason: `Bulk user ban: ${reason}`, bannedBy: req.userId },
+            { ip, reason: `Bulk user ban: ${reason}`, bannedBy: req.userId, applicationId: appId },
             { upsert: true, new: true }
           );
-          if (redis) await redis.del(`ipban:${ip}`);
+          if (redis) await redis.del(`ipban:${ip}`).catch(() => {});
           ipsBanned++;
         }
       }
@@ -378,13 +384,13 @@ router.post('/application/:applicationId/bulk', verifyAppAccess('manage_users'),
           details: {
             event: isSoftBan ? 'user_soft_banned_bulk' : 'user_permanent_banned_bulk',
             reason,
-            ipBanned: banIp && !!u.lastIp
+            ipBanned: banIp && !!u.lastIp && !isProtectedProxyOrPrivateIp(u.lastIp)
           }
         }))
       );
 
       affected = targetUsers.length;
-      extra = { licensesBlacklisted, ipsBanned };
+      extra = { licensesBlacklisted, ipsBanned, protectedIpsSkipped };
       break;
     }
 
@@ -511,6 +517,85 @@ router.post('/create',
     res.status(201).json({ message: 'User created successfully', user });
   }));
 
+// ─── IP Ban management (placed before /:id routes to avoid Express param collisions)
+const getVisibleIpBanFilter = async (req) => {
+  const ownerEmail = process.env.OWNER_EMAIL;
+  if (!ownerEmail || req.user?.email === ownerEmail) {
+    return {};
+  }
+  const ownedApps = await Application.find({ userId: req.userId }).select('_id team.userId').lean();
+  const appIds = ownedApps.map((a) => a._id);
+  const teamIds = ownedApps.flatMap((a) => (a.team || []).map((m) => m.userId)).filter(Boolean);
+  return {
+    $or: [
+      { bannedBy: req.userId },
+      { bannedBy: null },
+      ...(teamIds.length > 0 ? [{ bannedBy: { $in: teamIds } }] : []),
+      ...(appIds.length > 0 ? [{ applicationId: { $in: appIds } }] : []),
+    ],
+  };
+};
+
+router.get('/ip-bans', asyncHandler(async (req, res) => {
+  const filter = await getVisibleIpBanFilter(req);
+  const bans = await IPBan.find(filter).sort({ createdAt: -1 }).lean();
+  res.json({
+    bans: bans.map((b) => ({
+      ...b,
+      isProtectedProxy: isProtectedProxyOrPrivateIp(b.ip),
+    })),
+  });
+}));
+
+router.post('/ip-bans', asyncHandler(async (req, res) => {
+  const ip = normalizeIp(req.body?.ip);
+  const reason = req.body?.reason;
+  if (!ip) return res.status(400).json({ error: 'IP is required' });
+  if (isProtectedProxyOrPrivateIp(ip)) {
+    return res.status(400).json({
+      error: 'Cannot ban a protected proxy, Cloudflare, or private network IP address',
+    });
+  }
+
+  const ban = await IPBan.findOneAndUpdate(
+    { ip },
+    { ip, reason: reason || 'Manual ban', bannedBy: req.userId },
+    { upsert: true, new: true }
+  );
+
+  const redis = getSafeRedis();
+  if (redis) await redis.del(`ipban:${ip}`).catch(() => {});
+
+  res.json({ message: 'IP banned', ban });
+}));
+
+router.delete('/ip-bans', asyncHandler(async (req, res) => {
+  const filter = await getVisibleIpBanFilter(req);
+  const toDelete = await IPBan.find(filter).select('ip').lean();
+  const ips = toDelete.map((b) => b.ip);
+
+  if (ips.length > 0) {
+    await IPBan.deleteMany({ ip: { $in: ips } });
+    const redis = getSafeRedis();
+    if (redis) {
+      await Promise.all(ips.map((ip) => redis.del(`ipban:${ip}`).catch(() => {})));
+    }
+  }
+
+  res.json({ message: `Cleared ${ips.length} IP ban(s)`, cleared: ips.length });
+}));
+
+router.delete('/ip-bans/:ip', asyncHandler(async (req, res) => {
+  const ip = normalizeIp(decodeURIComponent(req.params.ip || ''));
+  const filter = await getVisibleIpBanFilter(req);
+  await IPBan.deleteOne({ $and: [filter, { ip }] });
+
+  const redis = getSafeRedis();
+  if (redis) await redis.del(`ipban:${ip}`).catch(() => {});
+
+  res.json({ message: 'IP ban removed', ip });
+}));
+
 // ─── BAN (soft or permanent) ──────────────────────────────────────────────────
 router.post('/:id/ban', asyncHandler(async (req, res) => {
   const { reason = 'Manual ban', banIp = false, banMessage = '', softBan = false } = req.body;
@@ -546,15 +631,18 @@ router.post('/:id/ban', asyncHandler(async (req, res) => {
   // 3. Kill all sessions
   await Session.deleteMany({ userId: user._id });
 
-  // 4. Optionally ban IP
-  if (banIp && user.lastIp) {
+  // 4. Optionally ban IP (skip protected proxy / Cloudflare / private IPs)
+  const targetIp = normalizeIp(user.lastIp);
+  let ipWasBanned = false;
+  if (banIp && targetIp && !isProtectedProxyOrPrivateIp(targetIp)) {
     await IPBan.findOneAndUpdate(
-      { ip: user.lastIp },
-      { ip: user.lastIp, reason: `User ban: ${reason}`, bannedBy: req.userId },
+      { ip: targetIp },
+      { ip: targetIp, reason: `User ban: ${reason}`, bannedBy: req.userId, applicationId: user.applicationId._id },
       { upsert: true, new: true }
     );
-    const redis = getRedisClient();
-    await redis.del(`ipban:${user.lastIp}`);
+    const redis = getSafeRedis();
+    if (redis) await redis.del(`ipban:${targetIp}`).catch(() => {});
+    ipWasBanned = true;
   }
 
   await AuditLog.create({
@@ -567,14 +655,14 @@ router.post('/:id/ban', asyncHandler(async (req, res) => {
       event: softBan ? 'user_soft_banned' : 'user_permanent_banned',
       reason,
       licensesBlacklisted: blacklistedCount,
-      ipBanned: banIp && !!user.lastIp
+      ipBanned: ipWasBanned
     }
   });
 
   res.json({
     message: softBan ? 'User soft banned (PC reset = access)' : 'User permanently banned',
     licensesBlacklisted: blacklistedCount,
-    ipBanned: banIp && !!user.lastIp
+    ipBanned: ipWasBanned
   });
 }));
 
@@ -755,40 +843,6 @@ router.delete('/:id', asyncHandler(async (req, res) => {
   }
 
   res.json({ message: 'User deleted successfully' });
-}));
-
-// ─── IP Ban management ────────────────────────────────────────────────────────
-router.get('/ip-bans', asyncHandler(async (req, res) => {
-  // Only owners should ideally view all IP bans, but for simplicity let's return it. 
-  // If we wanted to scope it to the application, we'd need applicationId here.
-  // For now, anyone with valid token can fetch them, but the frontend only shows it on specific pages.
-  const bans = await IPBan.find().sort({ createdAt: -1 });
-  res.json({ bans });
-}));
-
-router.post('/ip-bans', asyncHandler(async (req, res) => {
-  const { ip, reason } = req.body;
-  if (!ip) return res.status(400).json({ error: 'IP is required' });
-
-  const ban = await IPBan.findOneAndUpdate(
-    { ip },
-    { ip, reason: reason || 'Manual ban', bannedBy: req.userId },
-    { upsert: true, new: true }
-  );
-
-  const redis = getRedisClient();
-  await redis.del(`ipban:${ip}`);
-
-  res.json({ message: 'IP banned', ban });
-}));
-
-router.delete('/ip-bans/:ip', asyncHandler(async (req, res) => {
-  await IPBan.deleteOne({ ip: req.params.ip });
-
-  const redis = getRedisClient();
-  await redis.del(`ipban:${req.params.ip}`);
-
-  res.json({ message: 'IP ban removed' });
 }));
 
 module.exports = router;
